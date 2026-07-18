@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="Mahjong.Core/Mahjong.Core.csproj" />
+  <Project Path="Mahjong.Tests/Mahjong.Tests.csproj" />
+</Solution>
