@@ -539,4 +539,128 @@ public class HandTests
 
 		Assert.Throws<InvalidOperationException>(() => hand.Discard(new Tile(TileSuit.Man, 3)));
 	}
+
+	/// <summary>パス条件: ClosedKan()成立時、MeldsにType=ClosedKan, Tiles=[tile1,2,3,4]のMeldが追加されること。</summary>
+	[Fact]
+	public void ClosedKan_AddsMeldToMelds()
+	{
+		var hand = new Hand(CreateThirteenTilesWithTriplicatePinOne());
+		hand.Draw(new Tile(TileSuit.Pin, 1));
+		var tile1 = new Tile(TileSuit.Pin, 1);
+		var tile2 = new Tile(TileSuit.Pin, 1);
+		var tile3 = new Tile(TileSuit.Pin, 1);
+		var tile4 = new Tile(TileSuit.Pin, 1);
+
+		hand.ClosedKan(tile1, tile2, tile3, tile4);
+
+		var meld = Assert.Single(hand.Melds);
+		Assert.Equal(MeldType.ClosedKan, meld.Type);
+		Assert.Equal([tile1, tile2, tile3, tile4], meld.Tiles);
+	}
+
+	/// <summary>パス条件: ClosedKan()成立時、使用した4枚がConcealedTilesから取り除かれること(14→10枚)。</summary>
+	[Fact]
+	public void ClosedKan_RemovesFourTilesFromConcealedTiles()
+	{
+		var hand = new Hand(CreateThirteenTilesWithTriplicatePinOne());
+		hand.Draw(new Tile(TileSuit.Pin, 1));
+
+		hand.ClosedKan(
+			new Tile(TileSuit.Pin, 1), new Tile(TileSuit.Pin, 1), new Tile(TileSuit.Pin, 1), new Tile(TileSuit.Pin, 1));
+
+		Assert.Equal(10, hand.ConcealedTiles.Count);
+	}
+
+	/// <summary>パス条件: tile2/3/4のいずれかがtile1と種類不一致の場合 ArgumentException になること。</summary>
+	[Theory]
+	[InlineData(2)]
+	[InlineData(3)]
+	[InlineData(4)]
+	public void ClosedKan_WithMismatchedTile_Throws(int mismatchPosition)
+	{
+		var hand = new Hand(CreateThirteenTilesWithTriplicatePinOne());
+		hand.Draw(new Tile(TileSuit.Pin, 1));
+		var mismatched = new Tile(TileSuit.Pin, 2);
+		var tile1 = new Tile(TileSuit.Pin, 1);
+		var tile2 = mismatchPosition == 2 ? mismatched : new Tile(TileSuit.Pin, 1);
+		var tile3 = mismatchPosition == 3 ? mismatched : new Tile(TileSuit.Pin, 1);
+		var tile4 = mismatchPosition == 4 ? mismatched : new Tile(TileSuit.Pin, 1);
+
+		Assert.Throws<ArgumentException>(() => hand.ClosedKan(tile1, tile2, tile3, tile4));
+	}
+
+	/// <summary>
+	/// パス条件: tile2が手牌に存在しない場合 ArgumentException になり、ConcealedTilesは変化しないこと。
+	/// (手牌にはMan5が1枚しかないため、tile1で消費された後のtile2は存在しない)
+	/// </summary>
+	[Fact]
+	public void ClosedKan_WithTile2NotInHand_ThrowsAndLeavesHandUnchanged()
+	{
+		var startingTiles = CreateThirteenTiles();
+		var hand = new Hand(startingTiles);
+		hand.Draw(new Tile(TileSuit.Sou, 9));
+		var expectedTiles = hand.ConcealedTiles.ToList();
+
+		Assert.Throws<ArgumentException>(() => hand.ClosedKan(
+			new Tile(TileSuit.Man, 5), new Tile(TileSuit.Man, 5), new Tile(TileSuit.Man, 5), new Tile(TileSuit.Man, 5)));
+		Assert.Equal(expectedTiles, hand.ConcealedTiles);
+	}
+
+	/// <summary>
+	/// パス条件: tile4(最後に検証する牌)が手牌に存在しない場合 ArgumentException になり、
+	/// ConcealedTilesは変化しないこと(先に3枚の照合が成功していてもロールバックされることを確認する)。
+	/// </summary>
+	[Fact]
+	public void ClosedKan_WithTile4NotInHand_ThrowsAndLeavesHandUnchanged()
+	{
+		var hand = new Hand(CreateThirteenTilesWithTriplicatePinOne());
+		hand.Draw(new Tile(TileSuit.Sou, 9));
+		var expectedTiles = hand.ConcealedTiles.ToList();
+
+		Assert.Throws<ArgumentException>(() => hand.ClosedKan(
+			new Tile(TileSuit.Pin, 1), new Tile(TileSuit.Pin, 1), new Tile(TileSuit.Pin, 1), new Tile(TileSuit.Pin, 1)));
+		Assert.Equal(expectedTiles, hand.ConcealedTiles);
+	}
+
+	/// <summary>
+	/// パス条件: 打牌待ちでない状態(ツモ前)でClosedKan()を呼ぶと InvalidOperationException になること。
+	/// (明槓・ポン・チーとは逆方向の判定であることを確認する)
+	/// </summary>
+	[Fact]
+	public void ClosedKan_WhenNotPending_Throws()
+	{
+		var hand = new Hand(CreateThirteenTilesWithTriplicatePinOne());
+
+		Assert.Throws<InvalidOperationException>(() => hand.ClosedKan(
+			new Tile(TileSuit.Pin, 1), new Tile(TileSuit.Pin, 1), new Tile(TileSuit.Pin, 1), new Tile(TileSuit.Pin, 1)));
+	}
+
+	/// <summary>
+	/// パス条件: ClosedKan()成立後は打牌待ちにならない(嶺上牌のツモがまだのため)ため、
+	/// Draw()を呼んでも例外にならないこと。
+	/// </summary>
+	[Fact]
+	public void ClosedKan_ThenDraw_Succeeds()
+	{
+		var hand = new Hand(CreateThirteenTilesWithTriplicatePinOne());
+		hand.Draw(new Tile(TileSuit.Pin, 1));
+		hand.ClosedKan(
+			new Tile(TileSuit.Pin, 1), new Tile(TileSuit.Pin, 1), new Tile(TileSuit.Pin, 1), new Tile(TileSuit.Pin, 1));
+
+		hand.Draw(new Tile(TileSuit.Sou, 9));
+
+		Assert.Equal(11, hand.ConcealedTiles.Count);
+	}
+
+	/// <summary>パス条件: ClosedKan()成立直後(嶺上牌ツモ前)にDiscard()を呼ぶと InvalidOperationException になること。</summary>
+	[Fact]
+	public void ClosedKan_ThenDiscardImmediately_Throws()
+	{
+		var hand = new Hand(CreateThirteenTilesWithTriplicatePinOne());
+		hand.Draw(new Tile(TileSuit.Pin, 1));
+		hand.ClosedKan(
+			new Tile(TileSuit.Pin, 1), new Tile(TileSuit.Pin, 1), new Tile(TileSuit.Pin, 1), new Tile(TileSuit.Pin, 1));
+
+		Assert.Throws<InvalidOperationException>(() => hand.Discard(new Tile(TileSuit.Man, 3)));
+	}
 }
