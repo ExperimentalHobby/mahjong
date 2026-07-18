@@ -147,4 +147,127 @@ public class HandTests
 
 		Assert.Equal([firstDraw, secondDraw], hand.Discards);
 	}
+
+	private static List<Tile> CreateThirteenTilesWithDuplicatePinOne()
+	{
+		var tiles = CreateThirteenTiles();
+		tiles[0] = new Tile(TileSuit.Pin, 1);
+		return tiles;
+	}
+
+	/// <summary>パス条件: Pon()成立時、Meldsに Type=Pon, Tiles=[handTile1, handTile2, claimedTile] のMeldが追加されること。</summary>
+	[Fact]
+	public void Pon_AddsMeldToMelds()
+	{
+		var hand = new Hand(CreateThirteenTilesWithDuplicatePinOne());
+		var handTile1 = new Tile(TileSuit.Pin, 1);
+		var handTile2 = new Tile(TileSuit.Pin, 1);
+		var claimedTile = new Tile(TileSuit.Pin, 1);
+
+		hand.Pon(claimedTile, handTile1, handTile2);
+
+		var meld = Assert.Single(hand.Melds);
+		Assert.Equal(MeldType.Pon, meld.Type);
+		Assert.Equal([handTile1, handTile2, claimedTile], meld.Tiles);
+	}
+
+	/// <summary>パス条件: Pon()成立時、使用した2枚がConcealedTilesから取り除かれること(13→11枚)。</summary>
+	[Fact]
+	public void Pon_RemovesTwoTilesFromConcealedTiles()
+	{
+		var hand = new Hand(CreateThirteenTilesWithDuplicatePinOne());
+		var claimedTile = new Tile(TileSuit.Pin, 1);
+
+		hand.Pon(claimedTile, new Tile(TileSuit.Pin, 1), new Tile(TileSuit.Pin, 1));
+
+		Assert.Equal(11, hand.ConcealedTiles.Count);
+	}
+
+	/// <summary>パス条件: claimedTileとhandTile1のSuit/Rankが一致しない場合 ArgumentException になること。</summary>
+	[Fact]
+	public void Pon_WithHandTile1MismatchedKind_Throws()
+	{
+		var hand = new Hand(CreateThirteenTilesWithDuplicatePinOne());
+		var claimedTile = new Tile(TileSuit.Pin, 1);
+		var mismatchedHandTile1 = new Tile(TileSuit.Pin, 2);
+
+		Assert.Throws<ArgumentException>(() => hand.Pon(claimedTile, mismatchedHandTile1, new Tile(TileSuit.Pin, 1)));
+	}
+
+	/// <summary>パス条件: claimedTileとhandTile2のSuit/Rankが一致しない場合 ArgumentException になること。</summary>
+	[Fact]
+	public void Pon_WithHandTile2MismatchedKind_Throws()
+	{
+		var hand = new Hand(CreateThirteenTilesWithDuplicatePinOne());
+		var claimedTile = new Tile(TileSuit.Pin, 1);
+		var mismatchedHandTile2 = new Tile(TileSuit.Pin, 2);
+
+		Assert.Throws<ArgumentException>(() => hand.Pon(claimedTile, new Tile(TileSuit.Pin, 1), mismatchedHandTile2));
+	}
+
+	/// <summary>パス条件: handTile1が手牌に存在しない場合 ArgumentException になり、ConcealedTilesは変化しないこと。</summary>
+	[Fact]
+	public void Pon_WithHandTile1NotInHand_ThrowsAndLeavesHandUnchanged()
+	{
+		var startingTiles = CreateThirteenTilesWithDuplicatePinOne();
+		var hand = new Hand(startingTiles);
+		var claimedTile = new Tile(TileSuit.Sou, 9);
+		var missingHandTile1 = new Tile(TileSuit.Sou, 9);
+
+		Assert.Throws<ArgumentException>(() => hand.Pon(claimedTile, missingHandTile1, new Tile(TileSuit.Sou, 9)));
+		Assert.Equal(startingTiles, hand.ConcealedTiles);
+	}
+
+	/// <summary>
+	/// パス条件: handTile2が手牌に存在しない場合 ArgumentException になり、ConcealedTilesは変化しないこと。
+	/// (手牌に1枚しかないPin2をhandTile1として消費した後、handTile2に同じPin2を指定して検証する)
+	/// </summary>
+	[Fact]
+	public void Pon_WithHandTile2NotInHand_ThrowsAndLeavesHandUnchanged()
+	{
+		var startingTiles = CreateThirteenTilesWithDuplicatePinOne();
+		var hand = new Hand(startingTiles);
+		var claimedTile = new Tile(TileSuit.Pin, 2);
+
+		Assert.Throws<ArgumentException>(() => hand.Pon(claimedTile, new Tile(TileSuit.Pin, 2), new Tile(TileSuit.Pin, 2)));
+		Assert.Equal(startingTiles, hand.ConcealedTiles);
+	}
+
+	/// <summary>パス条件: 打牌待ち状態(ツモ直後)でPon()を呼ぶと InvalidOperationException になること。</summary>
+	[Fact]
+	public void Pon_WhenPendingDiscard_Throws()
+	{
+		var hand = new Hand(CreateThirteenTilesWithDuplicatePinOne());
+		hand.Draw(new Tile(TileSuit.Sou, 9));
+		var claimedTile = new Tile(TileSuit.Pin, 1);
+
+		Assert.Throws<InvalidOperationException>(
+			() => hand.Pon(claimedTile, new Tile(TileSuit.Pin, 1), new Tile(TileSuit.Pin, 1)));
+	}
+
+	/// <summary>パス条件: Pon()成立後は打牌待ち状態になり、Draw()を呼ぶと InvalidOperationException になること。</summary>
+	[Fact]
+	public void Pon_ThenDraw_Throws()
+	{
+		var hand = new Hand(CreateThirteenTilesWithDuplicatePinOne());
+		var claimedTile = new Tile(TileSuit.Pin, 1);
+		hand.Pon(claimedTile, new Tile(TileSuit.Pin, 1), new Tile(TileSuit.Pin, 1));
+
+		Assert.Throws<InvalidOperationException>(() => hand.Draw(new Tile(TileSuit.Sou, 9)));
+	}
+
+	/// <summary>パス条件: Pon()成立後、Discard()が正しく機能すること(11→10枚、Discardsに追加される)。</summary>
+	[Fact]
+	public void Pon_ThenDiscard_Succeeds()
+	{
+		var hand = new Hand(CreateThirteenTilesWithDuplicatePinOne());
+		var claimedTile = new Tile(TileSuit.Pin, 1);
+		hand.Pon(claimedTile, new Tile(TileSuit.Pin, 1), new Tile(TileSuit.Pin, 1));
+		var discardedTile = new Tile(TileSuit.Man, 2);
+
+		hand.Discard(discardedTile);
+
+		Assert.Equal(10, hand.ConcealedTiles.Count);
+		Assert.Equal([discardedTile], hand.Discards);
+	}
 }
