@@ -11,4 +11,7 @@ public enum MeldType
 
 	/// <summary>明槓（大明槓）。</summary>
 	OpenKan,
+
+	/// <summary>暗槓。</summary>
+	ClosedKan,
 }

@@ -46,10 +46,7 @@ public sealed class Hand
 	/// <exception cref="ArgumentException">手牌に存在しない牌を指定した場合。</exception>
 	public void Discard(Tile tile)
 	{
-		if (!_hasPendingTile)
-		{
-			throw new InvalidOperationException("ツモしてから打牌してください。");
-		}
+		EnsurePending("打牌");
 
 		if (!_concealedTiles.Remove(tile))
 		{
@@ -129,6 +126,25 @@ public sealed class Hand
 		_melds.Add(new Meld(MeldType.OpenKan, [handTile1, handTile2, handTile3, claimedTile]));
 	}
 
+	/// <summary>
+	/// 自分の手牌4枚（直前のツモを含む）で暗槓を成立させる。
+	/// カン成立後は打牌待ちにはならない（<c>_hasPendingTile</c> は false になる）。
+	/// 嶺上牌のツモは呼び出し側が別途 <see cref="Draw"/> を呼ぶ想定。
+	/// </summary>
+	/// <exception cref="InvalidOperationException">打牌待ち（ツモ直後）でない場合。</exception>
+	/// <exception cref="ArgumentException">
+	/// tile2/tile3/tile4 の種類（Suit/Rank）が tile1 と一致しない場合、
+	/// または手牌に存在しない牌を指定した場合。
+	/// </exception>
+	public void ClosedKan(Tile tile1, Tile tile2, Tile tile3, Tile tile4)
+	{
+		EnsurePending("暗槓");
+		EnsureSameKind(tile1, "暗槓する牌", tile2, tile3, tile4);
+		RemoveFromConcealedAtomically(tile1, tile2, tile3, tile4);
+		_melds.Add(new Meld(MeldType.ClosedKan, [tile1, tile2, tile3, tile4]));
+		_hasPendingTile = false;
+	}
+
 	/// <summary>打牌待ち（ツモ直後）でないことを確認する。</summary>
 	/// <exception cref="InvalidOperationException">打牌待ちの場合。</exception>
 	private void EnsureNotPending(string meldActionName)
@@ -136,6 +152,16 @@ public sealed class Hand
 		if (_hasPendingTile)
 		{
 			throw new InvalidOperationException($"打牌前は{meldActionName}できません。");
+		}
+	}
+
+	/// <summary>打牌待ち（ツモ直後）であることを確認する。</summary>
+	/// <exception cref="InvalidOperationException">打牌待ちでない場合。</exception>
+	private void EnsurePending(string actionName)
+	{
+		if (!_hasPendingTile)
+		{
+			throw new InvalidOperationException($"ツモしてから{actionName}してください。");
 		}
 	}
 
