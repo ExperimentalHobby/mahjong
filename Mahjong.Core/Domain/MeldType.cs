@@ -5,4 +5,7 @@ public enum MeldType
 {
 	/// <summary>ポン（刻子）。</summary>
 	Pon,
+
+	/// <summary>チー（順子）。</summary>
+	Chi,
 }

@@ -270,4 +270,151 @@ public class HandTests
 		Assert.Equal(10, hand.ConcealedTiles.Count);
 		Assert.Equal([discardedTile], hand.Discards);
 	}
+
+	/// <summary>パス条件: Chi()成立時、MeldsにType=Chi, Tiles=[Rank昇順の3枚]のMeldが追加されること。</summary>
+	[Fact]
+	public void Chi_AddsMeldToMeldsInAscendingRankOrder()
+	{
+		var hand = new Hand(CreateThirteenTiles());
+		var claimedTile = new Tile(TileSuit.Man, 2);
+		var handTile1 = new Tile(TileSuit.Man, 3);
+		var handTile2 = new Tile(TileSuit.Man, 1);
+
+		hand.Chi(claimedTile, handTile1, handTile2);
+
+		var meld = Assert.Single(hand.Melds);
+		Assert.Equal(MeldType.Chi, meld.Type);
+		Assert.Equal(
+			[new Tile(TileSuit.Man, 1), new Tile(TileSuit.Man, 2), new Tile(TileSuit.Man, 3)],
+			meld.Tiles);
+	}
+
+	/// <summary>パス条件: Chi()成立時、使用した2枚がConcealedTilesから取り除かれること(13→11枚)。</summary>
+	[Fact]
+	public void Chi_RemovesTwoTilesFromConcealedTiles()
+	{
+		var hand = new Hand(CreateThirteenTiles());
+		var claimedTile = new Tile(TileSuit.Man, 2);
+
+		hand.Chi(claimedTile, new Tile(TileSuit.Man, 3), new Tile(TileSuit.Man, 1));
+
+		Assert.Equal(11, hand.ConcealedTiles.Count);
+	}
+
+	/// <summary>パス条件: claimedTileが字牌の場合 ArgumentException になること。</summary>
+	[Fact]
+	public void Chi_WithHonorClaimedTile_Throws()
+	{
+		var hand = new Hand(CreateThirteenTiles());
+		var claimedTile = new Tile(TileSuit.Honor, 1);
+
+		Assert.Throws<ArgumentException>(
+			() => hand.Chi(claimedTile, new Tile(TileSuit.Man, 1), new Tile(TileSuit.Man, 3)));
+	}
+
+	/// <summary>パス条件: handTile1がclaimedTileと異なるSuitの場合 ArgumentException になること。</summary>
+	[Fact]
+	public void Chi_WithHandTile1DifferentSuit_Throws()
+	{
+		var hand = new Hand(CreateThirteenTiles());
+		var claimedTile = new Tile(TileSuit.Man, 2);
+		var mismatchedHandTile1 = new Tile(TileSuit.Pin, 1);
+
+		Assert.Throws<ArgumentException>(
+			() => hand.Chi(claimedTile, mismatchedHandTile1, new Tile(TileSuit.Man, 3)));
+	}
+
+	/// <summary>
+	/// パス条件: handTile2がclaimedTileと異なるSuitの場合 ArgumentException になること。
+	/// (Rankだけ見ると連続に見えてしまうケースでSuit不一致が正しく検出されることを確認する)
+	/// </summary>
+	[Fact]
+	public void Chi_WithHandTile2DifferentSuit_Throws()
+	{
+		var hand = new Hand(CreateThirteenTiles());
+		var claimedTile = new Tile(TileSuit.Man, 2);
+		var mismatchedHandTile2 = new Tile(TileSuit.Pin, 3);
+
+		Assert.Throws<ArgumentException>(
+			() => hand.Chi(claimedTile, new Tile(TileSuit.Man, 1), mismatchedHandTile2));
+	}
+
+	/// <summary>パス条件: Rankが3つの連続した整数になっていない場合(例: 1,2,4) ArgumentException になること。</summary>
+	[Fact]
+	public void Chi_WithNonConsecutiveRanks_Throws()
+	{
+		var hand = new Hand(CreateThirteenTiles());
+		var claimedTile = new Tile(TileSuit.Man, 1);
+
+		Assert.Throws<ArgumentException>(
+			() => hand.Chi(claimedTile, new Tile(TileSuit.Man, 2), new Tile(TileSuit.Man, 4)));
+	}
+
+	/// <summary>パス条件: handTile1が手牌に存在しない場合 ArgumentException になり、ConcealedTilesは変化しないこと。</summary>
+	[Fact]
+	public void Chi_WithHandTile1NotInHand_ThrowsAndLeavesHandUnchanged()
+	{
+		var startingTiles = CreateThirteenTiles();
+		var hand = new Hand(startingTiles);
+		var claimedTile = new Tile(TileSuit.Sou, 5);
+
+		Assert.Throws<ArgumentException>(
+			() => hand.Chi(claimedTile, new Tile(TileSuit.Sou, 4), new Tile(TileSuit.Sou, 6)));
+		Assert.Equal(startingTiles, hand.ConcealedTiles);
+	}
+
+	/// <summary>
+	/// パス条件: handTile2が手牌に存在しない場合 ArgumentException になり、ConcealedTilesは変化しないこと。
+	/// (手牌にはPin1〜4しかないため、Pin5は存在しない。handTile1=Pin3は実在するが、
+	/// アトミックに検証されhandTile1側も取り除かれていないことを確認する)
+	/// </summary>
+	[Fact]
+	public void Chi_WithHandTile2NotInHand_ThrowsAndLeavesHandUnchanged()
+	{
+		var startingTiles = CreateThirteenTiles();
+		var hand = new Hand(startingTiles);
+		var claimedTile = new Tile(TileSuit.Pin, 4);
+
+		Assert.Throws<ArgumentException>(
+			() => hand.Chi(claimedTile, new Tile(TileSuit.Pin, 3), new Tile(TileSuit.Pin, 5)));
+		Assert.Equal(startingTiles, hand.ConcealedTiles);
+	}
+
+	/// <summary>パス条件: 打牌待ち状態(ツモ直後)でChi()を呼ぶと InvalidOperationException になること。</summary>
+	[Fact]
+	public void Chi_WhenPendingDiscard_Throws()
+	{
+		var hand = new Hand(CreateThirteenTiles());
+		hand.Draw(new Tile(TileSuit.Sou, 9));
+		var claimedTile = new Tile(TileSuit.Man, 2);
+
+		Assert.Throws<InvalidOperationException>(
+			() => hand.Chi(claimedTile, new Tile(TileSuit.Man, 1), new Tile(TileSuit.Man, 3)));
+	}
+
+	/// <summary>パス条件: Chi()成立後は打牌待ち状態になり、Draw()を呼ぶと InvalidOperationException になること。</summary>
+	[Fact]
+	public void Chi_ThenDraw_Throws()
+	{
+		var hand = new Hand(CreateThirteenTiles());
+		var claimedTile = new Tile(TileSuit.Man, 2);
+		hand.Chi(claimedTile, new Tile(TileSuit.Man, 1), new Tile(TileSuit.Man, 3));
+
+		Assert.Throws<InvalidOperationException>(() => hand.Draw(new Tile(TileSuit.Sou, 9)));
+	}
+
+	/// <summary>パス条件: Chi()成立後、Discard()が正しく機能すること(11→10枚、Discardsに追加される)。</summary>
+	[Fact]
+	public void Chi_ThenDiscard_Succeeds()
+	{
+		var hand = new Hand(CreateThirteenTiles());
+		var claimedTile = new Tile(TileSuit.Man, 2);
+		hand.Chi(claimedTile, new Tile(TileSuit.Man, 1), new Tile(TileSuit.Man, 3));
+		var discardedTile = new Tile(TileSuit.Man, 9);
+
+		hand.Discard(discardedTile);
+
+		Assert.Equal(10, hand.ConcealedTiles.Count);
+		Assert.Equal([discardedTile], hand.Discards);
+	}
 }

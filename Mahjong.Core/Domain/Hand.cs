@@ -68,10 +68,7 @@ public sealed class Hand
 	/// </exception>
 	public void Pon(Tile claimedTile, Tile handTile1, Tile handTile2)
 	{
-		if (_hasPendingTile)
-		{
-			throw new InvalidOperationException("打牌前はポンできません。");
-		}
+		EnsureNotPending("ポン");
 
 		if (!IsSameKind(handTile1, claimedTile))
 		{
@@ -83,6 +80,59 @@ public sealed class Hand
 			throw new ArgumentException("ポンする牌はclaimedTileと種類が一致している必要があります。", nameof(handTile2));
 		}
 
+		RemoveFromConcealedAtomically(handTile1, handTile2);
+		_melds.Add(new Meld(MeldType.Pon, [handTile1, handTile2, claimedTile]));
+		_hasPendingTile = true;
+	}
+
+	/// <summary>上家の捨て牌 <paramref name="claimedTile"/> と手牌2枚でチー（順子）を成立させる。</summary>
+	public void Chi(Tile claimedTile, Tile handTile1, Tile handTile2)
+	{
+		EnsureNotPending("チー");
+
+		if (claimedTile.Suit == TileSuit.Honor)
+		{
+			throw new ArgumentException("字牌でチーはできません。", nameof(claimedTile));
+		}
+
+		if (handTile1.Suit != claimedTile.Suit)
+		{
+			throw new ArgumentException("チーする牌はclaimedTileと同じSuitである必要があります。", nameof(handTile1));
+		}
+
+		if (handTile2.Suit != claimedTile.Suit)
+		{
+			throw new ArgumentException("チーする牌はclaimedTileと同じSuitである必要があります。", nameof(handTile2));
+		}
+
+		var sorted = new[] { claimedTile, handTile1, handTile2 }.OrderBy(t => t.Rank).ToArray();
+		if (sorted[1].Rank != sorted[0].Rank + 1 || sorted[2].Rank != sorted[1].Rank + 1)
+		{
+			throw new ArgumentException("claimedTile・handTile1・handTile2のRankは3つの連続した整数である必要があります。");
+		}
+
+		RemoveFromConcealedAtomically(handTile1, handTile2);
+		_melds.Add(new Meld(MeldType.Chi, sorted));
+		_hasPendingTile = true;
+	}
+
+	/// <summary>打牌待ち（ツモ直後）でないことを確認する。</summary>
+	/// <exception cref="InvalidOperationException">打牌待ちの場合。</exception>
+	private void EnsureNotPending(string meldActionName)
+	{
+		if (_hasPendingTile)
+		{
+			throw new InvalidOperationException($"打牌前は{meldActionName}できません。");
+		}
+	}
+
+	/// <summary>
+	/// 手牌のコピー上で2枚とも存在することを検証してから、まとめて本体の手牌に反映する。
+	/// 片方だけ削除された不整合な状態が残らないようにするため。
+	/// </summary>
+	/// <exception cref="ArgumentException">handTile1/handTile2 のいずれかが手牌に存在しない場合。</exception>
+	private void RemoveFromConcealedAtomically(Tile handTile1, Tile handTile2)
+	{
 		var remaining = new List<Tile>(_concealedTiles);
 		if (!remaining.Remove(handTile1))
 		{
@@ -96,8 +146,6 @@ public sealed class Hand
 
 		_concealedTiles.Clear();
 		_concealedTiles.AddRange(remaining);
-		_melds.Add(new Meld(MeldType.Pon, [handTile1, handTile2, claimedTile]));
-		_hasPendingTile = true;
 	}
 
 	private static bool IsSameKind(Tile a, Tile b) => a.Suit == b.Suit && a.Rank == b.Rank;
