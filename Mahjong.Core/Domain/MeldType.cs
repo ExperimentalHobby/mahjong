@@ -14,4 +14,7 @@ public enum MeldType
 
 	/// <summary>暗槓。</summary>
 	ClosedKan,
+
+	/// <summary>加槓。</summary>
+	AddedKan,
 }

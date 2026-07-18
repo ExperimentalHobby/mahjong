@@ -145,6 +145,32 @@ public sealed class Hand
 		_hasPendingTile = false;
 	}
 
+	/// <summary>
+	/// 既存のポンに自摸4枚目の <paramref name="tile"/> を追加して加槓を成立させる。
+	/// カン成立後は打牌待ちにはならない（<c>_hasPendingTile</c> は false になる）。
+	/// 嶺上牌のツモは呼び出し側が別途 <see cref="Draw"/> を呼ぶ想定。
+	/// </summary>
+	/// <exception cref="InvalidOperationException">打牌待ち（ツモ直後）でない場合。</exception>
+	/// <exception cref="ArgumentException">
+	/// tile と同じ種類（Suit/Rank）の Pon が <see cref="Melds"/> に存在しない場合、
+	/// または tile が手牌に存在しない場合。
+	/// </exception>
+	public void AddedKan(Tile tile)
+	{
+		EnsurePending("加槓");
+
+		var existingPon = _melds.FirstOrDefault(m => m.Type == MeldType.Pon && IsSameKind(m.Tiles[0], tile));
+		if (existingPon is null)
+		{
+			throw new ArgumentException($"対応するポンが見つかりません: {tile}", nameof(tile));
+		}
+
+		RemoveFromConcealedAtomically(tile);
+		_melds.Remove(existingPon);
+		_melds.Add(new Meld(MeldType.AddedKan, [.. existingPon.Tiles, tile]));
+		_hasPendingTile = false;
+	}
+
 	/// <summary>打牌待ち（ツモ直後）でないことを確認する。</summary>
 	/// <exception cref="InvalidOperationException">打牌待ちの場合。</exception>
 	private void EnsureNotPending(string meldActionName)
@@ -191,10 +217,12 @@ public sealed class Hand
 	{
 		foreach (var handTile in handTiles)
 		{
-			if (handTile.Suit != claimedTile.Suit || handTile.Rank != claimedTile.Rank)
+			if (!IsSameKind(handTile, claimedTile))
 			{
 				throw new ArgumentException($"{description}はclaimedTileと種類が一致している必要があります。");
 			}
 		}
 	}
+
+	private static bool IsSameKind(Tile a, Tile b) => a.Suit == b.Suit && a.Rank == b.Rank;
 }
