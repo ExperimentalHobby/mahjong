@@ -1,0 +1,12 @@
+# .NET
+bin/
+obj/
+*.user
+
+# Visual Studio / Rider / VS Code
+.vs/
+.idea/
+*.suo
+
+# ローカル作業資料（承認済みプランなど。PRには含めない）
+docs/
