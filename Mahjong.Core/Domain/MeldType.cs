@@ -8,4 +8,7 @@ public enum MeldType
 
 	/// <summary>チー（順子）。</summary>
 	Chi,
+
+	/// <summary>明槓（大明槓）。</summary>
+	OpenKan,
 }

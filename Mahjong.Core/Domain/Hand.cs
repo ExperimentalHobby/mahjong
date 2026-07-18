@@ -69,23 +69,18 @@ public sealed class Hand
 	public void Pon(Tile claimedTile, Tile handTile1, Tile handTile2)
 	{
 		EnsureNotPending("ポン");
-
-		if (!IsSameKind(handTile1, claimedTile))
-		{
-			throw new ArgumentException("ポンする牌はclaimedTileと種類が一致している必要があります。", nameof(handTile1));
-		}
-
-		if (!IsSameKind(handTile2, claimedTile))
-		{
-			throw new ArgumentException("ポンする牌はclaimedTileと種類が一致している必要があります。", nameof(handTile2));
-		}
-
+		EnsureSameKind(claimedTile, "ポンする牌", handTile1, handTile2);
 		RemoveFromConcealedAtomically(handTile1, handTile2);
 		_melds.Add(new Meld(MeldType.Pon, [handTile1, handTile2, claimedTile]));
 		_hasPendingTile = true;
 	}
 
 	/// <summary>上家の捨て牌 <paramref name="claimedTile"/> と手牌2枚でチー（順子）を成立させる。</summary>
+	/// <exception cref="InvalidOperationException">打牌待ち（ツモ直後）の場合。</exception>
+	/// <exception cref="ArgumentException">
+	/// claimedTileが字牌の場合、handTile1/handTile2のSuitが一致しない場合、
+	/// Rankが3つの連続した整数にならない場合、または手牌に存在しない牌を指定した場合。
+	/// </exception>
 	public void Chi(Tile claimedTile, Tile handTile1, Tile handTile2)
 	{
 		EnsureNotPending("チー");
@@ -116,6 +111,24 @@ public sealed class Hand
 		_hasPendingTile = true;
 	}
 
+	/// <summary>
+	/// 他家の捨て牌 <paramref name="claimedTile"/> と手牌3枚で明槓（大明槓）を成立させる。
+	/// カン成立後は打牌待ちにはならない（<c>_hasPendingTile</c> は変化しない）。
+	/// 嶺上牌のツモは呼び出し側が別途 <see cref="Draw"/> を呼ぶ想定。
+	/// </summary>
+	/// <exception cref="InvalidOperationException">打牌待ち（ツモ直後）の場合。</exception>
+	/// <exception cref="ArgumentException">
+	/// handTile1/handTile2/handTile3 の種類（Suit/Rank）が claimedTile と一致しない場合、
+	/// または手牌に存在しない牌を指定した場合。
+	/// </exception>
+	public void OpenKan(Tile claimedTile, Tile handTile1, Tile handTile2, Tile handTile3)
+	{
+		EnsureNotPending("カン");
+		EnsureSameKind(claimedTile, "カンする牌", handTile1, handTile2, handTile3);
+		RemoveFromConcealedAtomically(handTile1, handTile2, handTile3);
+		_melds.Add(new Meld(MeldType.OpenKan, [handTile1, handTile2, handTile3, claimedTile]));
+	}
+
 	/// <summary>打牌待ち（ツモ直後）でないことを確認する。</summary>
 	/// <exception cref="InvalidOperationException">打牌待ちの場合。</exception>
 	private void EnsureNotPending(string meldActionName)
@@ -127,26 +140,35 @@ public sealed class Hand
 	}
 
 	/// <summary>
-	/// 手牌のコピー上で2枚とも存在することを検証してから、まとめて本体の手牌に反映する。
-	/// 片方だけ削除された不整合な状態が残らないようにするため。
+	/// 手牌のコピー上で <paramref name="handTiles"/> が全て存在することを検証してから、まとめて本体の手牌に反映する。
+	/// 一部だけ削除された不整合な状態が残らないようにするため。
 	/// </summary>
-	/// <exception cref="ArgumentException">handTile1/handTile2 のいずれかが手牌に存在しない場合。</exception>
-	private void RemoveFromConcealedAtomically(Tile handTile1, Tile handTile2)
+	/// <exception cref="ArgumentException"><paramref name="handTiles"/> のいずれかが手牌に存在しない場合。</exception>
+	private void RemoveFromConcealedAtomically(params Tile[] handTiles)
 	{
 		var remaining = new List<Tile>(_concealedTiles);
-		if (!remaining.Remove(handTile1))
+		foreach (var handTile in handTiles)
 		{
-			throw new ArgumentException($"手牌に存在しない牌です: {handTile1}", nameof(handTile1));
-		}
-
-		if (!remaining.Remove(handTile2))
-		{
-			throw new ArgumentException($"手牌に存在しない牌です: {handTile2}", nameof(handTile2));
+			if (!remaining.Remove(handTile))
+			{
+				throw new ArgumentException($"手牌に存在しない牌です: {handTile}");
+			}
 		}
 
 		_concealedTiles.Clear();
 		_concealedTiles.AddRange(remaining);
 	}
 
-	private static bool IsSameKind(Tile a, Tile b) => a.Suit == b.Suit && a.Rank == b.Rank;
+	/// <summary><paramref name="handTiles"/> が全て <paramref name="claimedTile"/> と同じ種類（Suit/Rank）であることを確認する。</summary>
+	/// <exception cref="ArgumentException">種類が一致しない牌が含まれる場合。</exception>
+	private static void EnsureSameKind(Tile claimedTile, string description, params Tile[] handTiles)
+	{
+		foreach (var handTile in handTiles)
+		{
+			if (handTile.Suit != claimedTile.Suit || handTile.Rank != claimedTile.Rank)
+			{
+				throw new ArgumentException($"{description}はclaimedTileと種類が一致している必要があります。");
+			}
+		}
+	}
 }

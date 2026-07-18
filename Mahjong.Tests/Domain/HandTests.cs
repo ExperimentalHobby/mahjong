@@ -417,4 +417,126 @@ public class HandTests
 		Assert.Equal(10, hand.ConcealedTiles.Count);
 		Assert.Equal([discardedTile], hand.Discards);
 	}
+
+	private static List<Tile> CreateThirteenTilesWithTriplicatePinOne()
+	{
+		var tiles = CreateThirteenTiles();
+		tiles[0] = new Tile(TileSuit.Pin, 1);
+		tiles[1] = new Tile(TileSuit.Pin, 1);
+		return tiles;
+	}
+
+	/// <summary>パス条件: OpenKan()成立時、MeldsにType=OpenKan, Tiles=[handTile1,2,3,claimedTile]のMeldが追加されること。</summary>
+	[Fact]
+	public void OpenKan_AddsMeldToMelds()
+	{
+		var hand = new Hand(CreateThirteenTilesWithTriplicatePinOne());
+		var handTile1 = new Tile(TileSuit.Pin, 1);
+		var handTile2 = new Tile(TileSuit.Pin, 1);
+		var handTile3 = new Tile(TileSuit.Pin, 1);
+		var claimedTile = new Tile(TileSuit.Pin, 1);
+
+		hand.OpenKan(claimedTile, handTile1, handTile2, handTile3);
+
+		var meld = Assert.Single(hand.Melds);
+		Assert.Equal(MeldType.OpenKan, meld.Type);
+		Assert.Equal([handTile1, handTile2, handTile3, claimedTile], meld.Tiles);
+	}
+
+	/// <summary>パス条件: OpenKan()成立時、使用した3枚がConcealedTilesから取り除かれること(13→10枚)。</summary>
+	[Fact]
+	public void OpenKan_RemovesThreeTilesFromConcealedTiles()
+	{
+		var hand = new Hand(CreateThirteenTilesWithTriplicatePinOne());
+		var claimedTile = new Tile(TileSuit.Pin, 1);
+
+		hand.OpenKan(claimedTile, new Tile(TileSuit.Pin, 1), new Tile(TileSuit.Pin, 1), new Tile(TileSuit.Pin, 1));
+
+		Assert.Equal(10, hand.ConcealedTiles.Count);
+	}
+
+	/// <summary>パス条件: handTile1/2/3のいずれかがclaimedTileと種類不一致の場合 ArgumentException になること。</summary>
+	[Theory]
+	[InlineData(1)]
+	[InlineData(2)]
+	[InlineData(3)]
+	public void OpenKan_WithMismatchedHandTile_Throws(int mismatchPosition)
+	{
+		var hand = new Hand(CreateThirteenTilesWithTriplicatePinOne());
+		var claimedTile = new Tile(TileSuit.Pin, 1);
+		var mismatched = new Tile(TileSuit.Pin, 2);
+		var handTile1 = mismatchPosition == 1 ? mismatched : new Tile(TileSuit.Pin, 1);
+		var handTile2 = mismatchPosition == 2 ? mismatched : new Tile(TileSuit.Pin, 1);
+		var handTile3 = mismatchPosition == 3 ? mismatched : new Tile(TileSuit.Pin, 1);
+
+		Assert.Throws<ArgumentException>(() => hand.OpenKan(claimedTile, handTile1, handTile2, handTile3));
+	}
+
+	/// <summary>パス条件: handTile1が手牌に存在しない場合 ArgumentException になり、ConcealedTilesは変化しないこと。</summary>
+	[Fact]
+	public void OpenKan_WithHandTile1NotInHand_ThrowsAndLeavesHandUnchanged()
+	{
+		var startingTiles = CreateThirteenTiles();
+		var hand = new Hand(startingTiles);
+		var claimedTile = new Tile(TileSuit.Sou, 5);
+
+		Assert.Throws<ArgumentException>(() => hand.OpenKan(
+			claimedTile, new Tile(TileSuit.Sou, 5), new Tile(TileSuit.Sou, 5), new Tile(TileSuit.Sou, 5)));
+		Assert.Equal(startingTiles, hand.ConcealedTiles);
+	}
+
+	/// <summary>
+	/// パス条件: handTile3(最後に検証する牌)が手牌に存在しない場合 ArgumentException になり、
+	/// ConcealedTilesは変化しないこと(先に2枚の照合が成功していてもロールバックされることを確認する)。
+	/// </summary>
+	[Fact]
+	public void OpenKan_WithHandTile3NotInHand_ThrowsAndLeavesHandUnchanged()
+	{
+		var startingTiles = CreateThirteenTilesWithDuplicatePinOne();
+		var hand = new Hand(startingTiles);
+		var claimedTile = new Tile(TileSuit.Pin, 1);
+
+		Assert.Throws<ArgumentException>(() => hand.OpenKan(
+			claimedTile, new Tile(TileSuit.Pin, 1), new Tile(TileSuit.Pin, 1), new Tile(TileSuit.Pin, 1)));
+		Assert.Equal(startingTiles, hand.ConcealedTiles);
+	}
+
+	/// <summary>パス条件: 打牌待ち状態(ツモ直後)でOpenKan()を呼ぶと InvalidOperationException になること。</summary>
+	[Fact]
+	public void OpenKan_WhenPendingDiscard_Throws()
+	{
+		var hand = new Hand(CreateThirteenTilesWithTriplicatePinOne());
+		hand.Draw(new Tile(TileSuit.Sou, 9));
+		var claimedTile = new Tile(TileSuit.Pin, 1);
+
+		Assert.Throws<InvalidOperationException>(() => hand.OpenKan(
+			claimedTile, new Tile(TileSuit.Pin, 1), new Tile(TileSuit.Pin, 1), new Tile(TileSuit.Pin, 1)));
+	}
+
+	/// <summary>
+	/// パス条件: OpenKan()成立後も打牌待ちにならない(まだツモしていない)ため、
+	/// Draw()を呼んでも例外にならないこと。
+	/// </summary>
+	[Fact]
+	public void OpenKan_ThenDraw_Succeeds()
+	{
+		var hand = new Hand(CreateThirteenTilesWithTriplicatePinOne());
+		var claimedTile = new Tile(TileSuit.Pin, 1);
+		hand.OpenKan(claimedTile, new Tile(TileSuit.Pin, 1), new Tile(TileSuit.Pin, 1), new Tile(TileSuit.Pin, 1));
+
+		hand.Draw(new Tile(TileSuit.Sou, 9));
+
+		Assert.Equal(11, hand.ConcealedTiles.Count);
+	}
+
+	/// <summary>パス条件: OpenKan()成立直後(ツモ前)にDiscard()を呼ぶと InvalidOperationException になること。</summary>
+	[Fact]
+	public void OpenKan_ThenDiscardImmediately_Throws()
+	{
+		var hand = new Hand(CreateThirteenTilesWithTriplicatePinOne());
+		var claimedTile = new Tile(TileSuit.Pin, 1);
+		hand.OpenKan(claimedTile, new Tile(TileSuit.Pin, 1), new Tile(TileSuit.Pin, 1), new Tile(TileSuit.Pin, 1));
+
+		Assert.Throws<InvalidOperationException>(() => hand.Discard(new Tile(TileSuit.Man, 3)));
+	}
 }
