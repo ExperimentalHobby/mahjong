@@ -132,4 +132,204 @@ public class WinningHandCheckerTests
 
 		Assert.Throws<ArgumentException>(() => WinningHandChecker.IsStandardFormComplete(tiles));
 	}
+
+	/// <summary>パス条件: 異なる7種の対子で構成される14枚を渡すと true になること。</summary>
+	[Fact]
+	public void IsSevenPairsComplete_SevenDistinctPairs_ReturnsTrue()
+	{
+		Tile[] tiles =
+		[
+			new Tile(TileSuit.Man, 1), new Tile(TileSuit.Man, 1),
+			new Tile(TileSuit.Man, 2), new Tile(TileSuit.Man, 2),
+			new Tile(TileSuit.Pin, 3), new Tile(TileSuit.Pin, 3),
+			new Tile(TileSuit.Pin, 4), new Tile(TileSuit.Pin, 4),
+			new Tile(TileSuit.Sou, 5), new Tile(TileSuit.Sou, 5),
+			new Tile(TileSuit.Sou, 6), new Tile(TileSuit.Sou, 6),
+			new Tile(TileSuit.Honor, 1), new Tile(TileSuit.Honor, 1),
+		];
+
+		Assert.True(WinningHandChecker.IsSevenPairsComplete(tiles));
+	}
+
+	/// <summary>パス条件: 同一牌4枚を含む14枚（対子2組ではなく1種の4枚扱い）を渡すと false になること。</summary>
+	[Fact]
+	public void IsSevenPairsComplete_ContainsFourOfAKind_ReturnsFalse()
+	{
+		Tile[] tiles =
+		[
+			new Tile(TileSuit.Man, 1), new Tile(TileSuit.Man, 1), new Tile(TileSuit.Man, 1), new Tile(TileSuit.Man, 1),
+			new Tile(TileSuit.Man, 2), new Tile(TileSuit.Man, 2),
+			new Tile(TileSuit.Pin, 3), new Tile(TileSuit.Pin, 3),
+			new Tile(TileSuit.Pin, 4), new Tile(TileSuit.Pin, 4),
+			new Tile(TileSuit.Sou, 5), new Tile(TileSuit.Sou, 5),
+			new Tile(TileSuit.Sou, 6), new Tile(TileSuit.Sou, 6),
+		];
+
+		Assert.False(WinningHandChecker.IsSevenPairsComplete(tiles));
+	}
+
+	/// <summary>パス条件: 対子が7組そろわない（浮き牌が混在する）14枚を渡すと false になること。</summary>
+	[Fact]
+	public void IsSevenPairsComplete_NotSevenPairs_ReturnsFalse()
+	{
+		Tile[] tiles =
+		[
+			new Tile(TileSuit.Man, 1), new Tile(TileSuit.Man, 1),
+			new Tile(TileSuit.Man, 2), new Tile(TileSuit.Man, 2),
+			new Tile(TileSuit.Pin, 3), new Tile(TileSuit.Pin, 3),
+			new Tile(TileSuit.Pin, 4), new Tile(TileSuit.Pin, 4),
+			new Tile(TileSuit.Sou, 5), new Tile(TileSuit.Sou, 5),
+			new Tile(TileSuit.Sou, 6),
+			new Tile(TileSuit.Sou, 7),
+			new Tile(TileSuit.Honor, 1),
+			new Tile(TileSuit.Honor, 2),
+		];
+
+		Assert.False(WinningHandChecker.IsSevenPairsComplete(tiles));
+	}
+
+	/// <summary>パス条件: 14枚以外(13枚・15枚)を渡すと ArgumentException になること。</summary>
+	[Theory]
+	[InlineData(13)]
+	[InlineData(15)]
+	public void IsSevenPairsComplete_WithWrongTileCount_Throws(int count)
+	{
+		var tiles = Enumerable.Range(0, count)
+			.Select(i => new Tile(TileSuit.Man, i % 9 + 1))
+			.ToList();
+
+		Assert.Throws<ArgumentException>(() => WinningHandChecker.IsSevenPairsComplete(tiles));
+	}
+
+	/// <summary>パス条件: 么九牌13種+そのうち1種の対子で構成される14枚を渡すと true になること。</summary>
+	[Fact]
+	public void IsThirteenOrphansComplete_ThirteenTerminalsAndHonorsWithPair_ReturnsTrue()
+	{
+		Tile[] tiles =
+		[
+			new Tile(TileSuit.Man, 1), new Tile(TileSuit.Man, 9),
+			new Tile(TileSuit.Pin, 1), new Tile(TileSuit.Pin, 9),
+			new Tile(TileSuit.Sou, 1), new Tile(TileSuit.Sou, 9),
+			new Tile(TileSuit.Honor, 1), new Tile(TileSuit.Honor, 2), new Tile(TileSuit.Honor, 3),
+			new Tile(TileSuit.Honor, 4), new Tile(TileSuit.Honor, 5), new Tile(TileSuit.Honor, 6),
+			new Tile(TileSuit.Honor, 7), new Tile(TileSuit.Honor, 7),
+		];
+
+		Assert.True(WinningHandChecker.IsThirteenOrphansComplete(tiles));
+	}
+
+	/// <summary>パス条件: 中張牌（么九牌以外の数牌）を1枚でも含む14枚を渡すと false になること。</summary>
+	[Fact]
+	public void IsThirteenOrphansComplete_ContainsSimpleTile_ReturnsFalse()
+	{
+		Tile[] tiles =
+		[
+			new Tile(TileSuit.Man, 1), new Tile(TileSuit.Man, 9),
+			new Tile(TileSuit.Pin, 1), new Tile(TileSuit.Pin, 9),
+			new Tile(TileSuit.Sou, 1), new Tile(TileSuit.Sou, 9),
+			new Tile(TileSuit.Honor, 1), new Tile(TileSuit.Honor, 2), new Tile(TileSuit.Honor, 3),
+			new Tile(TileSuit.Honor, 4), new Tile(TileSuit.Honor, 5), new Tile(TileSuit.Honor, 6),
+			new Tile(TileSuit.Honor, 7),
+			new Tile(TileSuit.Man, 5),
+		];
+
+		Assert.False(WinningHandChecker.IsThirteenOrphansComplete(tiles));
+	}
+
+	/// <summary>パス条件: 么九牌13種のうち1種が欠けている14枚を渡すと false になること。</summary>
+	[Fact]
+	public void IsThirteenOrphansComplete_MissingOneYaochuuKind_ReturnsFalse()
+	{
+		Tile[] tiles =
+		[
+			new Tile(TileSuit.Man, 1), new Tile(TileSuit.Man, 1), new Tile(TileSuit.Man, 1),
+			new Tile(TileSuit.Man, 9),
+			new Tile(TileSuit.Pin, 1), new Tile(TileSuit.Pin, 9),
+			new Tile(TileSuit.Sou, 1), new Tile(TileSuit.Sou, 9),
+			new Tile(TileSuit.Honor, 1), new Tile(TileSuit.Honor, 2), new Tile(TileSuit.Honor, 3),
+			new Tile(TileSuit.Honor, 4), new Tile(TileSuit.Honor, 5), new Tile(TileSuit.Honor, 6),
+		];
+
+		Assert.False(WinningHandChecker.IsThirteenOrphansComplete(tiles));
+	}
+
+	/// <summary>パス条件: 14枚以外(13枚・15枚)を渡すと ArgumentException になること。</summary>
+	[Theory]
+	[InlineData(13)]
+	[InlineData(15)]
+	public void IsThirteenOrphansComplete_WithWrongTileCount_Throws(int count)
+	{
+		var tiles = Enumerable.Range(0, count)
+			.Select(i => new Tile(TileSuit.Man, i % 9 + 1))
+			.ToList();
+
+		Assert.Throws<ArgumentException>(() => WinningHandChecker.IsThirteenOrphansComplete(tiles));
+	}
+
+	/// <summary>パス条件: 標準形の14枚を渡すと IsComplete が true になること。</summary>
+	[Fact]
+	public void IsComplete_StandardForm_ReturnsTrue()
+	{
+		Tile[] tiles =
+		[
+			new Tile(TileSuit.Man, 1), new Tile(TileSuit.Man, 1), new Tile(TileSuit.Man, 1),
+			new Tile(TileSuit.Pin, 2), new Tile(TileSuit.Pin, 2), new Tile(TileSuit.Pin, 2),
+			new Tile(TileSuit.Sou, 3), new Tile(TileSuit.Sou, 3), new Tile(TileSuit.Sou, 3),
+			new Tile(TileSuit.Honor, 1), new Tile(TileSuit.Honor, 1), new Tile(TileSuit.Honor, 1),
+			new Tile(TileSuit.Man, 9), new Tile(TileSuit.Man, 9),
+		];
+
+		Assert.True(WinningHandChecker.IsComplete(tiles));
+	}
+
+	/// <summary>パス条件: 七対子の14枚を渡すと IsComplete が true になること。</summary>
+	[Fact]
+	public void IsComplete_SevenPairs_ReturnsTrue()
+	{
+		Tile[] tiles =
+		[
+			new Tile(TileSuit.Man, 1), new Tile(TileSuit.Man, 1),
+			new Tile(TileSuit.Man, 2), new Tile(TileSuit.Man, 2),
+			new Tile(TileSuit.Pin, 3), new Tile(TileSuit.Pin, 3),
+			new Tile(TileSuit.Pin, 4), new Tile(TileSuit.Pin, 4),
+			new Tile(TileSuit.Sou, 5), new Tile(TileSuit.Sou, 5),
+			new Tile(TileSuit.Sou, 6), new Tile(TileSuit.Sou, 6),
+			new Tile(TileSuit.Honor, 1), new Tile(TileSuit.Honor, 1),
+		];
+
+		Assert.True(WinningHandChecker.IsComplete(tiles));
+	}
+
+	/// <summary>パス条件: 国士無双の14枚を渡すと IsComplete が true になること。</summary>
+	[Fact]
+	public void IsComplete_ThirteenOrphans_ReturnsTrue()
+	{
+		Tile[] tiles =
+		[
+			new Tile(TileSuit.Man, 1), new Tile(TileSuit.Man, 9),
+			new Tile(TileSuit.Pin, 1), new Tile(TileSuit.Pin, 9),
+			new Tile(TileSuit.Sou, 1), new Tile(TileSuit.Sou, 9),
+			new Tile(TileSuit.Honor, 1), new Tile(TileSuit.Honor, 2), new Tile(TileSuit.Honor, 3),
+			new Tile(TileSuit.Honor, 4), new Tile(TileSuit.Honor, 5), new Tile(TileSuit.Honor, 6),
+			new Tile(TileSuit.Honor, 7), new Tile(TileSuit.Honor, 7),
+		];
+
+		Assert.True(WinningHandChecker.IsComplete(tiles));
+	}
+
+	/// <summary>パス条件: どの形にも該当しない14枚を渡すと IsComplete が false になること。</summary>
+	[Fact]
+	public void IsComplete_NoFormMatches_ReturnsFalse()
+	{
+		Tile[] tiles =
+		[
+			new Tile(TileSuit.Man, 1), new Tile(TileSuit.Man, 1), new Tile(TileSuit.Man, 1),
+			new Tile(TileSuit.Pin, 2), new Tile(TileSuit.Pin, 2), new Tile(TileSuit.Pin, 2),
+			new Tile(TileSuit.Sou, 3), new Tile(TileSuit.Sou, 3), new Tile(TileSuit.Sou, 3),
+			new Tile(TileSuit.Honor, 1), new Tile(TileSuit.Honor, 1), new Tile(TileSuit.Honor, 1),
+			new Tile(TileSuit.Man, 4), new Tile(TileSuit.Man, 5),
+		];
+
+		Assert.False(WinningHandChecker.IsComplete(tiles));
+	}
 }
