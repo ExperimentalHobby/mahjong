@@ -1,1 +1,2 @@
-* text=auto eol=lf
+# デフォルト: テキストファイルは CRLF に統一
+* text=auto eol=crlf
