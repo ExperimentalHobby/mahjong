@@ -663,4 +663,105 @@ public class HandTests
 
 		Assert.Throws<InvalidOperationException>(() => hand.Discard(new Tile(TileSuit.Man, 3)));
 	}
+
+	/// <summary>
+	/// ポン(Pin1x3)成立済み・不要牌を打牌済み・4枚目のPin1をツモした状態の手牌を作る。
+	/// AddedKan()のテスト用共通セットアップ。
+	/// </summary>
+	private static Hand CreateHandWithPonAndDrawnFourthTile()
+	{
+		var hand = new Hand(CreateThirteenTilesWithDuplicatePinOne());
+		hand.Pon(new Tile(TileSuit.Pin, 1), new Tile(TileSuit.Pin, 1), new Tile(TileSuit.Pin, 1));
+		hand.Discard(new Tile(TileSuit.Man, 9));
+		hand.Draw(new Tile(TileSuit.Pin, 1));
+		return hand;
+	}
+
+	/// <summary>パス条件: AddedKan()成立時、既存のPonがMeldsから削除され、Type=AddedKan・Tiles=[元のPonの3枚..., tile]のMeldが追加されること。</summary>
+	[Fact]
+	public void AddedKan_ReplacesExistingPonWithAddedKanMeld()
+	{
+		var hand = CreateHandWithPonAndDrawnFourthTile();
+		var originalPonTiles = hand.Melds.Single().Tiles;
+		var tile = new Tile(TileSuit.Pin, 1);
+
+		hand.AddedKan(tile);
+
+		var meld = Assert.Single(hand.Melds);
+		Assert.Equal(MeldType.AddedKan, meld.Type);
+		Assert.Equal([.. originalPonTiles, tile], meld.Tiles);
+	}
+
+	/// <summary>パス条件: AddedKan()成立時、使用したtileがConcealedTilesから取り除かれること(1枚減る)。</summary>
+	[Fact]
+	public void AddedKan_RemovesOneTileFromConcealedTiles()
+	{
+		var hand = CreateHandWithPonAndDrawnFourthTile();
+		var countBefore = hand.ConcealedTiles.Count;
+
+		hand.AddedKan(new Tile(TileSuit.Pin, 1));
+
+		Assert.Equal(countBefore - 1, hand.ConcealedTiles.Count);
+	}
+
+	/// <summary>パス条件: 対応する種類のPonがMeldsに存在しない場合 ArgumentException になること。</summary>
+	[Fact]
+	public void AddedKan_WithoutMatchingPon_Throws()
+	{
+		var hand = new Hand(CreateThirteenTiles());
+		hand.Draw(new Tile(TileSuit.Pin, 1));
+
+		Assert.Throws<ArgumentException>(() => hand.AddedKan(new Tile(TileSuit.Pin, 1)));
+	}
+
+	/// <summary>
+	/// パス条件: tileが手牌に存在しない場合 ArgumentException になること。
+	/// (Pin1のポンは成立済みだが、今回ツモったのはPin1ではないため手牌にPin1が残っていない)
+	/// </summary>
+	[Fact]
+	public void AddedKan_WithTileNotInHand_Throws()
+	{
+		var hand = new Hand(CreateThirteenTilesWithDuplicatePinOne());
+		hand.Pon(new Tile(TileSuit.Pin, 1), new Tile(TileSuit.Pin, 1), new Tile(TileSuit.Pin, 1));
+		hand.Discard(new Tile(TileSuit.Man, 9));
+		hand.Draw(new Tile(TileSuit.Sou, 9));
+
+		Assert.Throws<ArgumentException>(() => hand.AddedKan(new Tile(TileSuit.Pin, 1)));
+	}
+
+	/// <summary>パス条件: 打牌待ちでない状態(ツモ前)でAddedKan()を呼ぶと InvalidOperationException になること(暗槓と同じ方向の判定)。</summary>
+	[Fact]
+	public void AddedKan_WhenNotPending_Throws()
+	{
+		var hand = CreateHandWithPonAndDrawnFourthTile();
+		hand.Discard(new Tile(TileSuit.Man, 2));
+
+		Assert.Throws<InvalidOperationException>(() => hand.AddedKan(new Tile(TileSuit.Pin, 1)));
+	}
+
+	/// <summary>
+	/// パス条件: AddedKan()成立後は打牌待ちにならない(嶺上牌のツモがまだのため)ため、
+	/// Draw()を呼んでも例外にならないこと。
+	/// </summary>
+	[Fact]
+	public void AddedKan_ThenDraw_Succeeds()
+	{
+		var hand = CreateHandWithPonAndDrawnFourthTile();
+		var countBeforeAddedKan = hand.ConcealedTiles.Count;
+		hand.AddedKan(new Tile(TileSuit.Pin, 1));
+
+		hand.Draw(new Tile(TileSuit.Sou, 9));
+
+		Assert.Equal(countBeforeAddedKan, hand.ConcealedTiles.Count);
+	}
+
+	/// <summary>パス条件: AddedKan()成立直後(嶺上牌ツモ前)にDiscard()を呼ぶと InvalidOperationException になること。</summary>
+	[Fact]
+	public void AddedKan_ThenDiscardImmediately_Throws()
+	{
+		var hand = CreateHandWithPonAndDrawnFourthTile();
+		hand.AddedKan(new Tile(TileSuit.Pin, 1));
+
+		Assert.Throws<InvalidOperationException>(() => hand.Discard(new Tile(TileSuit.Man, 2)));
+	}
 }
