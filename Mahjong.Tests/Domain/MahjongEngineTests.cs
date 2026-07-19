@@ -345,6 +345,107 @@ public class MahjongEngineTests
 		Assert.Throws<InvalidOperationException>(() => engine.CallRon(Seat.South));
 	}
 
+	/// <summary>パス条件: 現在の手番の手牌がツモ和了形の場合、CallTsumo() で Winner が現在の手番になること。</summary>
+	[Fact]
+	public void CallTsumo_WhenHandIsComplete_SetsWinner()
+	{
+		List<Tile> startingTiles =
+		[
+			new Tile(TileSuit.Man, 1), new Tile(TileSuit.Man, 1), new Tile(TileSuit.Man, 1),
+			new Tile(TileSuit.Pin, 2), new Tile(TileSuit.Pin, 2), new Tile(TileSuit.Pin, 2),
+			new Tile(TileSuit.Sou, 3), new Tile(TileSuit.Sou, 3), new Tile(TileSuit.Sou, 3),
+			new Tile(TileSuit.Honor, 1), new Tile(TileSuit.Honor, 1), new Tile(TileSuit.Honor, 1),
+			new Tile(TileSuit.Man, 9),
+		];
+		var eastHand = new Hand(startingTiles);
+		eastHand.Draw(new Tile(TileSuit.Man, 9));
+		var hands = new Dictionary<Seat, Hand>
+		{
+			[Seat.East] = eastHand,
+			[Seat.South] = new Hand(CreateThirteenFillerTiles()),
+			[Seat.West] = new Hand(CreateThirteenFillerTiles()),
+			[Seat.North] = new Hand(CreateThirteenFillerTiles()),
+		};
+		var engine = new MahjongEngine(Wall.CreateShuffled(new Random(1)), hands, Seat.East, lastDiscard: null);
+
+		engine.CallTsumo();
+
+		Assert.Equal(Seat.East, engine.Winner);
+	}
+
+	/// <summary>パス条件: 現在の手番の手牌が和了形になっていない場合、CallTsumo() が ArgumentException になること。</summary>
+	[Fact]
+	public void CallTsumo_WhenHandIsIncomplete_Throws()
+	{
+		var eastHand = new Hand(CreateThirteenFillerTiles());
+		eastHand.Draw(new Tile(TileSuit.Sou, 9));
+		var hands = new Dictionary<Seat, Hand>
+		{
+			[Seat.East] = eastHand,
+			[Seat.South] = new Hand(CreateThirteenFillerTiles()),
+			[Seat.West] = new Hand(CreateThirteenFillerTiles()),
+			[Seat.North] = new Hand(CreateThirteenFillerTiles()),
+		};
+		var engine = new MahjongEngine(Wall.CreateShuffled(new Random(1)), hands, Seat.East, lastDiscard: null);
+
+		Assert.Throws<ArgumentException>(() => engine.CallTsumo());
+	}
+
+	/// <summary>
+	/// パス条件: 打牌待ちでない状態（ツモ前）で CallTsumo() を呼ぶと InvalidOperationException になること
+	/// （Hand.IsComplete() からの伝播確認）。
+	/// </summary>
+	[Fact]
+	public void CallTsumo_WhenNotPending_Throws()
+	{
+		var engine = MahjongEngine.Start(new Random(1));
+
+		Assert.Throws<InvalidOperationException>(() => engine.CallTsumo());
+	}
+
+	/// <summary>パス条件: 生牌山が0枚かつ誰も和了していない場合、IsExhaustiveDraw が true になること。</summary>
+	[Fact]
+	public void IsExhaustiveDraw_NoLiveTilesAndNoWinner_ReturnsTrue()
+	{
+		var wall = new Wall([], Wall.CreateStandardTileSet().Take(14).ToList());
+		var hands = new Dictionary<Seat, Hand>
+		{
+			[Seat.East] = new Hand(CreateThirteenFillerTiles()),
+			[Seat.South] = new Hand(CreateThirteenFillerTiles()),
+			[Seat.West] = new Hand(CreateThirteenFillerTiles()),
+			[Seat.North] = new Hand(CreateThirteenFillerTiles()),
+		};
+		var engine = new MahjongEngine(wall, hands, Seat.East, lastDiscard: null);
+
+		Assert.True(engine.IsExhaustiveDraw);
+	}
+
+	/// <summary>パス条件: 生牌山が0枚でも誰かが和了している場合、IsExhaustiveDraw が false になること（Winnerが優先される）。</summary>
+	[Fact]
+	public void IsExhaustiveDraw_NoLiveTilesButHasWinner_ReturnsFalse()
+	{
+		var wall = new Wall([], Wall.CreateStandardTileSet().Take(14).ToList());
+		var hands = new Dictionary<Seat, Hand>
+		{
+			[Seat.East] = new Hand(CreateThirteenFillerTiles()),
+			[Seat.South] = new Hand(CreateThirteenFillerTiles()),
+			[Seat.West] = new Hand(CreateThirteenFillerTiles()),
+			[Seat.North] = new Hand(CreateThirteenFillerTiles()),
+		};
+		var engine = new MahjongEngine(wall, hands, Seat.East, lastDiscard: null, winner: Seat.East);
+
+		Assert.False(engine.IsExhaustiveDraw);
+	}
+
+	/// <summary>パス条件: 生牌山が残っている場合、IsExhaustiveDraw が false になること。</summary>
+	[Fact]
+	public void IsExhaustiveDraw_LiveTilesRemain_ReturnsFalse()
+	{
+		var engine = MahjongEngine.Start(new Random(1));
+
+		Assert.False(engine.IsExhaustiveDraw);
+	}
+
 	private static List<Tile> CreateThirteenFillerTiles()
 	{
 		var tiles = new List<Tile>();
