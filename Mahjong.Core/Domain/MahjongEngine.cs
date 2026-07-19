@@ -13,13 +13,14 @@ public sealed class MahjongEngine
 
 	/// <summary>テスト用に卓状態を直接組み立てるための内部コンストラクタ。</summary>
 	internal MahjongEngine(
-		Wall wall, Dictionary<Seat, Hand> hands, Seat currentTurn, (Tile Tile, Seat Discarder)? lastDiscard, Seat? winner = null)
+		Wall wall, Dictionary<Seat, Hand> hands, Seat currentTurn, (Tile Tile, Seat Discarder)? lastDiscard,
+		IReadOnlyList<Seat>? winners = null)
 	{
 		_wall = wall;
 		_hands = hands;
 		CurrentTurn = currentTurn;
 		LastDiscard = lastDiscard;
-		Winner = winner;
+		Winners = winners ?? [];
 	}
 
 	/// <summary>現在の手番の座席。</summary>
@@ -34,17 +35,28 @@ public sealed class MahjongEngine
 	/// <summary>生牌山の残り枚数。</summary>
 	public int LiveWallCount => _wall.LiveWallCount;
 
-	/// <summary>和了した座席。まだ誰も和了していない場合は<c>null</c>（<see cref="CallRon"/>で設定される）。</summary>
-	public Seat? Winner { get; private set; }
+	/// <summary>
+	/// 和了した座席。まだ誰も和了していない場合は空。通常和了・ダブロン（頭跳ねなし）では1〜2人分の座席を含む
+	/// （<see cref="CallRon"/>・<see cref="CallTsumo"/>で設定される。トリプルロン成立時は<see cref="IsTripleRonDraw"/>
+	/// が<c>true</c>になり、空のままになる）。
+	/// </summary>
+	public IReadOnlyList<Seat> Winners { get; private set; } = [];
 
 	/// <summary>
-	/// 和了時に成立していた役。まだ誰も和了していない場合は<c>null</c>
-	/// （<see cref="CallRon"/>・<see cref="CallTsumo"/>で設定される）。
+	/// 和了時に成立していた役。座席をキーにする（ダブロンでは和了者ごとに手牌・役が異なるため）。
+	/// まだ誰も和了していない場合は空（<see cref="CallRon"/>・<see cref="CallTsumo"/>で設定される）。
 	/// </summary>
-	public IReadOnlyList<Yaku>? WinningYaku { get; private set; }
+	public IReadOnlyDictionary<Seat, IReadOnlyList<Yaku>> WinningYaku { get; private set; } =
+		new Dictionary<Seat, IReadOnlyList<Yaku>>();
 
-	/// <summary>生牌山が尽きて、かつ誰も和了していない場合に<c>true</c>になる（流局）。</summary>
-	public bool IsExhaustiveDraw => Winner is null && LiveWallCount == 0;
+	/// <summary>
+	/// 3人が同じ捨て牌に対して同時にロンを宣言した場合（三家和）に<c>true</c>になる。
+	/// この場合、誰も和了せずその局は流局になる（<see cref="Winners"/>は空のまま）。
+	/// </summary>
+	public bool IsTripleRonDraw { get; private set; }
+
+	/// <summary>生牌山が尽きて、かつ誰も和了しておらず三家和でもない場合に<c>true</c>になる（荒牌流局）。</summary>
+	public bool IsExhaustiveDraw => Winners.Count == 0 && !IsTripleRonDraw && LiveWallCount == 0;
 
 	/// <summary>座席ごとの手牌。</summary>
 	public IReadOnlyDictionary<Seat, Hand> Hands => _hands;
@@ -154,32 +166,70 @@ public sealed class MahjongEngine
 
 	/// <summary>
 	/// 直前の捨て牌に対して<paramref name="caller"/>がロンを宣言する。
-	/// 成立後、<see cref="Winner"/>が<paramref name="caller"/>になる（対局終了の意思表示。
-	/// 流局判定・対局終了処理は今後のマイルストーンで対応する）。
+	/// 成立後、<see cref="Winners"/>が<paramref name="caller"/>のみを含むリストになる。
 	/// </summary>
 	/// <exception cref="InvalidOperationException">直前の捨て牌が無い場合。</exception>
 	/// <exception cref="ArgumentException">
 	/// 自分自身の捨て牌に対してロンしようとした場合、または捨て牌を加えても和了形にならない場合。
 	/// </exception>
-	public void CallRon(Seat caller)
+	public void CallRon(Seat caller) => CallRon([caller]);
+
+	/// <summary>
+	/// 直前の捨て牌に対して<paramref name="callers"/>が同時にロンを宣言する（複数家同時ロンに対応）。
+	/// 頭跳ねはせず、1〜2人の場合は全員が和了となり<see cref="Winners"/>に設定される。
+	/// 3人（他家全員）の場合は三家和として流局になり（<see cref="IsTripleRonDraw"/>が<c>true</c>になる）、
+	/// 誰も和了しない。
+	/// </summary>
+	/// <exception cref="InvalidOperationException">直前の捨て牌が無い場合。</exception>
+	/// <exception cref="ArgumentException">
+	/// <paramref name="callers"/>が空の場合、同じ座席を複数回指定した場合、
+	/// いずれかが自分自身の捨て牌に対してロンしようとした場合、
+	/// またはいずれかの手牌が捨て牌を加えても和了形にならない場合。
+	/// </exception>
+	public void CallRon(IReadOnlyList<Seat> callers)
 	{
 		if (LastDiscard is not { } lastDiscard)
 		{
 			throw new InvalidOperationException("ロンできる捨て牌がありません。");
 		}
 
-		if (caller == lastDiscard.Discarder)
+		if (callers.Count == 0)
 		{
-			throw new ArgumentException("自分の捨て牌はロンできません。", nameof(caller));
+			throw new ArgumentException("ロンする座席を1つ以上指定してください。", nameof(callers));
 		}
 
-		if (!_hands[caller].CanWinOn(lastDiscard.Tile))
+		if (callers.Distinct().Count() != callers.Count)
 		{
-			throw new ArgumentException("捨て牌を加えても和了形になりません。", nameof(caller));
+			throw new ArgumentException("同じ座席を複数回指定することはできません。", nameof(callers));
 		}
 
-		Winner = caller;
-		WinningYaku = _hands[caller].DetermineYakuOn(lastDiscard.Tile);
+		foreach (var caller in callers)
+		{
+			if (caller == lastDiscard.Discarder)
+			{
+				throw new ArgumentException("自分の捨て牌はロンできません。", nameof(callers));
+			}
+
+			if (!_hands[caller].CanWinOn(lastDiscard.Tile))
+			{
+				throw new ArgumentException($"捨て牌を加えても和了形になりません: {caller}", nameof(callers));
+			}
+		}
+
+		if (callers.Count == 3)
+		{
+			IsTripleRonDraw = true;
+			return;
+		}
+
+		Winners = callers;
+		var winningYaku = new Dictionary<Seat, IReadOnlyList<Yaku>>();
+		foreach (var caller in callers)
+		{
+			winningYaku[caller] = _hands[caller].DetermineYakuOn(lastDiscard.Tile);
+		}
+
+		WinningYaku = winningYaku;
 	}
 
 	/// <summary>
@@ -239,7 +289,7 @@ public sealed class MahjongEngine
 	}
 
 	/// <summary>
-	/// 現在の手番のプレイヤーがツモ和了を宣言する。成立後、<see cref="Winner"/>が現在の手番になる。
+	/// 現在の手番のプレイヤーがツモ和了を宣言する。成立後、<see cref="Winners"/>が現在の手番のみを含むリストになる。
 	/// </summary>
 	/// <exception cref="InvalidOperationException">打牌待ち（ツモ直後）でない場合。</exception>
 	/// <exception cref="ArgumentException">手牌が和了形になっていない場合。</exception>
@@ -250,8 +300,8 @@ public sealed class MahjongEngine
 			throw new ArgumentException("現在の手牌はツモ和了できる形になっていません。");
 		}
 
-		Winner = CurrentTurn;
-		WinningYaku = _hands[CurrentTurn].DetermineYaku();
+		Winners = [CurrentTurn];
+		WinningYaku = new Dictionary<Seat, IReadOnlyList<Yaku>> { [CurrentTurn] = _hands[CurrentTurn].DetermineYaku() };
 	}
 
 	/// <summary>この卓状態の独立した複製を返す（複製後は互いの操作が影響し合わない）。</summary>
@@ -263,9 +313,10 @@ public sealed class MahjongEngine
 			clonedHands[seat] = hand.Clone();
 		}
 
-		return new MahjongEngine(_wall.Clone(), clonedHands, CurrentTurn, LastDiscard, Winner)
+		return new MahjongEngine(_wall.Clone(), clonedHands, CurrentTurn, LastDiscard, Winners)
 		{
 			WinningYaku = WinningYaku,
+			IsTripleRonDraw = IsTripleRonDraw,
 		};
 	}
 
