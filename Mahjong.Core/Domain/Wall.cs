@@ -45,6 +45,12 @@ public sealed class Wall
 		return new Wall(liveWall, deadWall);
 	}
 
+	/// <summary>
+	/// この牌山の独立した複製を返す（複製後は互いのDraw()が影響し合わない）。
+	/// 王牌は生成後に変更されないため参照を共有する。
+	/// </summary>
+	public Wall Clone() => new(new List<Tile>(_liveWall), _deadWall);
+
 	/// <summary>生牌山から1枚引く。</summary>
 	/// <exception cref="InvalidOperationException">生牌山が0枚のときに呼び出した場合。</exception>
 	public Tile Draw()

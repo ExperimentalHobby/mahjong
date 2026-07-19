@@ -1028,4 +1028,32 @@ public class HandTests
 
 		Assert.Throws<InvalidOperationException>(() => hand.CalculateShanten());
 	}
+
+	/// <summary>パス条件: Clone() で複製した Hand の ConcealedTiles/Discards/Melds が元と同じ内容であること。</summary>
+	[Fact]
+	public void Clone_CopiesConcealedTilesDiscardsAndMelds()
+	{
+		var hand = new Hand(CreateThirteenTilesWithDuplicatePinOne());
+		hand.Pon(new Tile(TileSuit.Pin, 1), new Tile(TileSuit.Pin, 1), new Tile(TileSuit.Pin, 1));
+		hand.Discard(new Tile(TileSuit.Man, 9));
+
+		var clone = hand.Clone();
+
+		Assert.Equal(hand.ConcealedTiles, clone.ConcealedTiles);
+		Assert.Equal(hand.Discards, clone.Discards);
+		Assert.Equal(hand.Melds, clone.Melds);
+	}
+
+	/// <summary>パス条件: Clone() 後、元の Hand に対する操作（Draw()等）が複製に影響しないこと。</summary>
+	[Fact]
+	public void Clone_IsIndependentFromOriginal()
+	{
+		var hand = new Hand(CreateThirteenTiles());
+		var clone = hand.Clone();
+
+		hand.Draw(new Tile(TileSuit.Sou, 9));
+
+		Assert.Equal(14, hand.ConcealedTiles.Count);
+		Assert.Equal(13, clone.ConcealedTiles.Count);
+	}
 }

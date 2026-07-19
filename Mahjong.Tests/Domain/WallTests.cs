@@ -121,4 +121,29 @@ public class WallTests
 
 		Assert.Equal(70, wall.LiveWallCount);
 	}
+
+	/// <summary>パス条件: Clone() で複製した Wall の LiveWallCount/DoraIndicator が元と同じであること。</summary>
+	[Fact]
+	public void Clone_CopiesLiveWallCountAndDoraIndicator()
+	{
+		var wall = Wall.CreateShuffled(new Random(1));
+
+		var clone = wall.Clone();
+
+		Assert.Equal(wall.LiveWallCount, clone.LiveWallCount);
+		Assert.Equal(wall.DoraIndicator, clone.DoraIndicator);
+	}
+
+	/// <summary>パス条件: Clone() 後、元の Wall に対する Draw() が複製の LiveWallCount に影響しないこと。</summary>
+	[Fact]
+	public void Clone_IsIndependentFromOriginal()
+	{
+		var wall = Wall.CreateShuffled(new Random(1));
+		var clone = wall.Clone();
+
+		wall.Draw();
+
+		Assert.Equal(121, wall.LiveWallCount);
+		Assert.Equal(122, clone.LiveWallCount);
+	}
 }
