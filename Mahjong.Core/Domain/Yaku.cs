@@ -50,4 +50,7 @@ public enum Yaku
 
 	/// <summary>三元牌。</summary>
 	Sangenpai,
+
+	/// <summary>三暗刻。</summary>
+	Sanankou,
 }

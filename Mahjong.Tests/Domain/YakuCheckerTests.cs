@@ -733,4 +733,153 @@ public class YakuCheckerTests
 
 		Assert.Contains(Yaku.Jikaze, yaku);
 	}
+
+	/// <summary>パス条件: 3つの暗刻を含むツモ和了形を渡すと Yaku.Sanankou が含まれること。</summary>
+	[Fact]
+	public void DetermineYaku_ThreeConcealedTripletsByTsumo_ContainsSanankou()
+	{
+		Tile[] tiles =
+		[
+			new Tile(TileSuit.Man, 1), new Tile(TileSuit.Man, 1), new Tile(TileSuit.Man, 1),
+			new Tile(TileSuit.Pin, 2), new Tile(TileSuit.Pin, 2), new Tile(TileSuit.Pin, 2),
+			new Tile(TileSuit.Sou, 3), new Tile(TileSuit.Sou, 3), new Tile(TileSuit.Sou, 3),
+			new Tile(TileSuit.Man, 5), new Tile(TileSuit.Man, 6), new Tile(TileSuit.Man, 7),
+			new Tile(TileSuit.Man, 9), new Tile(TileSuit.Man, 9),
+		];
+
+		var yaku = YakuChecker.DetermineYaku(tiles, melds: [], seatWind: Seat.South, roundWind: Seat.South, ronTile: null);
+
+		Assert.Contains(Yaku.Sanankou, yaku);
+	}
+
+	/// <summary>
+	/// パス条件: ロン牌が3つ目の刻子を完成させる場合、その刻子は暗刻に数えられず
+	/// Yaku.Sanankou が含まれないこと。
+	/// </summary>
+	[Fact]
+	public void DetermineYaku_RonTileCompletesThirdTriplet_DoesNotContainSanankou()
+	{
+		Tile[] tiles =
+		[
+			new Tile(TileSuit.Man, 1), new Tile(TileSuit.Man, 1), new Tile(TileSuit.Man, 1),
+			new Tile(TileSuit.Pin, 2), new Tile(TileSuit.Pin, 2), new Tile(TileSuit.Pin, 2),
+			new Tile(TileSuit.Sou, 3), new Tile(TileSuit.Sou, 3), new Tile(TileSuit.Sou, 3),
+			new Tile(TileSuit.Man, 5), new Tile(TileSuit.Man, 6), new Tile(TileSuit.Man, 7),
+			new Tile(TileSuit.Man, 9), new Tile(TileSuit.Man, 9),
+		];
+		var ronTile = new Tile(TileSuit.Man, 1);
+
+		var yaku = YakuChecker.DetermineYaku(tiles, melds: [], seatWind: Seat.South, roundWind: Seat.South, ronTile);
+
+		Assert.DoesNotContain(Yaku.Sanankou, yaku);
+	}
+
+	/// <summary>
+	/// パス条件: ロン牌が刻子と無関係な待ち（順子の待ち等）を完成させる場合、
+	/// 既存の3つの暗刻はそのまま数えられ Yaku.Sanankou が含まれること。
+	/// </summary>
+	[Fact]
+	public void DetermineYaku_RonTileUnrelatedToTriplets_ContainsSanankou()
+	{
+		Tile[] tiles =
+		[
+			new Tile(TileSuit.Man, 1), new Tile(TileSuit.Man, 1), new Tile(TileSuit.Man, 1),
+			new Tile(TileSuit.Pin, 2), new Tile(TileSuit.Pin, 2), new Tile(TileSuit.Pin, 2),
+			new Tile(TileSuit.Sou, 3), new Tile(TileSuit.Sou, 3), new Tile(TileSuit.Sou, 3),
+			new Tile(TileSuit.Man, 5), new Tile(TileSuit.Man, 6), new Tile(TileSuit.Man, 7),
+			new Tile(TileSuit.Man, 9), new Tile(TileSuit.Man, 9),
+		];
+		var ronTile = new Tile(TileSuit.Man, 7);
+
+		var yaku = YakuChecker.DetermineYaku(tiles, melds: [], seatWind: Seat.South, roundWind: Seat.South, ronTile);
+
+		Assert.Contains(Yaku.Sanankou, yaku);
+	}
+
+	/// <summary>パス条件: 暗刻が2つ以下の和了形を渡すと Yaku.Sanankou が含まれないこと。</summary>
+	[Fact]
+	public void DetermineYaku_TwoConcealedTriplets_DoesNotContainSanankou()
+	{
+		Tile[] tiles =
+		[
+			new Tile(TileSuit.Man, 1), new Tile(TileSuit.Man, 1), new Tile(TileSuit.Man, 1),
+			new Tile(TileSuit.Pin, 2), new Tile(TileSuit.Pin, 2), new Tile(TileSuit.Pin, 2),
+			new Tile(TileSuit.Sou, 3), new Tile(TileSuit.Sou, 4), new Tile(TileSuit.Sou, 5),
+			new Tile(TileSuit.Man, 6), new Tile(TileSuit.Man, 7), new Tile(TileSuit.Man, 8),
+			new Tile(TileSuit.Pin, 9), new Tile(TileSuit.Pin, 9),
+		];
+
+		var yaku = YakuChecker.DetermineYaku(tiles, melds: [], seatWind: Seat.South, roundWind: Seat.South, ronTile: null);
+
+		Assert.DoesNotContain(Yaku.Sanankou, yaku);
+	}
+
+	/// <summary>
+	/// パス条件: 鳴き（ポン）で作った刻子は暗刻に数えないため、副露込みで刻子が3つあっても
+	/// 暗刻が2つ以下なら Yaku.Sanankou が含まれないこと。
+	/// </summary>
+	[Fact]
+	public void DetermineYaku_WithPonTriplet_DoesNotContainSanankou()
+	{
+		Tile[] concealedTiles =
+		[
+			new Tile(TileSuit.Pin, 2), new Tile(TileSuit.Pin, 2), new Tile(TileSuit.Pin, 2),
+			new Tile(TileSuit.Sou, 3), new Tile(TileSuit.Sou, 3), new Tile(TileSuit.Sou, 3),
+			new Tile(TileSuit.Man, 5), new Tile(TileSuit.Man, 6), new Tile(TileSuit.Man, 7),
+			new Tile(TileSuit.Man, 9), new Tile(TileSuit.Man, 9),
+		];
+		Meld[] melds = [new Meld(MeldType.Pon, [new Tile(TileSuit.Man, 1), new Tile(TileSuit.Man, 1), new Tile(TileSuit.Man, 1)])];
+
+		var yaku = YakuChecker.DetermineYaku(concealedTiles, melds, seatWind: Seat.South, roundWind: Seat.South, ronTile: null);
+
+		Assert.DoesNotContain(Yaku.Sanankou, yaku);
+	}
+
+	/// <summary>パス条件: 暗槓を含む3つの暗刻がある場合 Yaku.Sanankou が含まれること。</summary>
+	[Fact]
+	public void DetermineYaku_WithClosedKanTriplet_ContainsSanankou()
+	{
+		Tile[] concealedTiles =
+		[
+			new Tile(TileSuit.Pin, 2), new Tile(TileSuit.Pin, 2), new Tile(TileSuit.Pin, 2),
+			new Tile(TileSuit.Sou, 3), new Tile(TileSuit.Sou, 3), new Tile(TileSuit.Sou, 3),
+			new Tile(TileSuit.Man, 5), new Tile(TileSuit.Man, 6), new Tile(TileSuit.Man, 7),
+			new Tile(TileSuit.Man, 9), new Tile(TileSuit.Man, 9),
+		];
+		Meld[] melds =
+		[
+			new Meld(
+				MeldType.ClosedKan,
+				[new Tile(TileSuit.Man, 1), new Tile(TileSuit.Man, 1), new Tile(TileSuit.Man, 1), new Tile(TileSuit.Man, 1)]),
+		];
+
+		var yaku = YakuChecker.DetermineYaku(concealedTiles, melds, seatWind: Seat.South, roundWind: Seat.South, ronTile: null);
+
+		Assert.Contains(Yaku.Sanankou, yaku);
+	}
+
+	/// <summary>
+	/// パス条件: 加槓（元はポン）を含む場合、暗刻が2つ以下なら Yaku.Sanankou が含まれないこと。
+	/// </summary>
+	[Fact]
+	public void DetermineYaku_WithAddedKanTriplet_DoesNotContainSanankou()
+	{
+		Tile[] concealedTiles =
+		[
+			new Tile(TileSuit.Pin, 2), new Tile(TileSuit.Pin, 2), new Tile(TileSuit.Pin, 2),
+			new Tile(TileSuit.Sou, 3), new Tile(TileSuit.Sou, 3), new Tile(TileSuit.Sou, 3),
+			new Tile(TileSuit.Man, 5), new Tile(TileSuit.Man, 6), new Tile(TileSuit.Man, 7),
+			new Tile(TileSuit.Man, 9), new Tile(TileSuit.Man, 9),
+		];
+		Meld[] melds =
+		[
+			new Meld(
+				MeldType.AddedKan,
+				[new Tile(TileSuit.Man, 1), new Tile(TileSuit.Man, 1), new Tile(TileSuit.Man, 1), new Tile(TileSuit.Man, 1)]),
+		];
+
+		var yaku = YakuChecker.DetermineYaku(concealedTiles, melds, seatWind: Seat.South, roundWind: Seat.South, ronTile: null);
+
+		Assert.DoesNotContain(Yaku.Sanankou, yaku);
+	}
 }
