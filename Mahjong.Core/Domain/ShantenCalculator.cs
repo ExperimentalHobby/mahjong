@@ -14,12 +14,22 @@ public static class ShantenCalculator
 
 	/// <summary>門前13枚の標準形シャンテン数を計算する（0=聴牌、最大8）。</summary>
 	/// <exception cref="ArgumentException"><paramref name="tiles"/>が13枚でない場合。</exception>
-	public static int CalculateStandardFormShanten(IReadOnlyList<Tile> tiles)
+	public static int CalculateStandardFormShanten(IReadOnlyList<Tile> tiles) => CalculateStandardFormShanten(tiles, meldsAlready: 0);
+
+	/// <summary>
+	/// 副露が既に<paramref name="meldsAlready"/>個ある状態で、残り門前牌の標準形シャンテン数を計算する。
+	/// 副露は牌数（3枚/4枚）によらず1面子として数える（<see cref="Hand.CalculateShanten"/>から利用）。
+	/// </summary>
+	/// <exception cref="ArgumentException"><paramref name="tiles"/>の枚数が<c>13 - meldsAlready * 3</c>枚でない場合。</exception>
+	internal static int CalculateStandardFormShanten(IReadOnlyList<Tile> tiles, int meldsAlready)
 	{
-		if (tiles.Count != 13)
+		var expectedCount = 13 - (meldsAlready * 3);
+		if (tiles.Count != expectedCount)
 		{
-			throw new ArgumentException($"シャンテン数計算の対象は13枚である必要があります(実際: {tiles.Count}枚)。", nameof(tiles));
+			throw new ArgumentException($"判定対象は{expectedCount}枚である必要があります(実際: {tiles.Count}枚)。", nameof(tiles));
 		}
+
+		var requiredMelds = RequiredMelds - meldsAlready;
 
 		var counts = new int[KindCount];
 		foreach (var tile in tiles)
@@ -27,7 +37,7 @@ public static class ShantenCalculator
 			counts[ToIndex(tile)]++;
 		}
 
-		var best = SearchBestDecomposition(counts, kind: 0, melds: 0, taatsu: 0, hasPair: false);
+		var best = SearchBestDecomposition(counts, kind: 0, melds: 0, taatsu: 0, hasPair: false, requiredMelds);
 
 		for (var kind = 0; kind < KindCount; kind++)
 		{
@@ -37,7 +47,7 @@ public static class ShantenCalculator
 			}
 
 			counts[kind] -= 2;
-			var candidate = SearchBestDecomposition(counts, kind: 0, melds: 0, taatsu: 0, hasPair: true);
+			var candidate = SearchBestDecomposition(counts, kind: 0, melds: 0, taatsu: 0, hasPair: true, requiredMelds);
 			counts[kind] += 2;
 
 			best = Math.Min(best, candidate);
@@ -121,11 +131,11 @@ public static class ShantenCalculator
 	/// countsの残り牌から面子・搭子・浮き牌への割り当てを再帰的に試し、
 	/// このノード以降で到達できる最小シャンテン数を返す。
 	/// </summary>
-	private static int SearchBestDecomposition(int[] counts, int kind, int melds, int taatsu, bool hasPair)
+	private static int SearchBestDecomposition(int[] counts, int kind, int melds, int taatsu, bool hasPair, int requiredMelds)
 	{
-		var best = ((RequiredMelds - melds) * 2) - taatsu - (hasPair ? 1 : 0);
+		var best = ((requiredMelds - melds) * 2) - taatsu - (hasPair ? 1 : 0);
 
-		if (melds + taatsu >= RequiredMelds)
+		if (melds + taatsu >= requiredMelds)
 		{
 			return best;
 		}
@@ -146,7 +156,7 @@ public static class ShantenCalculator
 		if (counts[kind] >= 3)
 		{
 			counts[kind] -= 3;
-			best = Math.Min(best, SearchBestDecomposition(counts, kind, melds + 1, taatsu, hasPair));
+			best = Math.Min(best, SearchBestDecomposition(counts, kind, melds + 1, taatsu, hasPair, requiredMelds));
 			counts[kind] += 3;
 		}
 
@@ -155,7 +165,7 @@ public static class ShantenCalculator
 			counts[kind]--;
 			counts[kind + 1]--;
 			counts[kind + 2]--;
-			best = Math.Min(best, SearchBestDecomposition(counts, kind, melds + 1, taatsu, hasPair));
+			best = Math.Min(best, SearchBestDecomposition(counts, kind, melds + 1, taatsu, hasPair, requiredMelds));
 			counts[kind]++;
 			counts[kind + 1]++;
 			counts[kind + 2]++;
@@ -164,7 +174,7 @@ public static class ShantenCalculator
 		if (counts[kind] >= 2)
 		{
 			counts[kind] -= 2;
-			best = Math.Min(best, SearchBestDecomposition(counts, kind, melds, taatsu + 1, hasPair));
+			best = Math.Min(best, SearchBestDecomposition(counts, kind, melds, taatsu + 1, hasPair, requiredMelds));
 			counts[kind] += 2;
 		}
 
@@ -172,7 +182,7 @@ public static class ShantenCalculator
 		{
 			counts[kind]--;
 			counts[kind + 1]--;
-			best = Math.Min(best, SearchBestDecomposition(counts, kind, melds, taatsu + 1, hasPair));
+			best = Math.Min(best, SearchBestDecomposition(counts, kind, melds, taatsu + 1, hasPair, requiredMelds));
 			counts[kind]++;
 			counts[kind + 1]++;
 		}
@@ -181,13 +191,13 @@ public static class ShantenCalculator
 		{
 			counts[kind]--;
 			counts[kind + 2]--;
-			best = Math.Min(best, SearchBestDecomposition(counts, kind, melds, taatsu + 1, hasPair));
+			best = Math.Min(best, SearchBestDecomposition(counts, kind, melds, taatsu + 1, hasPair, requiredMelds));
 			counts[kind]++;
 			counts[kind + 2]++;
 		}
 
 		counts[kind]--;
-		best = Math.Min(best, SearchBestDecomposition(counts, kind, melds, taatsu, hasPair));
+		best = Math.Min(best, SearchBestDecomposition(counts, kind, melds, taatsu, hasPair, requiredMelds));
 		counts[kind]++;
 
 		return best;

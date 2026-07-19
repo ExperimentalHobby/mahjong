@@ -918,4 +918,114 @@ public class HandTests
 
 		Assert.Throws<InvalidOperationException>(() => hand.IsComplete());
 	}
+
+	/// <summary>パス条件: 副露なし・打牌待ちでない状態で CalculateShanten() を呼ぶと、ShantenCalculatorへの委譲結果(1)が返ること。</summary>
+	[Fact]
+	public void CalculateShanten_NoMelds_DelegatesToShantenCalculator()
+	{
+		List<Tile> startingTiles =
+		[
+			new Tile(TileSuit.Man, 1), new Tile(TileSuit.Man, 2), new Tile(TileSuit.Man, 3),
+			new Tile(TileSuit.Pin, 4), new Tile(TileSuit.Pin, 5), new Tile(TileSuit.Pin, 6),
+			new Tile(TileSuit.Sou, 7), new Tile(TileSuit.Sou, 8), new Tile(TileSuit.Sou, 9),
+			new Tile(TileSuit.Sou, 2), new Tile(TileSuit.Sou, 4),
+			new Tile(TileSuit.Honor, 1), new Tile(TileSuit.Man, 9),
+		];
+		var hand = new Hand(startingTiles);
+
+		Assert.Equal(1, hand.CalculateShanten());
+	}
+
+	/// <summary>パス条件: ポン1つ+残り10枚がテンパイ形の場合、CalculateShanten() が 0 になること。</summary>
+	[Fact]
+	public void CalculateShanten_OnePon_Tenpai_ReturnsZero()
+	{
+		List<Tile> startingTiles =
+		[
+			new Tile(TileSuit.Pin, 1), new Tile(TileSuit.Pin, 1),
+			new Tile(TileSuit.Man, 1), new Tile(TileSuit.Man, 1), new Tile(TileSuit.Man, 1),
+			new Tile(TileSuit.Sou, 2), new Tile(TileSuit.Sou, 3), new Tile(TileSuit.Sou, 4),
+			new Tile(TileSuit.Honor, 1), new Tile(TileSuit.Honor, 1),
+			new Tile(TileSuit.Sou, 7), new Tile(TileSuit.Sou, 8), new Tile(TileSuit.Man, 9),
+		];
+		var hand = new Hand(startingTiles);
+		hand.Pon(new Tile(TileSuit.Pin, 1), new Tile(TileSuit.Pin, 1), new Tile(TileSuit.Pin, 1));
+		hand.Discard(new Tile(TileSuit.Man, 9));
+
+		Assert.Equal(0, hand.CalculateShanten());
+	}
+
+	/// <summary>パス条件: ポン1つ+残り10枚がテンパイから離れた形の場合、CalculateShanten() が 4 になること。</summary>
+	[Fact]
+	public void CalculateShanten_OnePon_FourShanten_ReturnsFour()
+	{
+		List<Tile> startingTiles =
+		[
+			new Tile(TileSuit.Pin, 1), new Tile(TileSuit.Pin, 1),
+			new Tile(TileSuit.Man, 1), new Tile(TileSuit.Man, 2), new Tile(TileSuit.Man, 3),
+			new Tile(TileSuit.Pin, 4), new Tile(TileSuit.Pin, 7),
+			new Tile(TileSuit.Sou, 1), new Tile(TileSuit.Sou, 4), new Tile(TileSuit.Sou, 7),
+			new Tile(TileSuit.Honor, 1), new Tile(TileSuit.Honor, 2), new Tile(TileSuit.Man, 9),
+		];
+		var hand = new Hand(startingTiles);
+		hand.Pon(new Tile(TileSuit.Pin, 1), new Tile(TileSuit.Pin, 1), new Tile(TileSuit.Pin, 1));
+		hand.Discard(new Tile(TileSuit.Man, 9));
+
+		Assert.Equal(4, hand.CalculateShanten());
+	}
+
+	/// <summary>
+	/// パス条件: 暗槓（4枚の副露）1つ+残り10枚がテンパイ形の場合、CalculateShanten() が 0 になること
+	/// （カンの牌数が4枚でも面子1つ分としてしか数えないことの確認）。
+	/// </summary>
+	[Fact]
+	public void CalculateShanten_OneClosedKan_Tenpai_ReturnsZero()
+	{
+		List<Tile> startingTiles =
+		[
+			new Tile(TileSuit.Pin, 1), new Tile(TileSuit.Pin, 1), new Tile(TileSuit.Pin, 1),
+			new Tile(TileSuit.Man, 1), new Tile(TileSuit.Man, 1), new Tile(TileSuit.Man, 1),
+			new Tile(TileSuit.Sou, 2), new Tile(TileSuit.Sou, 3), new Tile(TileSuit.Sou, 4),
+			new Tile(TileSuit.Honor, 1), new Tile(TileSuit.Honor, 1),
+			new Tile(TileSuit.Sou, 7), new Tile(TileSuit.Sou, 8),
+		];
+		var hand = new Hand(startingTiles);
+		hand.Draw(new Tile(TileSuit.Pin, 1));
+		hand.ClosedKan(
+			new Tile(TileSuit.Pin, 1), new Tile(TileSuit.Pin, 1), new Tile(TileSuit.Pin, 1), new Tile(TileSuit.Pin, 1));
+
+		Assert.Equal(0, hand.CalculateShanten());
+	}
+
+	/// <summary>パス条件: ポン+チーの2副露+残り7枚がテンパイ形の場合、CalculateShanten() が 0 になること。</summary>
+	[Fact]
+	public void CalculateShanten_PonAndChi_Tenpai_ReturnsZero()
+	{
+		List<Tile> startingTiles =
+		[
+			new Tile(TileSuit.Pin, 1), new Tile(TileSuit.Pin, 1),
+			new Tile(TileSuit.Sou, 2), new Tile(TileSuit.Sou, 3),
+			new Tile(TileSuit.Man, 1), new Tile(TileSuit.Man, 1), new Tile(TileSuit.Man, 1),
+			new Tile(TileSuit.Honor, 1), new Tile(TileSuit.Honor, 1),
+			new Tile(TileSuit.Sou, 7), new Tile(TileSuit.Sou, 8),
+			new Tile(TileSuit.Sou, 9), new Tile(TileSuit.Pin, 9),
+		];
+		var hand = new Hand(startingTiles);
+		hand.Pon(new Tile(TileSuit.Pin, 1), new Tile(TileSuit.Pin, 1), new Tile(TileSuit.Pin, 1));
+		hand.Discard(new Tile(TileSuit.Pin, 9));
+		hand.Chi(new Tile(TileSuit.Sou, 1), new Tile(TileSuit.Sou, 2), new Tile(TileSuit.Sou, 3));
+		hand.Discard(new Tile(TileSuit.Sou, 9));
+
+		Assert.Equal(0, hand.CalculateShanten());
+	}
+
+	/// <summary>パス条件: 打牌待ち状態（ツモ直後）で CalculateShanten() を呼ぶと InvalidOperationException になること。</summary>
+	[Fact]
+	public void CalculateShanten_WhenPending_Throws()
+	{
+		var hand = new Hand(CreateThirteenTiles());
+		hand.Draw(new Tile(TileSuit.Sou, 9));
+
+		Assert.Throws<InvalidOperationException>(() => hand.CalculateShanten());
+	}
 }
