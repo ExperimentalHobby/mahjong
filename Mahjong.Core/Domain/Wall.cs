@@ -10,7 +10,8 @@ public sealed class Wall
 	private readonly List<Tile> _liveWall;
 	private readonly IReadOnlyList<Tile> _deadWall;
 
-	private Wall(List<Tile> liveWall, IReadOnlyList<Tile> deadWall)
+	/// <summary>テスト用に牌山を直接組み立てるための内部コンストラクタ。</summary>
+	internal Wall(List<Tile> liveWall, IReadOnlyList<Tile> deadWall)
 	{
 		_liveWall = liveWall;
 		_deadWall = deadWall;

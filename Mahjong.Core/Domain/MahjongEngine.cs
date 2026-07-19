@@ -35,6 +35,9 @@ public sealed class MahjongEngine
 	/// <summary>和了した座席。まだ誰も和了していない場合は<c>null</c>（<see cref="CallRon"/>で設定される）。</summary>
 	public Seat? Winner { get; private set; }
 
+	/// <summary>生牌山が尽きて、かつ誰も和了していない場合に<c>true</c>になる（流局）。</summary>
+	public bool IsExhaustiveDraw => Winner is null && LiveWallCount == 0;
+
 	/// <summary>座席ごとの手牌。</summary>
 	public IReadOnlyDictionary<Seat, Hand> Hands => _hands;
 
@@ -151,6 +154,21 @@ public sealed class MahjongEngine
 		}
 
 		Winner = caller;
+	}
+
+	/// <summary>
+	/// 現在の手番のプレイヤーがツモ和了を宣言する。成立後、<see cref="Winner"/>が現在の手番になる。
+	/// </summary>
+	/// <exception cref="InvalidOperationException">打牌待ち（ツモ直後）でない場合。</exception>
+	/// <exception cref="ArgumentException">手牌が和了形になっていない場合。</exception>
+	public void CallTsumo()
+	{
+		if (!_hands[CurrentTurn].IsComplete())
+		{
+			throw new ArgumentException("現在の手牌はツモ和了できる形になっていません。");
+		}
+
+		Winner = CurrentTurn;
 	}
 
 	/// <summary>この卓状態の独立した複製を返す（複製後は互いの操作が影響し合わない）。</summary>
