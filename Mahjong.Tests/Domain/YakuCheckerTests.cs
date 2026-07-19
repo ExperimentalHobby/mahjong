@@ -194,4 +194,199 @@ public class YakuCheckerTests
 
 		Assert.Throws<ArgumentException>(() => YakuChecker.DetermineYaku(tiles));
 	}
+
+	/// <summary>パス条件: 4刻子+雀頭の標準形の和了形を渡すと Yaku.Toitoitsu が含まれること。</summary>
+	[Fact]
+	public void DetermineYaku_FourTripletsStandardForm_ContainsToitoitsu()
+	{
+		Tile[] tiles =
+		[
+			new Tile(TileSuit.Man, 2), new Tile(TileSuit.Man, 2), new Tile(TileSuit.Man, 2),
+			new Tile(TileSuit.Man, 7), new Tile(TileSuit.Man, 7), new Tile(TileSuit.Man, 7),
+			new Tile(TileSuit.Pin, 4), new Tile(TileSuit.Pin, 4), new Tile(TileSuit.Pin, 4),
+			new Tile(TileSuit.Sou, 6), new Tile(TileSuit.Sou, 6), new Tile(TileSuit.Sou, 6),
+			new Tile(TileSuit.Sou, 9), new Tile(TileSuit.Sou, 9),
+		];
+
+		var yaku = YakuChecker.DetermineYaku(tiles);
+
+		Assert.Contains(Yaku.Toitoitsu, yaku);
+	}
+
+	/// <summary>パス条件: 刻子1つ+順子3つ+雀頭の標準形の和了形を渡すと Yaku.Toitoitsu が含まれないこと。</summary>
+	[Fact]
+	public void DetermineYaku_OneTripletThreeSequencesStandardForm_DoesNotContainToitoitsu()
+	{
+		Tile[] tiles =
+		[
+			new Tile(TileSuit.Man, 2), new Tile(TileSuit.Man, 3), new Tile(TileSuit.Man, 4),
+			new Tile(TileSuit.Pin, 3), new Tile(TileSuit.Pin, 4), new Tile(TileSuit.Pin, 5),
+			new Tile(TileSuit.Sou, 5), new Tile(TileSuit.Sou, 6), new Tile(TileSuit.Sou, 7),
+			new Tile(TileSuit.Man, 8), new Tile(TileSuit.Man, 8), new Tile(TileSuit.Man, 8),
+			new Tile(TileSuit.Pin, 2), new Tile(TileSuit.Pin, 2),
+		];
+
+		var yaku = YakuChecker.DetermineYaku(tiles);
+
+		Assert.DoesNotContain(Yaku.Toitoitsu, yaku);
+	}
+
+	/// <summary>パス条件: 同じ順子が2組ある標準形の和了形を渡すと Yaku.Iipeikou が含まれること。</summary>
+	[Fact]
+	public void DetermineYaku_TwoIdenticalSequencesStandardForm_ContainsIipeikou()
+	{
+		Tile[] tiles =
+		[
+			new Tile(TileSuit.Man, 2), new Tile(TileSuit.Man, 2),
+			new Tile(TileSuit.Man, 3), new Tile(TileSuit.Man, 3),
+			new Tile(TileSuit.Man, 4), new Tile(TileSuit.Man, 4),
+			new Tile(TileSuit.Pin, 5), new Tile(TileSuit.Pin, 6), new Tile(TileSuit.Pin, 7),
+			new Tile(TileSuit.Sou, 1), new Tile(TileSuit.Sou, 1), new Tile(TileSuit.Sou, 1),
+			new Tile(TileSuit.Pin, 9), new Tile(TileSuit.Pin, 9),
+		];
+
+		var yaku = YakuChecker.DetermineYaku(tiles);
+
+		Assert.Contains(Yaku.Iipeikou, yaku);
+	}
+
+	/// <summary>パス条件: 重複する順子が無い標準形の和了形を渡すと Yaku.Iipeikou が含まれないこと。</summary>
+	[Fact]
+	public void DetermineYaku_NoDuplicateSequenceStandardForm_DoesNotContainIipeikou()
+	{
+		Tile[] tiles =
+		[
+			new Tile(TileSuit.Man, 2), new Tile(TileSuit.Man, 3), new Tile(TileSuit.Man, 4),
+			new Tile(TileSuit.Pin, 3), new Tile(TileSuit.Pin, 4), new Tile(TileSuit.Pin, 5),
+			new Tile(TileSuit.Sou, 5), new Tile(TileSuit.Sou, 6), new Tile(TileSuit.Sou, 7),
+			new Tile(TileSuit.Man, 8), new Tile(TileSuit.Man, 8), new Tile(TileSuit.Man, 8),
+			new Tile(TileSuit.Pin, 2), new Tile(TileSuit.Pin, 2),
+		];
+
+		var yaku = YakuChecker.DetermineYaku(tiles);
+
+		Assert.DoesNotContain(Yaku.Iipeikou, yaku);
+	}
+
+	/// <summary>
+	/// パス条件: 同じ数字の順子が萬子・筒子・索子の3色全てに含まれる和了形を渡すと
+	/// Yaku.SanshokuDoujun が含まれること。
+	/// </summary>
+	[Fact]
+	public void DetermineYaku_SameSequenceAcrossThreeSuits_ContainsSanshokuDoujun()
+	{
+		Tile[] tiles =
+		[
+			new Tile(TileSuit.Man, 2), new Tile(TileSuit.Man, 3), new Tile(TileSuit.Man, 4),
+			new Tile(TileSuit.Man, 7), new Tile(TileSuit.Man, 8), new Tile(TileSuit.Man, 9),
+			new Tile(TileSuit.Pin, 2), new Tile(TileSuit.Pin, 3), new Tile(TileSuit.Pin, 4),
+			new Tile(TileSuit.Sou, 2), new Tile(TileSuit.Sou, 3), new Tile(TileSuit.Sou, 4),
+			new Tile(TileSuit.Sou, 9), new Tile(TileSuit.Sou, 9),
+		];
+
+		var yaku = YakuChecker.DetermineYaku(tiles);
+
+		Assert.Contains(Yaku.SanshokuDoujun, yaku);
+	}
+
+	/// <summary>パス条件: 3色に跨る同一順子が無い和了形を渡すと Yaku.SanshokuDoujun が含まれないこと。</summary>
+	[Fact]
+	public void DetermineYaku_NoSameSequenceAcrossThreeSuits_DoesNotContainSanshokuDoujun()
+	{
+		Tile[] tiles =
+		[
+			new Tile(TileSuit.Man, 2), new Tile(TileSuit.Man, 3), new Tile(TileSuit.Man, 4),
+			new Tile(TileSuit.Pin, 3), new Tile(TileSuit.Pin, 4), new Tile(TileSuit.Pin, 5),
+			new Tile(TileSuit.Sou, 5), new Tile(TileSuit.Sou, 6), new Tile(TileSuit.Sou, 7),
+			new Tile(TileSuit.Man, 8), new Tile(TileSuit.Man, 8), new Tile(TileSuit.Man, 8),
+			new Tile(TileSuit.Pin, 2), new Tile(TileSuit.Pin, 2),
+		];
+
+		var yaku = YakuChecker.DetermineYaku(tiles);
+
+		Assert.DoesNotContain(Yaku.SanshokuDoujun, yaku);
+	}
+
+	/// <summary>
+	/// パス条件: 同一色で123・456・789の3順子を含む和了形を渡すと Yaku.Ittsuu が含まれること。
+	/// </summary>
+	[Fact]
+	public void DetermineYaku_PureStraightInOneSuit_ContainsIttsuu()
+	{
+		Tile[] tiles =
+		[
+			new Tile(TileSuit.Man, 1), new Tile(TileSuit.Man, 2), new Tile(TileSuit.Man, 3),
+			new Tile(TileSuit.Man, 4), new Tile(TileSuit.Man, 5), new Tile(TileSuit.Man, 6),
+			new Tile(TileSuit.Man, 7), new Tile(TileSuit.Man, 8), new Tile(TileSuit.Man, 9),
+			new Tile(TileSuit.Pin, 5), new Tile(TileSuit.Pin, 5), new Tile(TileSuit.Pin, 5),
+			new Tile(TileSuit.Sou, 3), new Tile(TileSuit.Sou, 3),
+		];
+
+		var yaku = YakuChecker.DetermineYaku(tiles);
+
+		Assert.Contains(Yaku.Ittsuu, yaku);
+	}
+
+	/// <summary>パス条件: 同一色で123・456・789の3順子が揃わない和了形を渡すと Yaku.Ittsuu が含まれないこと。</summary>
+	[Fact]
+	public void DetermineYaku_NoPureStraightInOneSuit_DoesNotContainIttsuu()
+	{
+		Tile[] tiles =
+		[
+			new Tile(TileSuit.Man, 2), new Tile(TileSuit.Man, 3), new Tile(TileSuit.Man, 4),
+			new Tile(TileSuit.Pin, 3), new Tile(TileSuit.Pin, 4), new Tile(TileSuit.Pin, 5),
+			new Tile(TileSuit.Sou, 5), new Tile(TileSuit.Sou, 6), new Tile(TileSuit.Sou, 7),
+			new Tile(TileSuit.Man, 8), new Tile(TileSuit.Man, 8), new Tile(TileSuit.Man, 8),
+			new Tile(TileSuit.Pin, 2), new Tile(TileSuit.Pin, 2),
+		];
+
+		var yaku = YakuChecker.DetermineYaku(tiles);
+
+		Assert.DoesNotContain(Yaku.Ittsuu, yaku);
+	}
+
+	/// <summary>
+	/// パス条件: 4刻子が全て2〜8の標準形の和了形を渡すと Yaku.Toitoitsu と Yaku.Tanyao の
+	/// 両方が含まれること（複合役の確認）。
+	/// </summary>
+	[Fact]
+	public void DetermineYaku_FourTripletsWithoutTerminalsOrHonors_ContainsToitoitsuAndTanyao()
+	{
+		Tile[] tiles =
+		[
+			new Tile(TileSuit.Man, 3), new Tile(TileSuit.Man, 3), new Tile(TileSuit.Man, 3),
+			new Tile(TileSuit.Man, 6), new Tile(TileSuit.Man, 6), new Tile(TileSuit.Man, 6),
+			new Tile(TileSuit.Pin, 4), new Tile(TileSuit.Pin, 4), new Tile(TileSuit.Pin, 4),
+			new Tile(TileSuit.Sou, 5), new Tile(TileSuit.Sou, 5), new Tile(TileSuit.Sou, 5),
+			new Tile(TileSuit.Pin, 7), new Tile(TileSuit.Pin, 7),
+		];
+
+		var yaku = YakuChecker.DetermineYaku(tiles);
+
+		Assert.Contains(Yaku.Toitoitsu, yaku);
+		Assert.Contains(Yaku.Tanyao, yaku);
+	}
+
+	/// <summary>
+	/// パス条件: 「4刻子」とも「3つの同一順子+1刻子」とも読める和了形を渡すと Yaku.Toitoitsu と
+	/// Yaku.Iipeikou の両方が含まれること（分解探索が最初に見つかった1つの分解だけで
+	/// 判定を打ち切っていないことの確認）。
+	/// </summary>
+	[Fact]
+	public void DetermineYaku_AmbiguousDecomposition_ContainsBothToitoitsuAndIipeikou()
+	{
+		Tile[] tiles =
+		[
+			new Tile(TileSuit.Man, 2), new Tile(TileSuit.Man, 2), new Tile(TileSuit.Man, 2),
+			new Tile(TileSuit.Man, 3), new Tile(TileSuit.Man, 3), new Tile(TileSuit.Man, 3),
+			new Tile(TileSuit.Man, 4), new Tile(TileSuit.Man, 4), new Tile(TileSuit.Man, 4),
+			new Tile(TileSuit.Pin, 7), new Tile(TileSuit.Pin, 7), new Tile(TileSuit.Pin, 7),
+			new Tile(TileSuit.Sou, 9), new Tile(TileSuit.Sou, 9),
+		];
+
+		var yaku = YakuChecker.DetermineYaku(tiles);
+
+		Assert.Contains(Yaku.Toitoitsu, yaku);
+		Assert.Contains(Yaku.Iipeikou, yaku);
+	}
 }
