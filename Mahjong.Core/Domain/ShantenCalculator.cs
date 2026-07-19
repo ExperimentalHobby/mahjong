@@ -6,6 +6,12 @@ public static class ShantenCalculator
 	private const int KindCount = 34;
 	private const int RequiredMelds = 4;
 
+	/// <summary>門前13枚のシャンテン数を計算する（標準形・七対子・国士無双のうち最小の値）。</summary>
+	/// <exception cref="ArgumentException"><paramref name="tiles"/>が13枚でない場合。</exception>
+	public static int CalculateShanten(IReadOnlyList<Tile> tiles) => Math.Min(
+		CalculateStandardFormShanten(tiles),
+		Math.Min(CalculateSevenPairsShanten(tiles), CalculateThirteenOrphansShanten(tiles)));
+
 	/// <summary>門前13枚の標準形シャンテン数を計算する（0=聴牌、最大8）。</summary>
 	/// <exception cref="ArgumentException"><paramref name="tiles"/>が13枚でない場合。</exception>
 	public static int CalculateStandardFormShanten(IReadOnlyList<Tile> tiles)
@@ -38,6 +44,77 @@ public static class ShantenCalculator
 		}
 
 		return best;
+	}
+
+	/// <summary>門前13枚の七対子シャンテン数を計算する（0=聴牌、最大6）。</summary>
+	/// <exception cref="ArgumentException"><paramref name="tiles"/>が13枚でない場合。</exception>
+	public static int CalculateSevenPairsShanten(IReadOnlyList<Tile> tiles)
+	{
+		if (tiles.Count != 13)
+		{
+			throw new ArgumentException($"シャンテン数計算の対象は13枚である必要があります(実際: {tiles.Count}枚)。", nameof(tiles));
+		}
+
+		var counts = new int[KindCount];
+		foreach (var tile in tiles)
+		{
+			counts[ToIndex(tile)]++;
+		}
+
+		var pairKindCount = 0;
+		var distinctKindCount = 0;
+		foreach (var count in counts)
+		{
+			if (count == 0)
+			{
+				continue;
+			}
+
+			distinctKindCount++;
+			if (count >= 2)
+			{
+				pairKindCount++;
+			}
+		}
+
+		return 6 - pairKindCount + Math.Max(0, 7 - distinctKindCount);
+	}
+
+	/// <summary>么九牌13種（萬子1/9・筒子1/9・索子1/9・字牌7種）に対応するインデックス集合。</summary>
+	private static readonly int[] YaochuuIndices = [0, 8, 9, 17, 18, 26, 27, 28, 29, 30, 31, 32, 33];
+
+	/// <summary>門前13枚の国士無双シャンテン数を計算する（0=聴牌、最大13）。</summary>
+	/// <exception cref="ArgumentException"><paramref name="tiles"/>が13枚でない場合。</exception>
+	public static int CalculateThirteenOrphansShanten(IReadOnlyList<Tile> tiles)
+	{
+		if (tiles.Count != 13)
+		{
+			throw new ArgumentException($"シャンテン数計算の対象は13枚である必要があります(実際: {tiles.Count}枚)。", nameof(tiles));
+		}
+
+		var counts = new int[KindCount];
+		foreach (var tile in tiles)
+		{
+			counts[ToIndex(tile)]++;
+		}
+
+		var distinctYaochuuCount = 0;
+		var hasYaochuuPair = false;
+		foreach (var kind in YaochuuIndices)
+		{
+			if (counts[kind] == 0)
+			{
+				continue;
+			}
+
+			distinctYaochuuCount++;
+			if (counts[kind] >= 2)
+			{
+				hasYaochuuPair = true;
+			}
+		}
+
+		return 13 - distinctYaochuuCount - (hasYaochuuPair ? 1 : 0);
 	}
 
 	/// <summary>
