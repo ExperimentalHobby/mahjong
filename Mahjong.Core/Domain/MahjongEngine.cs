@@ -54,6 +54,13 @@ public sealed class MahjongEngine
 		new Dictionary<Seat, IReadOnlyList<Yaku>>();
 
 	/// <summary>
+	/// 和了時の翻数。座席をキーにする。役満（国士無双・字一色）の場合は翻数で表現できないため
+	/// エントリを持たない（<see cref="Winners"/>・<see cref="WinningYaku"/>には引き続き含まれる）。
+	/// まだ誰も和了していない場合は空。
+	/// </summary>
+	public IReadOnlyDictionary<Seat, int> WinningHan { get; private set; } = new Dictionary<Seat, int>();
+
+	/// <summary>
 	/// 3人が同じ捨て牌に対して同時にロンを宣言した場合（三家和）に<c>true</c>になる。
 	/// この場合、誰も和了せずその局は流局になる（<see cref="Winners"/>は空のまま）。
 	/// </summary>
@@ -228,12 +235,19 @@ public sealed class MahjongEngine
 
 		Winners = callers;
 		var winningYaku = new Dictionary<Seat, IReadOnlyList<Yaku>>();
+		var winningHan = new Dictionary<Seat, int>();
 		foreach (var caller in callers)
 		{
-			winningYaku[caller] = _hands[caller].DetermineYakuOn(lastDiscard.Tile, caller, RoundWind);
+			var yaku = _hands[caller].DetermineYakuOn(lastDiscard.Tile, caller, RoundWind);
+			winningYaku[caller] = yaku;
+			if (!HanCalculator.IsYakuman(yaku))
+			{
+				winningHan[caller] = HanCalculator.CalculateHan(yaku, _hands[caller].Melds.Count == 0);
+			}
 		}
 
 		WinningYaku = winningYaku;
+		WinningHan = winningHan;
 	}
 
 	/// <summary>
@@ -305,10 +319,16 @@ public sealed class MahjongEngine
 		}
 
 		Winners = [CurrentTurn];
-		WinningYaku = new Dictionary<Seat, IReadOnlyList<Yaku>>
+		var yaku = _hands[CurrentTurn].DetermineYaku(CurrentTurn, RoundWind);
+		WinningYaku = new Dictionary<Seat, IReadOnlyList<Yaku>> { [CurrentTurn] = yaku };
+
+		var winningHan = new Dictionary<Seat, int>();
+		if (!HanCalculator.IsYakuman(yaku))
 		{
-			[CurrentTurn] = _hands[CurrentTurn].DetermineYaku(CurrentTurn, RoundWind),
-		};
+			winningHan[CurrentTurn] = HanCalculator.CalculateHan(yaku, _hands[CurrentTurn].Melds.Count == 0);
+		}
+
+		WinningHan = winningHan;
 	}
 
 	/// <summary>この卓状態の独立した複製を返す（複製後は互いの操作が影響し合わない）。</summary>
@@ -323,6 +343,7 @@ public sealed class MahjongEngine
 		return new MahjongEngine(_wall.Clone(), clonedHands, CurrentTurn, LastDiscard, Winners, RoundWind)
 		{
 			WinningYaku = WinningYaku,
+			WinningHan = WinningHan,
 			IsTripleRonDraw = IsTripleRonDraw,
 		};
 	}
