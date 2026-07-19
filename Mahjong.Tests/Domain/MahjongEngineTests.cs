@@ -105,7 +105,89 @@ public class MahjongEngineTests
 
 		var clone = engine.Clone();
 
-		Assert.Contains(Yaku.Toitoitsu, clone.WinningYaku!);
+		Assert.Contains(Yaku.Toitoitsu, clone.WinningYaku[Seat.East]);
+	}
+
+	/// <summary>パス条件: ダブロン成立後に Clone() すると、複製したエンジンにも Winners・WinningYaku が保持されること。</summary>
+	[Fact]
+	public void Clone_PreservesWinnersAndWinningYaku_AfterDoubleRon()
+	{
+		var discardedTile = new Tile(TileSuit.Man, 9);
+		var hands = new Dictionary<Seat, Hand>
+		{
+			[Seat.East] = new Hand(
+			[
+				new Tile(TileSuit.Man, 1), new Tile(TileSuit.Man, 1), new Tile(TileSuit.Man, 1),
+				new Tile(TileSuit.Pin, 2), new Tile(TileSuit.Pin, 2), new Tile(TileSuit.Pin, 2),
+				new Tile(TileSuit.Sou, 3), new Tile(TileSuit.Sou, 3), new Tile(TileSuit.Sou, 3),
+				new Tile(TileSuit.Honor, 1), new Tile(TileSuit.Honor, 1), new Tile(TileSuit.Honor, 1),
+				new Tile(TileSuit.Man, 9),
+			]),
+			[Seat.South] = new Hand(
+			[
+				new Tile(TileSuit.Man, 4), new Tile(TileSuit.Man, 4), new Tile(TileSuit.Man, 4),
+				new Tile(TileSuit.Pin, 5), new Tile(TileSuit.Pin, 5), new Tile(TileSuit.Pin, 5),
+				new Tile(TileSuit.Sou, 6), new Tile(TileSuit.Sou, 6), new Tile(TileSuit.Sou, 6),
+				new Tile(TileSuit.Honor, 2), new Tile(TileSuit.Honor, 2), new Tile(TileSuit.Honor, 2),
+				new Tile(TileSuit.Man, 9),
+			]),
+			[Seat.West] = new Hand(CreateThirteenFillerTiles()),
+			[Seat.North] = new Hand(CreateThirteenFillerTiles()),
+		};
+		var engine = new MahjongEngine(
+			Wall.CreateShuffled(new Random(1)), hands, Seat.West, (discardedTile, Seat.North));
+		engine.CallRon([Seat.East, Seat.South]);
+
+		var clone = engine.Clone();
+
+		Assert.Equal(2, clone.Winners.Count);
+		Assert.Contains(Seat.East, clone.Winners);
+		Assert.Contains(Seat.South, clone.Winners);
+		Assert.Contains(Yaku.Toitoitsu, clone.WinningYaku[Seat.East]);
+		Assert.Contains(Yaku.Toitoitsu, clone.WinningYaku[Seat.South]);
+	}
+
+	/// <summary>パス条件: トリプルロン（三家和）成立後に Clone() すると、複製したエンジンにも IsTripleRonDraw が保持されること。</summary>
+	[Fact]
+	public void Clone_PreservesIsTripleRonDraw()
+	{
+		var discardedTile = new Tile(TileSuit.Man, 9);
+		var hands = new Dictionary<Seat, Hand>
+		{
+			[Seat.East] = new Hand(
+			[
+				new Tile(TileSuit.Man, 1), new Tile(TileSuit.Man, 1), new Tile(TileSuit.Man, 1),
+				new Tile(TileSuit.Pin, 2), new Tile(TileSuit.Pin, 2), new Tile(TileSuit.Pin, 2),
+				new Tile(TileSuit.Sou, 3), new Tile(TileSuit.Sou, 3), new Tile(TileSuit.Sou, 3),
+				new Tile(TileSuit.Honor, 1), new Tile(TileSuit.Honor, 1), new Tile(TileSuit.Honor, 1),
+				new Tile(TileSuit.Man, 9),
+			]),
+			[Seat.South] = new Hand(
+			[
+				new Tile(TileSuit.Man, 4), new Tile(TileSuit.Man, 4), new Tile(TileSuit.Man, 4),
+				new Tile(TileSuit.Pin, 5), new Tile(TileSuit.Pin, 5), new Tile(TileSuit.Pin, 5),
+				new Tile(TileSuit.Sou, 6), new Tile(TileSuit.Sou, 6), new Tile(TileSuit.Sou, 6),
+				new Tile(TileSuit.Honor, 2), new Tile(TileSuit.Honor, 2), new Tile(TileSuit.Honor, 2),
+				new Tile(TileSuit.Man, 9),
+			]),
+			[Seat.West] = new Hand(
+			[
+				new Tile(TileSuit.Pin, 1), new Tile(TileSuit.Pin, 1), new Tile(TileSuit.Pin, 1),
+				new Tile(TileSuit.Pin, 4), new Tile(TileSuit.Pin, 4), new Tile(TileSuit.Pin, 4),
+				new Tile(TileSuit.Sou, 1), new Tile(TileSuit.Sou, 1), new Tile(TileSuit.Sou, 1),
+				new Tile(TileSuit.Honor, 3), new Tile(TileSuit.Honor, 3), new Tile(TileSuit.Honor, 3),
+				new Tile(TileSuit.Man, 9),
+			]),
+			[Seat.North] = new Hand(CreateThirteenFillerTiles()),
+		};
+		var engine = new MahjongEngine(
+			Wall.CreateShuffled(new Random(1)), hands, Seat.North, (discardedTile, Seat.North));
+		engine.CallRon([Seat.East, Seat.South, Seat.West]);
+
+		var clone = engine.Clone();
+
+		Assert.True(clone.IsTripleRonDraw);
+		Assert.Empty(clone.Winners);
 	}
 
 	/// <summary>パス条件: Riichi() 後、手番が次の座席に進み、LastDiscard に打牌した牌と打牌者が記録されること。</summary>
@@ -325,6 +407,214 @@ public class MahjongEngineTests
 		Assert.Equal(Seat.North, engine.CurrentTurn);
 	}
 
+	/// <summary>パス条件: 2人が同じ捨て牌に対して同時にロンを宣言すると、頭跳ねせず両者ともWinnersに含まれること（ダブロン）。</summary>
+	[Fact]
+	public void CallRon_TwoCallers_BothIncludedInWinners()
+	{
+		var discardedTile = new Tile(TileSuit.Man, 9);
+		var hands = new Dictionary<Seat, Hand>
+		{
+			[Seat.East] = new Hand(
+			[
+				new Tile(TileSuit.Man, 1), new Tile(TileSuit.Man, 1), new Tile(TileSuit.Man, 1),
+				new Tile(TileSuit.Pin, 2), new Tile(TileSuit.Pin, 2), new Tile(TileSuit.Pin, 2),
+				new Tile(TileSuit.Sou, 3), new Tile(TileSuit.Sou, 3), new Tile(TileSuit.Sou, 3),
+				new Tile(TileSuit.Honor, 1), new Tile(TileSuit.Honor, 1), new Tile(TileSuit.Honor, 1),
+				new Tile(TileSuit.Man, 9),
+			]),
+			[Seat.South] = new Hand(
+			[
+				new Tile(TileSuit.Man, 4), new Tile(TileSuit.Man, 4), new Tile(TileSuit.Man, 4),
+				new Tile(TileSuit.Pin, 5), new Tile(TileSuit.Pin, 5), new Tile(TileSuit.Pin, 5),
+				new Tile(TileSuit.Sou, 6), new Tile(TileSuit.Sou, 6), new Tile(TileSuit.Sou, 6),
+				new Tile(TileSuit.Honor, 2), new Tile(TileSuit.Honor, 2), new Tile(TileSuit.Honor, 2),
+				new Tile(TileSuit.Man, 9),
+			]),
+			[Seat.West] = new Hand(CreateThirteenFillerTiles()),
+			[Seat.North] = new Hand(CreateThirteenFillerTiles()),
+		};
+		var engine = new MahjongEngine(
+			Wall.CreateShuffled(new Random(1)), hands, Seat.West, (discardedTile, Seat.North));
+
+		engine.CallRon([Seat.East, Seat.South]);
+
+		Assert.Equal(2, engine.Winners.Count);
+		Assert.Contains(Seat.East, engine.Winners);
+		Assert.Contains(Seat.South, engine.Winners);
+	}
+
+	/// <summary>パス条件: ダブロン成立時、和了者ごとにWinningYakuが各自の手牌に基づいて設定されること。</summary>
+	[Fact]
+	public void CallRon_TwoCallers_SetsWinningYakuPerCaller()
+	{
+		var discardedTile = new Tile(TileSuit.Man, 9);
+		var hands = new Dictionary<Seat, Hand>
+		{
+			[Seat.East] = new Hand(
+			[
+				new Tile(TileSuit.Man, 1), new Tile(TileSuit.Man, 1), new Tile(TileSuit.Man, 1),
+				new Tile(TileSuit.Pin, 2), new Tile(TileSuit.Pin, 2), new Tile(TileSuit.Pin, 2),
+				new Tile(TileSuit.Sou, 3), new Tile(TileSuit.Sou, 3), new Tile(TileSuit.Sou, 3),
+				new Tile(TileSuit.Honor, 1), new Tile(TileSuit.Honor, 1), new Tile(TileSuit.Honor, 1),
+				new Tile(TileSuit.Man, 9),
+			]),
+			[Seat.South] = new Hand(
+			[
+				new Tile(TileSuit.Man, 4), new Tile(TileSuit.Man, 4), new Tile(TileSuit.Man, 4),
+				new Tile(TileSuit.Pin, 5), new Tile(TileSuit.Pin, 5), new Tile(TileSuit.Pin, 5),
+				new Tile(TileSuit.Sou, 6), new Tile(TileSuit.Sou, 6), new Tile(TileSuit.Sou, 6),
+				new Tile(TileSuit.Honor, 2), new Tile(TileSuit.Honor, 2), new Tile(TileSuit.Honor, 2),
+				new Tile(TileSuit.Man, 9),
+			]),
+			[Seat.West] = new Hand(CreateThirteenFillerTiles()),
+			[Seat.North] = new Hand(CreateThirteenFillerTiles()),
+		};
+		var engine = new MahjongEngine(
+			Wall.CreateShuffled(new Random(1)), hands, Seat.West, (discardedTile, Seat.North));
+
+		engine.CallRon([Seat.East, Seat.South]);
+
+		Assert.Contains(Yaku.Toitoitsu, engine.WinningYaku[Seat.East]);
+		Assert.Contains(Yaku.Toitoitsu, engine.WinningYaku[Seat.South]);
+	}
+
+	/// <summary>
+	/// パス条件: 3人が同じ捨て牌に対して同時にロンを宣言すると、IsTripleRonDraw が true になり、
+	/// Winners は空のままであること（三家和）。
+	/// </summary>
+	[Fact]
+	public void CallRon_ThreeCallers_SetsIsTripleRonDrawAndWinnersRemainsEmpty()
+	{
+		var discardedTile = new Tile(TileSuit.Man, 9);
+		var hands = new Dictionary<Seat, Hand>
+		{
+			[Seat.East] = new Hand(
+			[
+				new Tile(TileSuit.Man, 1), new Tile(TileSuit.Man, 1), new Tile(TileSuit.Man, 1),
+				new Tile(TileSuit.Pin, 2), new Tile(TileSuit.Pin, 2), new Tile(TileSuit.Pin, 2),
+				new Tile(TileSuit.Sou, 3), new Tile(TileSuit.Sou, 3), new Tile(TileSuit.Sou, 3),
+				new Tile(TileSuit.Honor, 1), new Tile(TileSuit.Honor, 1), new Tile(TileSuit.Honor, 1),
+				new Tile(TileSuit.Man, 9),
+			]),
+			[Seat.South] = new Hand(
+			[
+				new Tile(TileSuit.Man, 4), new Tile(TileSuit.Man, 4), new Tile(TileSuit.Man, 4),
+				new Tile(TileSuit.Pin, 5), new Tile(TileSuit.Pin, 5), new Tile(TileSuit.Pin, 5),
+				new Tile(TileSuit.Sou, 6), new Tile(TileSuit.Sou, 6), new Tile(TileSuit.Sou, 6),
+				new Tile(TileSuit.Honor, 2), new Tile(TileSuit.Honor, 2), new Tile(TileSuit.Honor, 2),
+				new Tile(TileSuit.Man, 9),
+			]),
+			[Seat.West] = new Hand(
+			[
+				new Tile(TileSuit.Pin, 1), new Tile(TileSuit.Pin, 1), new Tile(TileSuit.Pin, 1),
+				new Tile(TileSuit.Pin, 4), new Tile(TileSuit.Pin, 4), new Tile(TileSuit.Pin, 4),
+				new Tile(TileSuit.Sou, 1), new Tile(TileSuit.Sou, 1), new Tile(TileSuit.Sou, 1),
+				new Tile(TileSuit.Honor, 3), new Tile(TileSuit.Honor, 3), new Tile(TileSuit.Honor, 3),
+				new Tile(TileSuit.Man, 9),
+			]),
+			[Seat.North] = new Hand(CreateThirteenFillerTiles()),
+		};
+		var engine = new MahjongEngine(
+			Wall.CreateShuffled(new Random(1)), hands, Seat.North, (discardedTile, Seat.North));
+
+		engine.CallRon([Seat.East, Seat.South, Seat.West]);
+
+		Assert.True(engine.IsTripleRonDraw);
+		Assert.Empty(engine.Winners);
+	}
+
+	/// <summary>パス条件: CallRon(callers) に空のリストを渡すと ArgumentException になること。</summary>
+	[Fact]
+	public void CallRon_EmptyCallers_Throws()
+	{
+		var discardedTile = new Tile(TileSuit.Man, 9);
+		var hands = new Dictionary<Seat, Hand>
+		{
+			[Seat.East] = new Hand(CreateThirteenFillerTiles()),
+			[Seat.South] = new Hand(CreateThirteenFillerTiles()),
+			[Seat.West] = new Hand(CreateThirteenFillerTiles()),
+			[Seat.North] = new Hand(CreateThirteenFillerTiles()),
+		};
+		var engine = new MahjongEngine(
+			Wall.CreateShuffled(new Random(1)), hands, Seat.South, (discardedTile, Seat.East));
+
+		Assert.Throws<ArgumentException>(() => engine.CallRon([]));
+	}
+
+	/// <summary>パス条件: CallRon(callers) に同じ座席を複数回指定すると ArgumentException になること。</summary>
+	[Fact]
+	public void CallRon_DuplicateCallers_Throws()
+	{
+		var discardedTile = new Tile(TileSuit.Man, 9);
+		var hands = new Dictionary<Seat, Hand>
+		{
+			[Seat.East] = new Hand(CreateThirteenFillerTiles()),
+			[Seat.South] = new Hand(CreateThirteenFillerTiles()),
+			[Seat.West] = new Hand(CreateThirteenFillerTiles()),
+			[Seat.North] = new Hand(CreateThirteenFillerTiles()),
+		};
+		var engine = new MahjongEngine(
+			Wall.CreateShuffled(new Random(1)), hands, Seat.South, (discardedTile, Seat.East));
+
+		Assert.Throws<ArgumentException>(() => engine.CallRon([Seat.South, Seat.South]));
+	}
+
+	/// <summary>
+	/// パス条件: CallRon(callers) の複数座席のうち、いずれかが打牌者自身の場合 ArgumentException になること。
+	/// </summary>
+	[Fact]
+	public void CallRon_CallersIncludeDiscarder_Throws()
+	{
+		var discardedTile = new Tile(TileSuit.Man, 9);
+		var hands = new Dictionary<Seat, Hand>
+		{
+			[Seat.East] = new Hand(CreateThirteenFillerTiles()),
+			[Seat.South] = new Hand(
+			[
+				new Tile(TileSuit.Man, 1), new Tile(TileSuit.Man, 1), new Tile(TileSuit.Man, 1),
+				new Tile(TileSuit.Pin, 2), new Tile(TileSuit.Pin, 2), new Tile(TileSuit.Pin, 2),
+				new Tile(TileSuit.Sou, 3), new Tile(TileSuit.Sou, 3), new Tile(TileSuit.Sou, 3),
+				new Tile(TileSuit.Honor, 1), new Tile(TileSuit.Honor, 1), new Tile(TileSuit.Honor, 1),
+				new Tile(TileSuit.Man, 9),
+			]),
+			[Seat.West] = new Hand(CreateThirteenFillerTiles()),
+			[Seat.North] = new Hand(CreateThirteenFillerTiles()),
+		};
+		var engine = new MahjongEngine(
+			Wall.CreateShuffled(new Random(1)), hands, Seat.West, (discardedTile, Seat.East));
+
+		Assert.Throws<ArgumentException>(() => engine.CallRon([Seat.South, Seat.East]));
+	}
+
+	/// <summary>
+	/// パス条件: CallRon(callers) の複数座席のうち、いずれかの手牌が捨て牌を加えても和了形にならない場合、
+	/// ArgumentException になり、Winners が変化しないこと（All-or-nothingの検証確認）。
+	/// </summary>
+	[Fact]
+	public void CallRon_OneOfMultipleCallersHandDoesNotComplete_ThrowsAndWinnersRemainsEmpty()
+	{
+		var discardedTile = new Tile(TileSuit.Man, 9);
+		var hands = new Dictionary<Seat, Hand>
+		{
+			[Seat.East] = new Hand(CreateThirteenFillerTiles()),
+			[Seat.South] = new Hand(
+			[
+				new Tile(TileSuit.Man, 1), new Tile(TileSuit.Man, 1), new Tile(TileSuit.Man, 1),
+				new Tile(TileSuit.Pin, 2), new Tile(TileSuit.Pin, 2), new Tile(TileSuit.Pin, 2),
+				new Tile(TileSuit.Sou, 3), new Tile(TileSuit.Sou, 3), new Tile(TileSuit.Sou, 3),
+				new Tile(TileSuit.Honor, 1), new Tile(TileSuit.Honor, 1), new Tile(TileSuit.Honor, 1),
+				new Tile(TileSuit.Man, 9),
+			]),
+			[Seat.West] = new Hand(CreateThirteenFillerTiles()),
+			[Seat.North] = new Hand(CreateThirteenFillerTiles()),
+		};
+		var engine = new MahjongEngine(
+			Wall.CreateShuffled(new Random(1)), hands, Seat.North, (discardedTile, Seat.East));
+
+		Assert.Throws<ArgumentException>(() => engine.CallRon([Seat.South, Seat.West]));
+		Assert.Empty(engine.Winners);
+	}
+
 	/// <summary>パス条件: 他家の捨て牌が自分の和了牌のときロンを宣言すると、Winnerがその家になること。</summary>
 	[Fact]
 	public void CallRon_WhenHandCompletesWithDiscardedTile_SetsWinner()
@@ -349,7 +639,7 @@ public class MahjongEngineTests
 
 		engine.CallRon(Seat.South);
 
-		Assert.Equal(Seat.South, engine.Winner);
+		Assert.Equal([Seat.South], engine.Winners);
 	}
 
 	/// <summary>パス条件: 他家の捨て牌が自分の和了牌のときロンを宣言すると、WinningYaku に成立した役が設定されること。</summary>
@@ -376,7 +666,7 @@ public class MahjongEngineTests
 
 		engine.CallRon(Seat.South);
 
-		Assert.Contains(Yaku.Toitoitsu, engine.WinningYaku!);
+		Assert.Contains(Yaku.Toitoitsu, engine.WinningYaku[Seat.South]);
 	}
 
 	/// <summary>パス条件: 自分の捨て牌に対して自分でロンしようとすると ArgumentException になること。</summary>
@@ -457,7 +747,7 @@ public class MahjongEngineTests
 
 		engine.CallTsumo();
 
-		Assert.Equal(Seat.East, engine.Winner);
+		Assert.Equal([Seat.East], engine.Winners);
 	}
 
 	/// <summary>パス条件: 現在の手番の手牌がツモ和了形の場合、CallTsumo() で WinningYaku に成立した役が設定されること。</summary>
@@ -485,7 +775,7 @@ public class MahjongEngineTests
 
 		engine.CallTsumo();
 
-		Assert.Contains(Yaku.Toitoitsu, engine.WinningYaku!);
+		Assert.Contains(Yaku.Toitoitsu, engine.WinningYaku[Seat.East]);
 	}
 
 	/// <summary>パス条件: 現在の手番の手牌が和了形になっていない場合、CallTsumo() が ArgumentException になること。</summary>
@@ -547,7 +837,7 @@ public class MahjongEngineTests
 			[Seat.West] = new Hand(CreateThirteenFillerTiles()),
 			[Seat.North] = new Hand(CreateThirteenFillerTiles()),
 		};
-		var engine = new MahjongEngine(wall, hands, Seat.East, lastDiscard: null, winner: Seat.East);
+		var engine = new MahjongEngine(wall, hands, Seat.East, lastDiscard: null, winners: [Seat.East]);
 
 		Assert.False(engine.IsExhaustiveDraw);
 	}
@@ -557,6 +847,50 @@ public class MahjongEngineTests
 	public void IsExhaustiveDraw_LiveTilesRemain_ReturnsFalse()
 	{
 		var engine = MahjongEngine.Start(new Random(1));
+
+		Assert.False(engine.IsExhaustiveDraw);
+	}
+
+	/// <summary>
+	/// パス条件: トリプルロン（三家和）成立時は、生牌山が0枚でも IsExhaustiveDraw が false になること
+	/// （三家和と荒牌流局を排他にすることの確認）。
+	/// </summary>
+	[Fact]
+	public void IsExhaustiveDraw_NoLiveTilesButIsTripleRonDraw_ReturnsFalse()
+	{
+		var discardedTile = new Tile(TileSuit.Man, 9);
+		var wall = new Wall([], Wall.CreateStandardTileSet().Take(14).ToList());
+		var hands = new Dictionary<Seat, Hand>
+		{
+			[Seat.East] = new Hand(
+			[
+				new Tile(TileSuit.Man, 1), new Tile(TileSuit.Man, 1), new Tile(TileSuit.Man, 1),
+				new Tile(TileSuit.Pin, 2), new Tile(TileSuit.Pin, 2), new Tile(TileSuit.Pin, 2),
+				new Tile(TileSuit.Sou, 3), new Tile(TileSuit.Sou, 3), new Tile(TileSuit.Sou, 3),
+				new Tile(TileSuit.Honor, 1), new Tile(TileSuit.Honor, 1), new Tile(TileSuit.Honor, 1),
+				new Tile(TileSuit.Man, 9),
+			]),
+			[Seat.South] = new Hand(
+			[
+				new Tile(TileSuit.Man, 4), new Tile(TileSuit.Man, 4), new Tile(TileSuit.Man, 4),
+				new Tile(TileSuit.Pin, 5), new Tile(TileSuit.Pin, 5), new Tile(TileSuit.Pin, 5),
+				new Tile(TileSuit.Sou, 6), new Tile(TileSuit.Sou, 6), new Tile(TileSuit.Sou, 6),
+				new Tile(TileSuit.Honor, 2), new Tile(TileSuit.Honor, 2), new Tile(TileSuit.Honor, 2),
+				new Tile(TileSuit.Man, 9),
+			]),
+			[Seat.West] = new Hand(
+			[
+				new Tile(TileSuit.Pin, 1), new Tile(TileSuit.Pin, 1), new Tile(TileSuit.Pin, 1),
+				new Tile(TileSuit.Pin, 4), new Tile(TileSuit.Pin, 4), new Tile(TileSuit.Pin, 4),
+				new Tile(TileSuit.Sou, 1), new Tile(TileSuit.Sou, 1), new Tile(TileSuit.Sou, 1),
+				new Tile(TileSuit.Honor, 3), new Tile(TileSuit.Honor, 3), new Tile(TileSuit.Honor, 3),
+				new Tile(TileSuit.Man, 9),
+			]),
+			[Seat.North] = new Hand(CreateThirteenFillerTiles()),
+		};
+		var engine = new MahjongEngine(wall, hands, Seat.North, (discardedTile, Seat.North));
+
+		engine.CallRon([Seat.East, Seat.South, Seat.West]);
 
 		Assert.False(engine.IsExhaustiveDraw);
 	}
