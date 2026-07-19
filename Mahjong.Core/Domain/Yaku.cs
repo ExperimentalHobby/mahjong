@@ -32,4 +32,13 @@ public enum Yaku
 
 	/// <summary>一気通貫。</summary>
 	Ittsuu,
+
+	/// <summary>純全帯幺九。</summary>
+	Junchan,
+
+	/// <summary>混全帯幺九。</summary>
+	Chanta,
+
+	/// <summary>二盃口。</summary>
+	Ryanpeikou,
 }

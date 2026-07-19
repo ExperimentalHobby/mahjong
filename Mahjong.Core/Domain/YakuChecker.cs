@@ -54,8 +54,8 @@ public static class YakuChecker
 
 	/// <summary>
 	/// 標準形（雀頭+4面子）として分解できるあらゆる組み合わせを横断し、いずれかの分解で成立する
-	/// 役（対々和・一盃口・三色同順・一気通貫）を判定する。「1つの分解を選ぶ」得点計算とは異なり、
-	/// 存在確認ベース（いずれかの分解で成立すれば役ありとする）の判定にとどめる。
+	/// 役（対々和・一盃口・二盃口・三色同順・一気通貫・純全帯幺九・混全帯幺九）を判定する。
+	/// 「1つの分解を選ぶ」得点計算とは異なり、存在確認ベース（いずれかの分解で成立すれば役ありとする）の判定にとどめる。
 	/// </summary>
 	private static void AddDecompositionDependentYaku(IReadOnlyList<Tile> tiles, List<Yaku> yaku)
 	{
@@ -65,10 +65,15 @@ public static class YakuChecker
 			counts[ToIndex(tile)]++;
 		}
 
+		var hasHonorTile = tiles.Any(tile => tile.Suit == TileSuit.Honor);
+
 		var hasToitoitsu = false;
 		var hasIipeikou = false;
+		var hasRyanpeikou = false;
 		var hasSanshokuDoujun = false;
 		var hasIttsuu = false;
+		var hasJunchan = false;
+		var hasChanta = false;
 
 		for (var pairKind = 0; pairKind < KindCount; pairKind++)
 		{
@@ -81,9 +86,25 @@ public static class YakuChecker
 			foreach (var decomposition in EnumerateSetDecompositions(counts, 4))
 			{
 				hasToitoitsu |= Array.TrueForAll(decomposition, set => set.IsTriplet);
-				hasIipeikou |= HasDuplicateSequence(decomposition);
+
+				var duplicateSequenceGroups = CountDuplicateSequenceGroups(decomposition);
+				hasIipeikou |= duplicateSequenceGroups == 1;
+				hasRyanpeikou |= duplicateSequenceGroups == 2;
+
 				hasSanshokuDoujun |= HasSanshokuDoujun(decomposition);
 				hasIttsuu |= HasIttsuu(decomposition);
+
+				if (AllSetsContainTerminalOrHonor(decomposition, pairKind))
+				{
+					if (hasHonorTile)
+					{
+						hasChanta = true;
+					}
+					else
+					{
+						hasJunchan = true;
+					}
+				}
 			}
 
 			counts[pairKind] += 2;
@@ -99,6 +120,11 @@ public static class YakuChecker
 			yaku.Add(Yaku.Iipeikou);
 		}
 
+		if (hasRyanpeikou)
+		{
+			yaku.Add(Yaku.Ryanpeikou);
+		}
+
 		if (hasSanshokuDoujun)
 		{
 			yaku.Add(Yaku.SanshokuDoujun);
@@ -108,14 +134,59 @@ public static class YakuChecker
 		{
 			yaku.Add(Yaku.Ittsuu);
 		}
+
+		if (hasJunchan)
+		{
+			yaku.Add(Yaku.Junchan);
+		}
+
+		if (hasChanta)
+		{
+			yaku.Add(Yaku.Chanta);
+		}
 	}
 
-	/// <summary>分解内に同じスート・同じ開始ランクの順子が2つ以上存在するかを判定する（一盃口）。</summary>
-	private static bool HasDuplicateSequence(DecomposedSet[] decomposition) =>
+	/// <summary>分解内で同じスート・同じ開始ランクの順子が何グループ存在するかを数える（1個なら一盃口、2個なら二盃口の候補）。</summary>
+	private static int CountDuplicateSequenceGroups(DecomposedSet[] decomposition) =>
 		decomposition
 			.Where(set => !set.IsTriplet)
 			.GroupBy(set => (set.Suit, set.Rank))
-			.Any(group => group.Count() >= 2);
+			.Count(group => group.Count() >= 2);
+
+	/// <summary>
+	/// 雀頭と全ての面子が老頭牌（老頭牌の刻子）・字牌（字牌の刻子）・
+	/// 1-2-3または7-8-9の順子のいずれかで構成されているかを判定する（純全帯幺九・混全帯幺九の共通条件）。
+	/// </summary>
+	private static bool AllSetsContainTerminalOrHonor(DecomposedSet[] decomposition, int pairKind)
+	{
+		var (pairSuit, pairRank) = FromIndex(pairKind);
+		if (pairSuit != TileSuit.Honor && pairRank != 1 && pairRank != 9)
+		{
+			return false;
+		}
+
+		foreach (var set in decomposition)
+		{
+			if (set.Suit == TileSuit.Honor)
+			{
+				continue;
+			}
+
+			if (set.IsTriplet)
+			{
+				if (set.Rank != 1 && set.Rank != 9)
+				{
+					return false;
+				}
+			}
+			else if (set.Rank != 1 && set.Rank != 7)
+			{
+				return false;
+			}
+		}
+
+		return true;
+	}
 
 	/// <summary>分解内に同じ開始ランクの順子が萬子・筒子・索子の3スート全てに存在するかを判定する（三色同順）。</summary>
 	private static bool HasSanshokuDoujun(DecomposedSet[] decomposition) =>

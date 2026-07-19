@@ -231,7 +231,10 @@ public class YakuCheckerTests
 		Assert.DoesNotContain(Yaku.Toitoitsu, yaku);
 	}
 
-	/// <summary>パス条件: 同じ順子が2組ある標準形の和了形を渡すと Yaku.Iipeikou が含まれること。</summary>
+	/// <summary>
+	/// パス条件: 同じ順子が2組（1組のみ）ある標準形の和了形を渡すと Yaku.Iipeikou が含まれ、
+	/// Yaku.Ryanpeikou は含まれないこと（重複順子グループが1個であることの確認）。
+	/// </summary>
 	[Fact]
 	public void DetermineYaku_TwoIdenticalSequencesStandardForm_ContainsIipeikou()
 	{
@@ -248,6 +251,7 @@ public class YakuCheckerTests
 		var yaku = YakuChecker.DetermineYaku(tiles);
 
 		Assert.Contains(Yaku.Iipeikou, yaku);
+		Assert.DoesNotContain(Yaku.Ryanpeikou, yaku);
 	}
 
 	/// <summary>パス条件: 重複する順子が無い標準形の和了形を渡すと Yaku.Iipeikou が含まれないこと。</summary>
@@ -388,5 +392,111 @@ public class YakuCheckerTests
 
 		Assert.Contains(Yaku.Toitoitsu, yaku);
 		Assert.Contains(Yaku.Iipeikou, yaku);
+	}
+
+	/// <summary>パス条件: 老頭牌のみで構成された標準形（字牌を含まない）の和了形を渡すと Yaku.Junchan が含まれること。</summary>
+	[Fact]
+	public void DetermineYaku_AllTerminalRelatedSetsWithoutHonors_ContainsJunchan()
+	{
+		Tile[] tiles =
+		[
+			new Tile(TileSuit.Man, 1), new Tile(TileSuit.Man, 2), new Tile(TileSuit.Man, 3),
+			new Tile(TileSuit.Man, 7), new Tile(TileSuit.Man, 8), new Tile(TileSuit.Man, 9),
+			new Tile(TileSuit.Pin, 1), new Tile(TileSuit.Pin, 1), new Tile(TileSuit.Pin, 1),
+			new Tile(TileSuit.Sou, 9), new Tile(TileSuit.Sou, 9), new Tile(TileSuit.Sou, 9),
+			new Tile(TileSuit.Pin, 9), new Tile(TileSuit.Pin, 9),
+		];
+
+		var yaku = YakuChecker.DetermineYaku(tiles);
+
+		Assert.Contains(Yaku.Junchan, yaku);
+	}
+
+	/// <summary>
+	/// パス条件: 字牌を含み全ての面子が么九牌絡みの標準形の和了形を渡すと Yaku.Chanta が含まれ、
+	/// Yaku.Junchan は含まれないこと。
+	/// </summary>
+	[Fact]
+	public void DetermineYaku_AllTerminalOrHonorRelatedSetsWithHonors_ContainsChantaNotJunchan()
+	{
+		Tile[] tiles =
+		[
+			new Tile(TileSuit.Man, 1), new Tile(TileSuit.Man, 2), new Tile(TileSuit.Man, 3),
+			new Tile(TileSuit.Man, 7), new Tile(TileSuit.Man, 8), new Tile(TileSuit.Man, 9),
+			new Tile(TileSuit.Honor, 2), new Tile(TileSuit.Honor, 2), new Tile(TileSuit.Honor, 2),
+			new Tile(TileSuit.Sou, 9), new Tile(TileSuit.Sou, 9), new Tile(TileSuit.Sou, 9),
+			new Tile(TileSuit.Pin, 9), new Tile(TileSuit.Pin, 9),
+		];
+
+		var yaku = YakuChecker.DetermineYaku(tiles);
+
+		Assert.Contains(Yaku.Chanta, yaku);
+		Assert.DoesNotContain(Yaku.Junchan, yaku);
+	}
+
+	/// <summary>
+	/// パス条件: 2〜6開始の順子を含む（么九牌絡みでない面子がある）標準形の和了形を渡すと
+	/// Yaku.Junchan・Yaku.Chanta のいずれも含まれないこと。
+	/// </summary>
+	[Fact]
+	public void DetermineYaku_StandardFormWithMiddleSequence_ContainsNeitherJunchanNorChanta()
+	{
+		Tile[] tiles =
+		[
+			new Tile(TileSuit.Man, 2), new Tile(TileSuit.Man, 3), new Tile(TileSuit.Man, 4),
+			new Tile(TileSuit.Pin, 3), new Tile(TileSuit.Pin, 4), new Tile(TileSuit.Pin, 5),
+			new Tile(TileSuit.Sou, 5), new Tile(TileSuit.Sou, 6), new Tile(TileSuit.Sou, 7),
+			new Tile(TileSuit.Man, 8), new Tile(TileSuit.Man, 8), new Tile(TileSuit.Man, 8),
+			new Tile(TileSuit.Pin, 2), new Tile(TileSuit.Pin, 2),
+		];
+
+		var yaku = YakuChecker.DetermineYaku(tiles);
+
+		Assert.DoesNotContain(Yaku.Junchan, yaku);
+		Assert.DoesNotContain(Yaku.Chanta, yaku);
+	}
+
+	/// <summary>
+	/// パス条件: 2組の異なる同一順子ペア（123+123+456+456）で構成される標準形の和了形を渡すと
+	/// Yaku.Ryanpeikou が含まれ、Yaku.Iipeikou は含まれないこと。
+	/// </summary>
+	[Fact]
+	public void DetermineYaku_TwoDistinctDuplicateSequencePairs_ContainsRyanpeikouNotIipeikou()
+	{
+		Tile[] tiles =
+		[
+			new Tile(TileSuit.Man, 1), new Tile(TileSuit.Man, 2), new Tile(TileSuit.Man, 3),
+			new Tile(TileSuit.Man, 1), new Tile(TileSuit.Man, 2), new Tile(TileSuit.Man, 3),
+			new Tile(TileSuit.Man, 4), new Tile(TileSuit.Man, 5), new Tile(TileSuit.Man, 6),
+			new Tile(TileSuit.Man, 4), new Tile(TileSuit.Man, 5), new Tile(TileSuit.Man, 6),
+			new Tile(TileSuit.Pin, 9), new Tile(TileSuit.Pin, 9),
+		];
+
+		var yaku = YakuChecker.DetermineYaku(tiles);
+
+		Assert.Contains(Yaku.Ryanpeikou, yaku);
+		Assert.DoesNotContain(Yaku.Iipeikou, yaku);
+	}
+
+	/// <summary>
+	/// パス条件: 老頭牌・字牌絡みの刻子のみで構成された標準形の和了形を渡すと Yaku.Chanta と
+	/// Yaku.Toitoitsu の両方が含まれること（複合役の確認）。
+	/// </summary>
+	[Fact]
+	public void DetermineYaku_AllTerminalOrHonorTriplets_ContainsChantaAndToitoitsu()
+	{
+		Tile[] tiles =
+		[
+			new Tile(TileSuit.Man, 1), new Tile(TileSuit.Man, 1), new Tile(TileSuit.Man, 1),
+			new Tile(TileSuit.Man, 9), new Tile(TileSuit.Man, 9), new Tile(TileSuit.Man, 9),
+			new Tile(TileSuit.Sou, 1), new Tile(TileSuit.Sou, 1), new Tile(TileSuit.Sou, 1),
+			new Tile(TileSuit.Honor, 2), new Tile(TileSuit.Honor, 2), new Tile(TileSuit.Honor, 2),
+			new Tile(TileSuit.Pin, 9), new Tile(TileSuit.Pin, 9),
+		];
+
+		var yaku = YakuChecker.DetermineYaku(tiles);
+
+		Assert.Contains(Yaku.Chanta, yaku);
+		Assert.Contains(Yaku.Toitoitsu, yaku);
 	}
 }
