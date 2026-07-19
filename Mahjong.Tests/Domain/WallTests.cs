@@ -146,4 +146,55 @@ public class WallTests
 		Assert.Equal(121, wall.LiveWallCount);
 		Assert.Equal(122, clone.LiveWallCount);
 	}
+
+	/// <summary>パス条件: DrawReplacement() 呼び出し後、LiveWallCount が1減ること。</summary>
+	[Fact]
+	public void DrawReplacement_ReducesLiveWallCountByOne()
+	{
+		var wall = Wall.CreateShuffled(new Random(1));
+		var liveWallCountBefore = wall.LiveWallCount;
+
+		wall.DrawReplacement();
+
+		Assert.Equal(liveWallCountBefore - 1, wall.LiveWallCount);
+	}
+
+	/// <summary>パス条件: DrawReplacement() 呼び出し後も DoraIndicator が変化しないこと。</summary>
+	[Fact]
+	public void DrawReplacement_DoesNotChangeDoraIndicator()
+	{
+		var wall = Wall.CreateShuffled(new Random(1));
+		var doraIndicatorBefore = wall.DoraIndicator;
+
+		wall.DrawReplacement();
+
+		Assert.Equal(doraIndicatorBefore, wall.DoraIndicator);
+	}
+
+	/// <summary>パス条件: 生牌山が0枚のときに DrawReplacement() を呼ぶと InvalidOperationException になること。</summary>
+	[Fact]
+	public void DrawReplacement_WhenLiveWallIsEmpty_Throws()
+	{
+		var wall = new Wall([], Wall.CreateStandardTileSet().Take(14).ToList());
+
+		Assert.Throws<InvalidOperationException>(() => wall.DrawReplacement());
+	}
+
+	/// <summary>
+	/// パス条件: Clone() 後、元の Wall に対する DrawReplacement() が複製の DoraIndicator/LiveWallCount に
+	/// 影響しないこと（王牌が深いコピーになっていることの確認）。
+	/// </summary>
+	[Fact]
+	public void Clone_DrawReplacementOnOriginal_DoesNotAffectClone()
+	{
+		var wall = Wall.CreateShuffled(new Random(1));
+		var clone = wall.Clone();
+		var doraIndicatorBefore = clone.DoraIndicator;
+		var liveWallCountBefore = clone.LiveWallCount;
+
+		wall.DrawReplacement();
+
+		Assert.Equal(doraIndicatorBefore, clone.DoraIndicator);
+		Assert.Equal(liveWallCountBefore, clone.LiveWallCount);
+	}
 }

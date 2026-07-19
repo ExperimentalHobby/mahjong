@@ -8,10 +8,10 @@ public sealed class Wall
 	private static readonly Seat[] DealingOrder = [Seat.East, Seat.South, Seat.West, Seat.North];
 
 	private readonly List<Tile> _liveWall;
-	private readonly IReadOnlyList<Tile> _deadWall;
+	private readonly List<Tile> _deadWall;
 
 	/// <summary>テスト用に牌山を直接組み立てるための内部コンストラクタ。</summary>
-	internal Wall(List<Tile> liveWall, IReadOnlyList<Tile> deadWall)
+	internal Wall(List<Tile> liveWall, List<Tile> deadWall)
 	{
 		_liveWall = liveWall;
 		_deadWall = deadWall;
@@ -46,11 +46,29 @@ public sealed class Wall
 		return new Wall(liveWall, deadWall);
 	}
 
+	/// <summary>この牌山の独立した複製を返す（複製後は互いのDraw()/DrawReplacement()が影響し合わない）。</summary>
+	public Wall Clone() => new(new List<Tile>(_liveWall), new List<Tile>(_deadWall));
+
 	/// <summary>
-	/// この牌山の独立した複製を返す（複製後は互いのDraw()が影響し合わない）。
-	/// 王牌は生成後に変更されないため参照を共有する。
+	/// カン成立時に王牌から嶺上牌を1枚引く。王牌を14枚に保つため、生牌山の末尾から1枚を王牌に補充する
+	/// （ドラ表示牌の位置＝deadWall[0]は補充対象にしない）。
 	/// </summary>
-	public Wall Clone() => new(new List<Tile>(_liveWall), _deadWall);
+	/// <exception cref="InvalidOperationException">生牌山が0枚のときに呼び出した場合。</exception>
+	public Tile DrawReplacement()
+	{
+		if (_liveWall.Count == 0)
+		{
+			throw new InvalidOperationException("生牌山が尽きているため嶺上牌を引けません。");
+		}
+
+		var rinshanTile = _deadWall[^1];
+		_deadWall.RemoveAt(_deadWall.Count - 1);
+
+		_deadWall.Add(_liveWall[^1]);
+		_liveWall.RemoveAt(_liveWall.Count - 1);
+
+		return rinshanTile;
+	}
 
 	/// <summary>生牌山から1枚引く。</summary>
 	/// <exception cref="InvalidOperationException">生牌山が0枚のときに呼び出した場合。</exception>
