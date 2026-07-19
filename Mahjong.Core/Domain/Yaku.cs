@@ -41,4 +41,13 @@ public enum Yaku
 
 	/// <summary>二盃口。</summary>
 	Ryanpeikou,
+
+	/// <summary>自風牌。</summary>
+	Jikaze,
+
+	/// <summary>場風牌。</summary>
+	Bakaze,
+
+	/// <summary>三元牌。</summary>
+	Sangenpai,
 }

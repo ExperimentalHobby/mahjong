@@ -778,6 +778,58 @@ public class MahjongEngineTests
 		Assert.Contains(Yaku.Toitoitsu, engine.WinningYaku[Seat.East]);
 	}
 
+	/// <summary>
+	/// パス条件: ツモ和了成立時、自風・場風に応じた役牌が WinningYaku に反映されること
+	/// （東家が東1局にダブ東でツモった場合、Yaku.Jikaze と Yaku.Bakaze の両方が含まれる）。
+	/// </summary>
+	[Fact]
+	public void CallTsumo_WithSeatWindTriplet_SetsWinningYakuIncludingJikazeAndBakaze()
+	{
+		List<Tile> startingTiles =
+		[
+			new Tile(TileSuit.Man, 1), new Tile(TileSuit.Man, 2), new Tile(TileSuit.Man, 3),
+			new Tile(TileSuit.Pin, 4), new Tile(TileSuit.Pin, 5), new Tile(TileSuit.Pin, 6),
+			new Tile(TileSuit.Sou, 7), new Tile(TileSuit.Sou, 8), new Tile(TileSuit.Sou, 9),
+			new Tile(TileSuit.Honor, 1), new Tile(TileSuit.Honor, 1), new Tile(TileSuit.Honor, 1),
+			new Tile(TileSuit.Pin, 9),
+		];
+		var eastHand = new Hand(startingTiles);
+		eastHand.Draw(new Tile(TileSuit.Pin, 9));
+		var hands = new Dictionary<Seat, Hand>
+		{
+			[Seat.East] = eastHand,
+			[Seat.South] = new Hand(CreateThirteenFillerTiles()),
+			[Seat.West] = new Hand(CreateThirteenFillerTiles()),
+			[Seat.North] = new Hand(CreateThirteenFillerTiles()),
+		};
+		var engine = new MahjongEngine(
+			Wall.CreateShuffled(new Random(1)), hands, Seat.East, lastDiscard: null, roundWind: Seat.East);
+
+		engine.CallTsumo();
+
+		Assert.Contains(Yaku.Jikaze, engine.WinningYaku[Seat.East]);
+		Assert.Contains(Yaku.Bakaze, engine.WinningYaku[Seat.East]);
+	}
+
+	/// <summary>パス条件: Clone() すると、複製したエンジンにも RoundWind が保持されること。</summary>
+	[Fact]
+	public void Clone_PreservesRoundWind()
+	{
+		var hands = new Dictionary<Seat, Hand>
+		{
+			[Seat.East] = new Hand(CreateThirteenFillerTiles()),
+			[Seat.South] = new Hand(CreateThirteenFillerTiles()),
+			[Seat.West] = new Hand(CreateThirteenFillerTiles()),
+			[Seat.North] = new Hand(CreateThirteenFillerTiles()),
+		};
+		var engine = new MahjongEngine(
+			Wall.CreateShuffled(new Random(1)), hands, Seat.East, lastDiscard: null, roundWind: Seat.South);
+
+		var clone = engine.Clone();
+
+		Assert.Equal(Seat.South, clone.RoundWind);
+	}
+
 	/// <summary>パス条件: 現在の手番の手牌が和了形になっていない場合、CallTsumo() が ArgumentException になること。</summary>
 	[Fact]
 	public void CallTsumo_WhenHandIsIncomplete_Throws()

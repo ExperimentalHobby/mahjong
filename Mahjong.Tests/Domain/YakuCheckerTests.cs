@@ -579,4 +579,158 @@ public class YakuCheckerTests
 		Assert.DoesNotContain(Yaku.Iipeikou, yaku);
 		Assert.DoesNotContain(Yaku.Ryanpeikou, yaku);
 	}
+
+	/// <summary>パス条件: 自風と一致する字牌の刻子を含む和了形を渡すと Yaku.Jikaze が含まれること。</summary>
+	[Fact]
+	public void DetermineYaku_SeatWindTriplet_ContainsJikaze()
+	{
+		Tile[] tiles =
+		[
+			new Tile(TileSuit.Man, 1), new Tile(TileSuit.Man, 2), new Tile(TileSuit.Man, 3),
+			new Tile(TileSuit.Pin, 4), new Tile(TileSuit.Pin, 5), new Tile(TileSuit.Pin, 6),
+			new Tile(TileSuit.Sou, 7), new Tile(TileSuit.Sou, 8), new Tile(TileSuit.Sou, 9),
+			new Tile(TileSuit.Honor, 1), new Tile(TileSuit.Honor, 1), new Tile(TileSuit.Honor, 1),
+			new Tile(TileSuit.Pin, 9), new Tile(TileSuit.Pin, 9),
+		];
+
+		var yaku = YakuChecker.DetermineYaku(tiles, melds: [], seatWind: Seat.East, roundWind: Seat.West);
+
+		Assert.Contains(Yaku.Jikaze, yaku);
+	}
+
+	/// <summary>パス条件: 場風と一致する字牌の刻子を含む和了形を渡すと Yaku.Bakaze が含まれること。</summary>
+	[Fact]
+	public void DetermineYaku_RoundWindTriplet_ContainsBakaze()
+	{
+		Tile[] tiles =
+		[
+			new Tile(TileSuit.Man, 1), new Tile(TileSuit.Man, 2), new Tile(TileSuit.Man, 3),
+			new Tile(TileSuit.Pin, 4), new Tile(TileSuit.Pin, 5), new Tile(TileSuit.Pin, 6),
+			new Tile(TileSuit.Sou, 7), new Tile(TileSuit.Sou, 8), new Tile(TileSuit.Sou, 9),
+			new Tile(TileSuit.Honor, 1), new Tile(TileSuit.Honor, 1), new Tile(TileSuit.Honor, 1),
+			new Tile(TileSuit.Pin, 9), new Tile(TileSuit.Pin, 9),
+		];
+
+		var yaku = YakuChecker.DetermineYaku(tiles, melds: [], seatWind: Seat.West, roundWind: Seat.East);
+
+		Assert.Contains(Yaku.Bakaze, yaku);
+	}
+
+	/// <summary>
+	/// パス条件: 自風・場風が同じ字牌の刻子を含む和了形（ダブ東等）を渡すと、
+	/// Yaku.Jikaze と Yaku.Bakaze の両方が含まれること。
+	/// </summary>
+	[Fact]
+	public void DetermineYaku_SeatWindEqualsRoundWindTriplet_ContainsBothJikazeAndBakaze()
+	{
+		Tile[] tiles =
+		[
+			new Tile(TileSuit.Man, 1), new Tile(TileSuit.Man, 2), new Tile(TileSuit.Man, 3),
+			new Tile(TileSuit.Pin, 4), new Tile(TileSuit.Pin, 5), new Tile(TileSuit.Pin, 6),
+			new Tile(TileSuit.Sou, 7), new Tile(TileSuit.Sou, 8), new Tile(TileSuit.Sou, 9),
+			new Tile(TileSuit.Honor, 1), new Tile(TileSuit.Honor, 1), new Tile(TileSuit.Honor, 1),
+			new Tile(TileSuit.Pin, 9), new Tile(TileSuit.Pin, 9),
+		];
+
+		var yaku = YakuChecker.DetermineYaku(tiles, melds: [], seatWind: Seat.East, roundWind: Seat.East);
+
+		Assert.Contains(Yaku.Jikaze, yaku);
+		Assert.Contains(Yaku.Bakaze, yaku);
+	}
+
+	/// <summary>パス条件: 白・發・中いずれかの刻子を含む和了形を渡すと Yaku.Sangenpai が含まれること。</summary>
+	[Fact]
+	public void DetermineYaku_DragonTriplet_ContainsSangenpai()
+	{
+		Tile[] tiles =
+		[
+			new Tile(TileSuit.Man, 1), new Tile(TileSuit.Man, 2), new Tile(TileSuit.Man, 3),
+			new Tile(TileSuit.Pin, 4), new Tile(TileSuit.Pin, 5), new Tile(TileSuit.Pin, 6),
+			new Tile(TileSuit.Sou, 7), new Tile(TileSuit.Sou, 8), new Tile(TileSuit.Sou, 9),
+			new Tile(TileSuit.Honor, 5), new Tile(TileSuit.Honor, 5), new Tile(TileSuit.Honor, 5),
+			new Tile(TileSuit.Pin, 9), new Tile(TileSuit.Pin, 9),
+		];
+
+		var yaku = YakuChecker.DetermineYaku(tiles, melds: [], seatWind: Seat.South, roundWind: Seat.South);
+
+		Assert.Contains(Yaku.Sangenpai, yaku);
+	}
+
+	/// <summary>
+	/// パス条件: 三元牌の刻子を2種類含む和了形を渡すと、Yaku.Sangenpai がリストに2回含まれること
+	/// （翻数計算はまだ対象外だが、複数成立をリストの重複で表現する）。
+	/// </summary>
+	[Fact]
+	public void DetermineYaku_TwoDragonTriplets_ContainsSangenpaiTwice()
+	{
+		Tile[] tiles =
+		[
+			new Tile(TileSuit.Honor, 5), new Tile(TileSuit.Honor, 5), new Tile(TileSuit.Honor, 5),
+			new Tile(TileSuit.Honor, 6), new Tile(TileSuit.Honor, 6), new Tile(TileSuit.Honor, 6),
+			new Tile(TileSuit.Man, 1), new Tile(TileSuit.Man, 2), new Tile(TileSuit.Man, 3),
+			new Tile(TileSuit.Pin, 4), new Tile(TileSuit.Pin, 5), new Tile(TileSuit.Pin, 6),
+			new Tile(TileSuit.Sou, 9), new Tile(TileSuit.Sou, 9),
+		];
+
+		var yaku = YakuChecker.DetermineYaku(tiles, melds: [], seatWind: Seat.South, roundWind: Seat.South);
+
+		Assert.Equal(2, yaku.Count(y => y == Yaku.Sangenpai));
+	}
+
+	/// <summary>パス条件: 自風・場風・三元牌のいずれの刻子も無い和了形を渡すと、いずれも含まれないこと。</summary>
+	[Fact]
+	public void DetermineYaku_NoMatchingHonorTriplet_ContainsNoneOfYakuhai()
+	{
+		Tile[] tiles =
+		[
+			new Tile(TileSuit.Man, 2), new Tile(TileSuit.Man, 3), new Tile(TileSuit.Man, 4),
+			new Tile(TileSuit.Pin, 3), new Tile(TileSuit.Pin, 4), new Tile(TileSuit.Pin, 5),
+			new Tile(TileSuit.Sou, 5), new Tile(TileSuit.Sou, 6), new Tile(TileSuit.Sou, 7),
+			new Tile(TileSuit.Man, 8), new Tile(TileSuit.Man, 8), new Tile(TileSuit.Man, 8),
+			new Tile(TileSuit.Pin, 2), new Tile(TileSuit.Pin, 2),
+		];
+
+		var yaku = YakuChecker.DetermineYaku(tiles, melds: [], seatWind: Seat.East, roundWind: Seat.South);
+
+		Assert.DoesNotContain(Yaku.Jikaze, yaku);
+		Assert.DoesNotContain(Yaku.Bakaze, yaku);
+		Assert.DoesNotContain(Yaku.Sangenpai, yaku);
+	}
+
+	/// <summary>パス条件: 国士無双の和了形を渡すと Yaku.Kokushi のみが返ること（役牌が追加されないことの確認）。</summary>
+	[Fact]
+	public void DetermineYaku_ThirteenOrphans_WithWindContext_ReturnsKokushiOnly()
+	{
+		Tile[] tiles =
+		[
+			new Tile(TileSuit.Man, 1), new Tile(TileSuit.Man, 9),
+			new Tile(TileSuit.Pin, 1), new Tile(TileSuit.Pin, 9),
+			new Tile(TileSuit.Sou, 1), new Tile(TileSuit.Sou, 9),
+			new Tile(TileSuit.Honor, 1), new Tile(TileSuit.Honor, 2), new Tile(TileSuit.Honor, 3),
+			new Tile(TileSuit.Honor, 4), new Tile(TileSuit.Honor, 5), new Tile(TileSuit.Honor, 6),
+			new Tile(TileSuit.Honor, 7), new Tile(TileSuit.Honor, 7),
+		];
+
+		var yaku = YakuChecker.DetermineYaku(tiles, melds: [], seatWind: Seat.East, roundWind: Seat.East);
+
+		Assert.Equal([Yaku.Kokushi], yaku);
+	}
+
+	/// <summary>パス条件: 鳴き（ポン）で構成された役牌の刻子も判定されること。</summary>
+	[Fact]
+	public void DetermineYaku_WithPonMeldOfSeatWind_ContainsJikaze()
+	{
+		Tile[] concealedTiles =
+		[
+			new Tile(TileSuit.Man, 5), new Tile(TileSuit.Man, 6), new Tile(TileSuit.Man, 7),
+			new Tile(TileSuit.Pin, 4), new Tile(TileSuit.Pin, 5), new Tile(TileSuit.Pin, 6),
+			new Tile(TileSuit.Sou, 2), new Tile(TileSuit.Sou, 3), new Tile(TileSuit.Sou, 4),
+			new Tile(TileSuit.Pin, 8), new Tile(TileSuit.Pin, 8),
+		];
+		Meld[] melds = [new Meld(MeldType.Pon, [new Tile(TileSuit.Honor, 1), new Tile(TileSuit.Honor, 1), new Tile(TileSuit.Honor, 1)])];
+
+		var yaku = YakuChecker.DetermineYaku(concealedTiles, melds, seatWind: Seat.East, roundWind: Seat.South);
+
+		Assert.Contains(Yaku.Jikaze, yaku);
+	}
 }
