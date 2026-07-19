@@ -1056,4 +1056,93 @@ public class HandTests
 		Assert.Equal(14, hand.ConcealedTiles.Count);
 		Assert.Equal(13, clone.ConcealedTiles.Count);
 	}
+
+	/// <summary>パス条件: 副露なし・ロン牌を加えると標準形で完成する場合、CanWinOn() が true になること。</summary>
+	[Fact]
+	public void CanWinOn_NoMelds_StandardForm_ReturnsTrue()
+	{
+		List<Tile> startingTiles =
+		[
+			new Tile(TileSuit.Man, 1), new Tile(TileSuit.Man, 1), new Tile(TileSuit.Man, 1),
+			new Tile(TileSuit.Pin, 2), new Tile(TileSuit.Pin, 2), new Tile(TileSuit.Pin, 2),
+			new Tile(TileSuit.Sou, 3), new Tile(TileSuit.Sou, 3), new Tile(TileSuit.Sou, 3),
+			new Tile(TileSuit.Honor, 1), new Tile(TileSuit.Honor, 1), new Tile(TileSuit.Honor, 1),
+			new Tile(TileSuit.Man, 9),
+		];
+		var hand = new Hand(startingTiles);
+
+		Assert.True(hand.CanWinOn(new Tile(TileSuit.Man, 9)));
+	}
+
+	/// <summary>パス条件: 副露なし・ロン牌を加えると七対子で完成する場合、CanWinOn() が true になること。</summary>
+	[Fact]
+	public void CanWinOn_NoMelds_SevenPairs_ReturnsTrue()
+	{
+		List<Tile> startingTiles =
+		[
+			new Tile(TileSuit.Man, 1), new Tile(TileSuit.Man, 1),
+			new Tile(TileSuit.Man, 2), new Tile(TileSuit.Man, 2),
+			new Tile(TileSuit.Pin, 3), new Tile(TileSuit.Pin, 3),
+			new Tile(TileSuit.Pin, 4), new Tile(TileSuit.Pin, 4),
+			new Tile(TileSuit.Sou, 5), new Tile(TileSuit.Sou, 5),
+			new Tile(TileSuit.Sou, 6), new Tile(TileSuit.Sou, 6),
+			new Tile(TileSuit.Honor, 1),
+		];
+		var hand = new Hand(startingTiles);
+
+		Assert.True(hand.CanWinOn(new Tile(TileSuit.Honor, 1)));
+	}
+
+	/// <summary>パス条件: ロン牌を加えても完成しない場合、CanWinOn() が false になること。</summary>
+	[Fact]
+	public void CanWinOn_TileDoesNotCompleteHand_ReturnsFalse()
+	{
+		var hand = new Hand(CreateThirteenTiles());
+
+		Assert.False(hand.CanWinOn(new Tile(TileSuit.Sou, 9)));
+	}
+
+	/// <summary>
+	/// パス条件: 副露あり（ポン1つ）・ロン牌を加えると残りが3面子+雀頭に分解できる場合、
+	/// CanWinOn() が true になること。
+	/// </summary>
+	[Fact]
+	public void CanWinOn_OnePon_RemainingTilesCompleteWithRonTile_ReturnsTrue()
+	{
+		List<Tile> startingTiles =
+		[
+			new Tile(TileSuit.Pin, 1), new Tile(TileSuit.Pin, 1),
+			new Tile(TileSuit.Man, 1), new Tile(TileSuit.Man, 1), new Tile(TileSuit.Man, 1),
+			new Tile(TileSuit.Sou, 2), new Tile(TileSuit.Sou, 3), new Tile(TileSuit.Sou, 4),
+			new Tile(TileSuit.Honor, 1), new Tile(TileSuit.Honor, 1),
+			new Tile(TileSuit.Sou, 7), new Tile(TileSuit.Sou, 8), new Tile(TileSuit.Man, 9),
+		];
+		var hand = new Hand(startingTiles);
+		hand.Pon(new Tile(TileSuit.Pin, 1), new Tile(TileSuit.Pin, 1), new Tile(TileSuit.Pin, 1));
+		hand.Discard(new Tile(TileSuit.Man, 9));
+
+		Assert.True(hand.CanWinOn(new Tile(TileSuit.Sou, 9)));
+	}
+
+	/// <summary>パス条件: 打牌待ち（ツモ直後）の状態で CanWinOn() を呼ぶと InvalidOperationException になること。</summary>
+	[Fact]
+	public void CanWinOn_WhenPending_Throws()
+	{
+		var hand = new Hand(CreateThirteenTiles());
+		hand.Draw(new Tile(TileSuit.Sou, 9));
+
+		Assert.Throws<InvalidOperationException>(() => hand.CanWinOn(new Tile(TileSuit.Sou, 8)));
+	}
+
+	/// <summary>パス条件: CanWinOn() 呼び出し後も ConcealedTiles の内容が変化しないこと（非破壊であることの確認）。</summary>
+	[Fact]
+	public void CanWinOn_DoesNotMutateConcealedTiles()
+	{
+		var startingTiles = CreateThirteenTiles();
+		var hand = new Hand(startingTiles);
+
+		hand.CanWinOn(new Tile(TileSuit.Sou, 9));
+
+		Assert.Equal(startingTiles, hand.ConcealedTiles);
+	}
 }

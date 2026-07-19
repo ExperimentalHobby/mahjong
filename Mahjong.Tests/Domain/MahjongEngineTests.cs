@@ -265,6 +265,86 @@ public class MahjongEngineTests
 		Assert.Equal(Seat.North, engine.CurrentTurn);
 	}
 
+	/// <summary>パス条件: 他家の捨て牌が自分の和了牌のときロンを宣言すると、Winnerがその家になること。</summary>
+	[Fact]
+	public void CallRon_WhenHandCompletesWithDiscardedTile_SetsWinner()
+	{
+		var discardedTile = new Tile(TileSuit.Man, 9);
+		var hands = new Dictionary<Seat, Hand>
+		{
+			[Seat.East] = new Hand(CreateThirteenFillerTiles()),
+			[Seat.South] = new Hand(
+			[
+				new Tile(TileSuit.Man, 1), new Tile(TileSuit.Man, 1), new Tile(TileSuit.Man, 1),
+				new Tile(TileSuit.Pin, 2), new Tile(TileSuit.Pin, 2), new Tile(TileSuit.Pin, 2),
+				new Tile(TileSuit.Sou, 3), new Tile(TileSuit.Sou, 3), new Tile(TileSuit.Sou, 3),
+				new Tile(TileSuit.Honor, 1), new Tile(TileSuit.Honor, 1), new Tile(TileSuit.Honor, 1),
+				new Tile(TileSuit.Man, 9),
+			]),
+			[Seat.West] = new Hand(CreateThirteenFillerTiles()),
+			[Seat.North] = new Hand(CreateThirteenFillerTiles()),
+		};
+		var engine = new MahjongEngine(
+			Wall.CreateShuffled(new Random(1)), hands, Seat.South, (discardedTile, Seat.East));
+
+		engine.CallRon(Seat.South);
+
+		Assert.Equal(Seat.South, engine.Winner);
+	}
+
+	/// <summary>パス条件: 自分の捨て牌に対して自分でロンしようとすると ArgumentException になること。</summary>
+	[Fact]
+	public void CallRon_BySameSeatAsDiscarder_Throws()
+	{
+		var discardedTile = new Tile(TileSuit.Man, 9);
+		var hands = new Dictionary<Seat, Hand>
+		{
+			[Seat.East] = new Hand(
+			[
+				new Tile(TileSuit.Man, 1), new Tile(TileSuit.Man, 1), new Tile(TileSuit.Man, 1),
+				new Tile(TileSuit.Pin, 2), new Tile(TileSuit.Pin, 2), new Tile(TileSuit.Pin, 2),
+				new Tile(TileSuit.Sou, 3), new Tile(TileSuit.Sou, 3), new Tile(TileSuit.Sou, 3),
+				new Tile(TileSuit.Honor, 1), new Tile(TileSuit.Honor, 1), new Tile(TileSuit.Honor, 1),
+				new Tile(TileSuit.Man, 9),
+			]),
+			[Seat.South] = new Hand(CreateThirteenFillerTiles()),
+			[Seat.West] = new Hand(CreateThirteenFillerTiles()),
+			[Seat.North] = new Hand(CreateThirteenFillerTiles()),
+		};
+		var engine = new MahjongEngine(
+			Wall.CreateShuffled(new Random(1)), hands, Seat.South, (discardedTile, Seat.East));
+
+		Assert.Throws<ArgumentException>(() => engine.CallRon(Seat.East));
+	}
+
+	/// <summary>パス条件: 手牌がロン牌を加えても完成しない場合、CallRon() が ArgumentException になること。</summary>
+	[Fact]
+	public void CallRon_HandDoesNotComplete_Throws()
+	{
+		var discardedTile = new Tile(TileSuit.Sou, 9);
+		var hands = new Dictionary<Seat, Hand>
+		{
+			[Seat.East] = new Hand(CreateThirteenFillerTiles()),
+			[Seat.South] = new Hand(CreateThirteenFillerTiles()),
+			[Seat.West] = new Hand(CreateThirteenFillerTiles()),
+			[Seat.North] = new Hand(CreateThirteenFillerTiles()),
+		};
+		var engine = new MahjongEngine(
+			Wall.CreateShuffled(new Random(1)), hands, Seat.South, (discardedTile, Seat.East));
+
+		Assert.Throws<ArgumentException>(() => engine.CallRon(Seat.South));
+	}
+
+	/// <summary>パス条件: LastDiscardが無い状態でCallRon()を呼ぶと InvalidOperationException になること。</summary>
+	[Fact]
+	public void CallRon_WithoutLastDiscard_Throws()
+	{
+		var engine = MahjongEngine.Start(new Random(1));
+		engine.DrawForCurrentPlayer();
+
+		Assert.Throws<InvalidOperationException>(() => engine.CallRon(Seat.South));
+	}
+
 	private static List<Tile> CreateThirteenFillerTiles()
 	{
 		var tiles = new List<Tile>();

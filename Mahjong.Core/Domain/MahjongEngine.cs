@@ -1,8 +1,8 @@
 namespace Mahjong.Core.Domain;
 
 /// <summary>
-/// 四人麻雀の卓状態を管理し、ツモ・打牌による手番進行を統括する。
-/// 鳴き・ロン・リーチ・流局判定は対象外（今後のマイルストーンで対応）。
+/// 四人麻雀の卓状態を管理し、ツモ・打牌・鳴き（ポン・チー）・ロンによる手番進行を統括する。
+/// 大明槓（嶺上牌を引く処理を含む）・リーチ・流局判定・役判定/得点計算は対象外（今後のマイルストーンで対応）。
 /// </summary>
 public sealed class MahjongEngine
 {
@@ -10,12 +10,14 @@ public sealed class MahjongEngine
 	private readonly Dictionary<Seat, Hand> _hands;
 
 	/// <summary>テスト用に卓状態を直接組み立てるための内部コンストラクタ。</summary>
-	internal MahjongEngine(Wall wall, Dictionary<Seat, Hand> hands, Seat currentTurn, (Tile Tile, Seat Discarder)? lastDiscard)
+	internal MahjongEngine(
+		Wall wall, Dictionary<Seat, Hand> hands, Seat currentTurn, (Tile Tile, Seat Discarder)? lastDiscard, Seat? winner = null)
 	{
 		_wall = wall;
 		_hands = hands;
 		CurrentTurn = currentTurn;
 		LastDiscard = lastDiscard;
+		Winner = winner;
 	}
 
 	/// <summary>現在の手番の座席。</summary>
@@ -29,6 +31,9 @@ public sealed class MahjongEngine
 
 	/// <summary>生牌山の残り枚数。</summary>
 	public int LiveWallCount => _wall.LiveWallCount;
+
+	/// <summary>和了した座席。まだ誰も和了していない場合は<c>null</c>（<see cref="CallRon"/>で設定される）。</summary>
+	public Seat? Winner { get; private set; }
 
 	/// <summary>座席ごとの手牌。</summary>
 	public IReadOnlyDictionary<Seat, Hand> Hands => _hands;
@@ -119,6 +124,35 @@ public sealed class MahjongEngine
 		LastDiscard = null;
 	}
 
+	/// <summary>
+	/// 直前の捨て牌に対して<paramref name="caller"/>がロンを宣言する。
+	/// 成立後、<see cref="Winner"/>が<paramref name="caller"/>になる（対局終了の意思表示。
+	/// 流局判定・対局終了処理は今後のマイルストーンで対応する）。
+	/// </summary>
+	/// <exception cref="InvalidOperationException">直前の捨て牌が無い場合。</exception>
+	/// <exception cref="ArgumentException">
+	/// 自分自身の捨て牌に対してロンしようとした場合、または捨て牌を加えても和了形にならない場合。
+	/// </exception>
+	public void CallRon(Seat caller)
+	{
+		if (LastDiscard is not { } lastDiscard)
+		{
+			throw new InvalidOperationException("ロンできる捨て牌がありません。");
+		}
+
+		if (caller == lastDiscard.Discarder)
+		{
+			throw new ArgumentException("自分の捨て牌はロンできません。", nameof(caller));
+		}
+
+		if (!_hands[caller].CanWinOn(lastDiscard.Tile))
+		{
+			throw new ArgumentException("捨て牌を加えても和了形になりません。", nameof(caller));
+		}
+
+		Winner = caller;
+	}
+
 	/// <summary>この卓状態の独立した複製を返す（複製後は互いの操作が影響し合わない）。</summary>
 	public MahjongEngine Clone()
 	{
@@ -128,7 +162,7 @@ public sealed class MahjongEngine
 			clonedHands[seat] = hand.Clone();
 		}
 
-		return new MahjongEngine(_wall.Clone(), clonedHands, CurrentTurn, LastDiscard);
+		return new MahjongEngine(_wall.Clone(), clonedHands, CurrentTurn, LastDiscard, Winner);
 	}
 
 	private static Seat NextSeat(Seat seat) => seat switch
