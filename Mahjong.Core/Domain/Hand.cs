@@ -223,6 +223,25 @@ public sealed class Hand
 		return ShantenCalculator.CalculateStandardFormShanten(_concealedTiles, _melds.Count);
 	}
 
+	/// <summary>
+	/// 他家の捨て牌<paramref name="tile"/>を仮に加えたら和了形として完成するかを判定する（手牌は変更しない）。
+	/// 打牌待ちでない状態（自分の手番でない間）が対象。副露が無ければ標準形・七対子・国士無双のいずれかを、
+	/// 副露があれば標準形のみを判定する。
+	/// </summary>
+	/// <exception cref="InvalidOperationException">打牌待ち（ツモ直後）の場合。</exception>
+	public bool CanWinOn(Tile tile)
+	{
+		EnsureNotPending("ロン判定");
+
+		var hypothetical = new List<Tile>(_concealedTiles) { tile };
+		if (_melds.Count == 0)
+		{
+			return WinningHandChecker.IsComplete(hypothetical);
+		}
+
+		return WinningHandChecker.IsStandardFormComplete(hypothetical, 4 - _melds.Count);
+	}
+
 	/// <summary>打牌待ち（ツモ直後）でないことを確認する。</summary>
 	/// <exception cref="InvalidOperationException">打牌待ちの場合。</exception>
 	private void EnsureNotPending(string meldActionName)
