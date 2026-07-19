@@ -19,6 +19,22 @@ public sealed class Hand
 		}
 	}
 
+	/// <summary>クローン用に、バリデーションを行わずに内部状態から直接手牌を生成する。</summary>
+	private Hand(List<Tile> concealedTiles, List<Tile> discards, List<Meld> melds, bool hasPendingTile)
+	{
+		_concealedTiles = concealedTiles;
+		_discards = discards;
+		_melds = melds;
+		_hasPendingTile = hasPendingTile;
+	}
+
+	/// <summary>この手牌の独立した複製を返す（複製後は互いの操作が影響し合わない）。</summary>
+	public Hand Clone() => new(
+		new List<Tile>(_concealedTiles),
+		new List<Tile>(_discards),
+		new List<Meld>(_melds),
+		_hasPendingTile);
+
 	/// <summary>手牌（門前）。配牌時13枚、ツモ後14枚、打牌後13枚に戻る。</summary>
 	public IReadOnlyList<Tile> ConcealedTiles => _concealedTiles;
 
