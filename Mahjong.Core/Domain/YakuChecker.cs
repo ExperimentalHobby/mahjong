@@ -1,8 +1,8 @@
 namespace Mahjong.Core.Domain;
 
 /// <summary>
-/// 面子の分解探索だけで判定できる役（役牌・三暗刻・平和など自風/場風・ロン/ツモの別・待ちの形といった
-/// 追加コンテキストを必要とする役を除く）を判定する。タイミング限定の役、翻数・得点計算は対象外。
+/// 牌の内容・面子の分解・自風/場風から判定できる役を判定する。三暗刻・平和などロン/ツモの別・待ちの形といった
+/// 追加コンテキストを必要とする役は対象外。タイミング限定の役、翻数・得点計算も対象外。
 /// </summary>
 public static class YakuChecker
 {
@@ -61,6 +61,66 @@ public static class YakuChecker
 
 		return yaku;
 	}
+
+	/// <summary>自風・場風を考慮し、役牌（自風牌・場風牌・三元牌）も含めて役を判定する。</summary>
+	/// <exception cref="ArgumentException">
+	/// <paramref name="concealedTiles"/>と<paramref name="melds"/>を合わせた手牌が和了形でない場合。
+	/// </exception>
+	internal static IReadOnlyList<Yaku> DetermineYaku(
+		IReadOnlyList<Tile> concealedTiles, IReadOnlyList<Meld> melds, Seat seatWind, Seat roundWind)
+	{
+		var yaku = new List<Yaku>(DetermineYaku(concealedTiles, melds));
+		if (yaku.Contains(Yaku.Kokushi))
+		{
+			return yaku;
+		}
+
+		if (HasHonorTriplet(concealedTiles, melds, ToWindRank(seatWind)))
+		{
+			yaku.Add(Yaku.Jikaze);
+		}
+
+		if (HasHonorTriplet(concealedTiles, melds, ToWindRank(roundWind)))
+		{
+			yaku.Add(Yaku.Bakaze);
+		}
+
+		foreach (var dragonRank in DragonRanks)
+		{
+			if (HasHonorTriplet(concealedTiles, melds, dragonRank))
+			{
+				yaku.Add(Yaku.Sangenpai);
+			}
+		}
+
+		return yaku;
+	}
+
+	/// <summary>白(5)・發(6)・中(7)の字牌ランク。</summary>
+	private static readonly int[] DragonRanks = [5, 6, 7];
+
+	/// <summary>指定したランクの字牌が門前に3枚以上あるか、または該当ランクの刻子・カンの副露があるかを判定する。</summary>
+	private static bool HasHonorTriplet(IReadOnlyList<Tile> concealedTiles, IReadOnlyList<Meld> melds, int rank)
+	{
+		var concealedCount = concealedTiles.Count(tile => tile.Suit == TileSuit.Honor && tile.Rank == rank);
+		if (concealedCount >= 3)
+		{
+			return true;
+		}
+
+		return melds.Any(meld =>
+			meld.Type != MeldType.Chi && meld.Tiles[0].Suit == TileSuit.Honor && meld.Tiles[0].Rank == rank);
+	}
+
+	/// <summary>座席(自風・場風)を字牌のランクに変換する(東=1・南=2・西=3・北=4)。</summary>
+	private static int ToWindRank(Seat seat) => seat switch
+	{
+		Seat.East => 1,
+		Seat.South => 2,
+		Seat.West => 3,
+		Seat.North => 4,
+		_ => throw new InvalidOperationException($"未知のSeatです: {seat}"),
+	};
 
 	/// <summary>
 	/// 標準形（雀頭+4面子）として分解できるあらゆる組み合わせを横断し、いずれかの分解で成立する

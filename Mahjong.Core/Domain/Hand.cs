@@ -308,6 +308,16 @@ public sealed class Hand
 		return YakuChecker.DetermineYaku(_concealedTiles, _melds);
 	}
 
+	/// <summary>ツモ和了後の手牌（門前牌+副露）に、自風・場風を考慮して成立している役牌も含めた役を判定する。</summary>
+	/// <exception cref="InvalidOperationException">打牌待ち（ツモ直後）でない場合。</exception>
+	/// <exception cref="ArgumentException">手牌が和了形になっていない場合。</exception>
+	public IReadOnlyList<Yaku> DetermineYaku(Seat seatWind, Seat roundWind)
+	{
+		EnsurePending("役判定");
+
+		return YakuChecker.DetermineYaku(_concealedTiles, _melds, seatWind, roundWind);
+	}
+
 	/// <summary>
 	/// 他家の捨て牌<paramref name="tile"/>を仮に加えたロン和了に成立する役を判定する（手牌は変更しない）。
 	/// </summary>
@@ -319,6 +329,20 @@ public sealed class Hand
 
 		var hypothetical = new List<Tile>(_concealedTiles) { tile };
 		return YakuChecker.DetermineYaku(hypothetical, _melds);
+	}
+
+	/// <summary>
+	/// 他家の捨て牌<paramref name="tile"/>を仮に加えたロン和了に、自風・場風を考慮して成立している
+	/// 役牌も含めた役を判定する（手牌は変更しない）。
+	/// </summary>
+	/// <exception cref="InvalidOperationException">打牌待ち（ツモ直後）の場合。</exception>
+	/// <exception cref="ArgumentException">捨て牌を加えても和了形にならない場合。</exception>
+	public IReadOnlyList<Yaku> DetermineYakuOn(Tile tile, Seat seatWind, Seat roundWind)
+	{
+		EnsureNotPending("役判定");
+
+		var hypothetical = new List<Tile>(_concealedTiles) { tile };
+		return YakuChecker.DetermineYaku(hypothetical, _melds, seatWind, roundWind);
 	}
 
 	/// <summary>打牌待ち（ツモ直後）でないことを確認する。</summary>

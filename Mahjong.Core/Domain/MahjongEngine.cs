@@ -2,9 +2,9 @@ namespace Mahjong.Core.Domain;
 
 /// <summary>
 /// 四人麻雀の卓状態を管理し、ツモ・打牌・鳴き（ポン・チー・カン全種）・ロン・ツモ和了・流局判定による
-/// 手番進行を統括する。ロン/ツモ和了の成立時に<see cref="WinningYaku"/>で役を確定させるが、
-/// 役牌・三暗刻・平和など自風/場風やロン/ツモの別を条件とする役、翻数・符・点数計算、
-/// リーチは対象外（今後のマイルストーンで対応）。
+/// 手番進行を統括する。ロン/ツモ和了の成立時に<see cref="WinningYaku"/>で役牌を含む役を確定させるが、
+/// 三暗刻・平和などロン/ツモの別や待ちの形を条件とする役、翻数・符・点数計算、局の推移（連荘・場風の遷移）は
+/// 対象外（今後のマイルストーンで対応）。
 /// </summary>
 public sealed class MahjongEngine
 {
@@ -14,13 +14,14 @@ public sealed class MahjongEngine
 	/// <summary>テスト用に卓状態を直接組み立てるための内部コンストラクタ。</summary>
 	internal MahjongEngine(
 		Wall wall, Dictionary<Seat, Hand> hands, Seat currentTurn, (Tile Tile, Seat Discarder)? lastDiscard,
-		IReadOnlyList<Seat>? winners = null)
+		IReadOnlyList<Seat>? winners = null, Seat roundWind = Seat.East)
 	{
 		_wall = wall;
 		_hands = hands;
 		CurrentTurn = currentTurn;
 		LastDiscard = lastDiscard;
 		Winners = winners ?? [];
+		RoundWind = roundWind;
 	}
 
 	/// <summary>現在の手番の座席。</summary>
@@ -34,6 +35,9 @@ public sealed class MahjongEngine
 
 	/// <summary>生牌山の残り枚数。</summary>
 	public int LiveWallCount => _wall.LiveWallCount;
+
+	/// <summary>この局の場風。役牌（場風牌）の判定に使う。局の推移（連荘・場風の遷移）自体は対象外で、単一の値として保持する。</summary>
+	public Seat RoundWind { get; }
 
 	/// <summary>
 	/// 和了した座席。まだ誰も和了していない場合は空。通常和了・ダブロン（頭跳ねなし）では1〜2人分の座席を含む
@@ -226,7 +230,7 @@ public sealed class MahjongEngine
 		var winningYaku = new Dictionary<Seat, IReadOnlyList<Yaku>>();
 		foreach (var caller in callers)
 		{
-			winningYaku[caller] = _hands[caller].DetermineYakuOn(lastDiscard.Tile);
+			winningYaku[caller] = _hands[caller].DetermineYakuOn(lastDiscard.Tile, caller, RoundWind);
 		}
 
 		WinningYaku = winningYaku;
@@ -301,7 +305,10 @@ public sealed class MahjongEngine
 		}
 
 		Winners = [CurrentTurn];
-		WinningYaku = new Dictionary<Seat, IReadOnlyList<Yaku>> { [CurrentTurn] = _hands[CurrentTurn].DetermineYaku() };
+		WinningYaku = new Dictionary<Seat, IReadOnlyList<Yaku>>
+		{
+			[CurrentTurn] = _hands[CurrentTurn].DetermineYaku(CurrentTurn, RoundWind),
+		};
 	}
 
 	/// <summary>この卓状態の独立した複製を返す（複製後は互いの操作が影響し合わない）。</summary>
@@ -313,7 +320,7 @@ public sealed class MahjongEngine
 			clonedHands[seat] = hand.Clone();
 		}
 
-		return new MahjongEngine(_wall.Clone(), clonedHands, CurrentTurn, LastDiscard, Winners)
+		return new MahjongEngine(_wall.Clone(), clonedHands, CurrentTurn, LastDiscard, Winners, RoundWind)
 		{
 			WinningYaku = WinningYaku,
 			IsTripleRonDraw = IsTripleRonDraw,
