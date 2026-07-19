@@ -2,7 +2,9 @@ namespace Mahjong.Core.Domain;
 
 /// <summary>
 /// 四人麻雀の卓状態を管理し、ツモ・打牌・鳴き（ポン・チー・カン全種）・ロン・ツモ和了・流局判定による
-/// 手番進行を統括する。リーチ・役判定/得点計算は対象外（今後のマイルストーンで対応）。
+/// 手番進行を統括する。ロン/ツモ和了の成立時に<see cref="WinningYaku"/>で役を確定させるが、
+/// 役牌・三暗刻・平和など自風/場風やロン/ツモの別を条件とする役、翻数・符・点数計算、
+/// リーチは対象外（今後のマイルストーンで対応）。
 /// </summary>
 public sealed class MahjongEngine
 {
@@ -34,6 +36,12 @@ public sealed class MahjongEngine
 
 	/// <summary>和了した座席。まだ誰も和了していない場合は<c>null</c>（<see cref="CallRon"/>で設定される）。</summary>
 	public Seat? Winner { get; private set; }
+
+	/// <summary>
+	/// 和了時に成立していた役。まだ誰も和了していない場合は<c>null</c>
+	/// （<see cref="CallRon"/>・<see cref="CallTsumo"/>で設定される）。
+	/// </summary>
+	public IReadOnlyList<Yaku>? WinningYaku { get; private set; }
 
 	/// <summary>生牌山が尽きて、かつ誰も和了していない場合に<c>true</c>になる（流局）。</summary>
 	public bool IsExhaustiveDraw => Winner is null && LiveWallCount == 0;
@@ -154,6 +162,7 @@ public sealed class MahjongEngine
 		}
 
 		Winner = caller;
+		WinningYaku = _hands[caller].DetermineYakuOn(lastDiscard.Tile);
 	}
 
 	/// <summary>
@@ -225,6 +234,7 @@ public sealed class MahjongEngine
 		}
 
 		Winner = CurrentTurn;
+		WinningYaku = _hands[CurrentTurn].DetermineYaku();
 	}
 
 	/// <summary>この卓状態の独立した複製を返す（複製後は互いの操作が影響し合わない）。</summary>
@@ -236,7 +246,10 @@ public sealed class MahjongEngine
 			clonedHands[seat] = hand.Clone();
 		}
 
-		return new MahjongEngine(_wall.Clone(), clonedHands, CurrentTurn, LastDiscard, Winner);
+		return new MahjongEngine(_wall.Clone(), clonedHands, CurrentTurn, LastDiscard, Winner)
+		{
+			WinningYaku = WinningYaku,
+		};
 	}
 
 	private static Seat NextSeat(Seat seat) => seat switch

@@ -242,6 +242,31 @@ public sealed class Hand
 		return WinningHandChecker.IsStandardFormComplete(hypothetical, 4 - _melds.Count);
 	}
 
+	/// <summary>
+	/// ツモ和了後の手牌（門前牌+副露）に成立している役を判定する。
+	/// </summary>
+	/// <exception cref="InvalidOperationException">打牌待ち（ツモ直後）でない場合。</exception>
+	/// <exception cref="ArgumentException">手牌が和了形になっていない場合。</exception>
+	public IReadOnlyList<Yaku> DetermineYaku()
+	{
+		EnsurePending("役判定");
+
+		return YakuChecker.DetermineYaku(_concealedTiles, _melds);
+	}
+
+	/// <summary>
+	/// 他家の捨て牌<paramref name="tile"/>を仮に加えたロン和了に成立する役を判定する（手牌は変更しない）。
+	/// </summary>
+	/// <exception cref="InvalidOperationException">打牌待ち（ツモ直後）の場合。</exception>
+	/// <exception cref="ArgumentException">捨て牌を加えても和了形にならない場合。</exception>
+	public IReadOnlyList<Yaku> DetermineYakuOn(Tile tile)
+	{
+		EnsureNotPending("役判定");
+
+		var hypothetical = new List<Tile>(_concealedTiles) { tile };
+		return YakuChecker.DetermineYaku(hypothetical, _melds);
+	}
+
 	/// <summary>打牌待ち（ツモ直後）でないことを確認する。</summary>
 	/// <exception cref="InvalidOperationException">打牌待ちの場合。</exception>
 	private void EnsureNotPending(string meldActionName)

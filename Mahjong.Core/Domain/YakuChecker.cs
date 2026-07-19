@@ -10,44 +10,54 @@ public static class YakuChecker
 
 	/// <summary>門前14枚の和了形に成立している役を判定する。</summary>
 	/// <exception cref="ArgumentException"><paramref name="tiles"/>が和了形でない場合（14枚でない場合を含む）。</exception>
-	public static IReadOnlyList<Yaku> DetermineYaku(IReadOnlyList<Tile> tiles)
+	public static IReadOnlyList<Yaku> DetermineYaku(IReadOnlyList<Tile> tiles) => DetermineYaku(tiles, melds: []);
+
+	/// <summary>鳴き（副露）を含む手牌の和了形に成立している役を判定する。</summary>
+	/// <exception cref="ArgumentException">
+	/// <paramref name="concealedTiles"/>と<paramref name="melds"/>を合わせた手牌が和了形でない場合。
+	/// </exception>
+	internal static IReadOnlyList<Yaku> DetermineYaku(IReadOnlyList<Tile> concealedTiles, IReadOnlyList<Meld> melds)
 	{
-		if (!WinningHandChecker.IsComplete(tiles))
+		var isComplete = melds.Count == 0
+			? WinningHandChecker.IsComplete(concealedTiles)
+			: WinningHandChecker.IsStandardFormComplete(concealedTiles, 4 - melds.Count);
+		if (!isComplete)
 		{
-			throw new ArgumentException("判定対象は和了形である必要があります。", nameof(tiles));
+			throw new ArgumentException("判定対象は和了形である必要があります。", nameof(concealedTiles));
 		}
 
-		if (WinningHandChecker.IsThirteenOrphansComplete(tiles))
+		if (melds.Count == 0 && WinningHandChecker.IsThirteenOrphansComplete(concealedTiles))
 		{
 			return [Yaku.Kokushi];
 		}
 
+		var allTiles = concealedTiles.Concat(melds.SelectMany(meld => meld.Tiles)).ToList();
 		var yaku = new List<Yaku>();
 
-		if (WinningHandChecker.IsSevenPairsComplete(tiles))
+		if (melds.Count == 0 && WinningHandChecker.IsSevenPairsComplete(concealedTiles))
 		{
 			yaku.Add(Yaku.Chiitoitsu);
 		}
 
-		if (IsTanyao(tiles))
+		if (IsTanyao(allTiles))
 		{
 			yaku.Add(Yaku.Tanyao);
 		}
 
-		if (IsTsuiisou(tiles))
+		if (IsTsuiisou(allTiles))
 		{
 			yaku.Add(Yaku.Tsuiisou);
 		}
-		else if (IsChinitsu(tiles))
+		else if (IsChinitsu(allTiles))
 		{
 			yaku.Add(Yaku.Chinitsu);
 		}
-		else if (IsHonitsu(tiles))
+		else if (IsHonitsu(allTiles))
 		{
 			yaku.Add(Yaku.Honitsu);
 		}
 
-		AddDecompositionDependentYaku(tiles, yaku);
+		AddDecompositionDependentYaku(concealedTiles, melds, yaku);
 
 		return yaku;
 	}
@@ -55,17 +65,22 @@ public static class YakuChecker
 	/// <summary>
 	/// 標準形（雀頭+4面子）として分解できるあらゆる組み合わせを横断し、いずれかの分解で成立する
 	/// 役（対々和・一盃口・二盃口・三色同順・一気通貫・純全帯幺九・混全帯幺九）を判定する。
+	/// 鳴きの面子は固定の面子として分解に組み込む（探索対象は<paramref name="concealedTiles"/>のみ）。
+	/// 一盃口・二盃口は門前限定のため鳴きがある場合は判定しない。
 	/// 「1つの分解を選ぶ」得点計算とは異なり、存在確認ベース（いずれかの分解で成立すれば役ありとする）の判定にとどめる。
 	/// </summary>
-	private static void AddDecompositionDependentYaku(IReadOnlyList<Tile> tiles, List<Yaku> yaku)
+	private static void AddDecompositionDependentYaku(IReadOnlyList<Tile> concealedTiles, IReadOnlyList<Meld> melds, List<Yaku> yaku)
 	{
 		var counts = new int[KindCount];
-		foreach (var tile in tiles)
+		foreach (var tile in concealedTiles)
 		{
 			counts[ToIndex(tile)]++;
 		}
 
-		var hasHonorTile = tiles.Any(tile => tile.Suit == TileSuit.Honor);
+		var hasHonorTile = concealedTiles.Any(tile => tile.Suit == TileSuit.Honor) ||
+			melds.Any(meld => meld.Tiles[0].Suit == TileSuit.Honor);
+		var meldSets = melds.Select(ToDecomposedSet).ToArray();
+		var requiredSets = 4 - melds.Count;
 
 		var hasToitoitsu = false;
 		var hasIipeikou = false;
@@ -83,13 +98,18 @@ public static class YakuChecker
 			}
 
 			counts[pairKind] -= 2;
-			foreach (var decomposition in EnumerateSetDecompositions(counts, 4))
+			foreach (var searched in EnumerateSetDecompositions(counts, requiredSets))
 			{
+				DecomposedSet[] decomposition = [.. meldSets, .. searched];
+
 				hasToitoitsu |= Array.TrueForAll(decomposition, set => set.IsTriplet);
 
-				var duplicateSequenceGroups = CountDuplicateSequenceGroups(decomposition);
-				hasIipeikou |= duplicateSequenceGroups == 1;
-				hasRyanpeikou |= duplicateSequenceGroups == 2;
+				if (melds.Count == 0)
+				{
+					var duplicateSequenceGroups = CountDuplicateSequenceGroups(decomposition);
+					hasIipeikou |= duplicateSequenceGroups == 1;
+					hasRyanpeikou |= duplicateSequenceGroups == 2;
+				}
 
 				hasSanshokuDoujun |= HasSanshokuDoujun(decomposition);
 				hasIttsuu |= HasIttsuu(decomposition);
@@ -270,6 +290,13 @@ public static class YakuChecker
 
 	/// <summary>分解済みの1面子（刻子または順子）。順子はRankを開始ランクとする。</summary>
 	private readonly record struct DecomposedSet(bool IsTriplet, TileSuit Suit, int Rank);
+
+	/// <summary>鳴きの面子(<see cref="Meld"/>)を分解済みの1面子(<see cref="DecomposedSet"/>)に変換する。</summary>
+	private static DecomposedSet ToDecomposedSet(Meld meld)
+	{
+		var first = meld.Tiles[0];
+		return new DecomposedSet(meld.Type != MeldType.Chi, first.Suit, first.Rank);
+	}
 
 	private static bool IsTanyao(IReadOnlyList<Tile> tiles) =>
 		tiles.All(tile => tile.Suit != TileSuit.Honor && tile.Rank != 1 && tile.Rank != 9);
