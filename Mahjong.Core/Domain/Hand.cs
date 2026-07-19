@@ -171,6 +171,24 @@ public sealed class Hand
 		_hasPendingTile = false;
 	}
 
+	/// <summary>
+	/// 現在の手牌（門前牌+副露）が和了形として完成しているかを判定する（ツモのみが対象。ロンは対象外）。
+	/// 副露が無ければ標準形・七対子・国士無双のいずれかを、副露があれば標準形のみを判定する
+	/// （副露済みの面子は牌数に関わらず1面子として数え、七対子・国士無双は門前限定のため判定しない）。
+	/// </summary>
+	/// <exception cref="InvalidOperationException">打牌待ち（ツモ直後）でない場合。</exception>
+	public bool IsComplete()
+	{
+		EnsurePending("和了判定");
+
+		if (_melds.Count == 0)
+		{
+			return WinningHandChecker.IsComplete(_concealedTiles);
+		}
+
+		return WinningHandChecker.IsStandardFormComplete(_concealedTiles, 4 - _melds.Count);
+	}
+
 	/// <summary>打牌待ち（ツモ直後）でないことを確認する。</summary>
 	/// <exception cref="InvalidOperationException">打牌待ちの場合。</exception>
 	private void EnsureNotPending(string meldActionName)

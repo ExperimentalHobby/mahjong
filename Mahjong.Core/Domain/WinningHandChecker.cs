@@ -12,11 +12,19 @@ public static class WinningHandChecker
 
 	/// <summary>門前14枚が標準形（4面子+雀頭）として完成しているかを判定する。</summary>
 	/// <exception cref="ArgumentException"><paramref name="tiles"/>が14枚でない場合。</exception>
-	public static bool IsStandardFormComplete(IReadOnlyList<Tile> tiles)
+	public static bool IsStandardFormComplete(IReadOnlyList<Tile> tiles) => IsStandardFormComplete(tiles, 4);
+
+	/// <summary>
+	/// 牌が「雀頭+<paramref name="requiredSets"/>個の面子」として完成しているかを判定する。
+	/// 副露済みの面子を除いた残りの門前牌に対して使う（<see cref="Hand.IsComplete"/> から利用）。
+	/// </summary>
+	/// <exception cref="ArgumentException"><paramref name="tiles"/>の枚数が<paramref name="requiredSets"/>*3+2枚でない場合。</exception>
+	internal static bool IsStandardFormComplete(IReadOnlyList<Tile> tiles, int requiredSets)
 	{
-		if (tiles.Count != 14)
+		var expectedCount = (requiredSets * 3) + 2;
+		if (tiles.Count != expectedCount)
 		{
-			throw new ArgumentException($"判定対象は14枚である必要があります(実際: {tiles.Count}枚)。", nameof(tiles));
+			throw new ArgumentException($"判定対象は{expectedCount}枚である必要があります(実際: {tiles.Count}枚)。", nameof(tiles));
 		}
 
 		var counts = new int[KindCount];
@@ -33,7 +41,7 @@ public static class WinningHandChecker
 			}
 
 			counts[kind] -= 2;
-			var isComplete = CanFormSets(counts, 4);
+			var isComplete = CanFormSets(counts, requiredSets);
 			counts[kind] += 2;
 
 			if (isComplete)
