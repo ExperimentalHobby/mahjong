@@ -333,7 +333,8 @@ public sealed class Hand
 
 	/// <summary>
 	/// 他家の捨て牌<paramref name="tile"/>を仮に加えたロン和了に、自風・場風を考慮して成立している
-	/// 役牌も含めた役を判定する（手牌は変更しない）。
+	/// 役牌も含めた役を判定する（手牌は変更しない）。<paramref name="tile"/>で完成した刻子は
+	/// 明刻扱いとなり三暗刻の暗刻数に数えない。
 	/// </summary>
 	/// <exception cref="InvalidOperationException">打牌待ち（ツモ直後）の場合。</exception>
 	/// <exception cref="ArgumentException">捨て牌を加えても和了形にならない場合。</exception>
@@ -342,7 +343,7 @@ public sealed class Hand
 		EnsureNotPending("役判定");
 
 		var hypothetical = new List<Tile>(_concealedTiles) { tile };
-		return YakuChecker.DetermineYaku(hypothetical, _melds, seatWind, roundWind);
+		return YakuChecker.DetermineYaku(hypothetical, _melds, seatWind, roundWind, ronTile: tile);
 	}
 
 	/// <summary>打牌待ち（ツモ直後）でないことを確認する。</summary>

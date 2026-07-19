@@ -1,8 +1,8 @@
 namespace Mahjong.Core.Domain;
 
 /// <summary>
-/// 牌の内容・面子の分解・自風/場風から判定できる役を判定する。三暗刻・平和などロン/ツモの別・待ちの形といった
-/// 追加コンテキストを必要とする役は対象外。タイミング限定の役、翻数・得点計算も対象外。
+/// 牌の内容・面子の分解・自風/場風・ロン/ツモの別から判定できる役を判定する。平和など待ちの形を
+/// 必要とする役は対象外。タイミング限定の役、翻数・得点計算も対象外。
 /// </summary>
 public static class YakuChecker
 {
@@ -62,12 +62,17 @@ public static class YakuChecker
 		return yaku;
 	}
 
-	/// <summary>自風・場風を考慮し、役牌（自風牌・場風牌・三元牌）も含めて役を判定する。</summary>
+	/// <summary>
+	/// 自風・場風を考慮し、役牌（自風牌・場風牌・三元牌）・三暗刻も含めて役を判定する。
+	/// <paramref name="ronTile"/>はロン和了牌（ツモ和了の場合は<c>null</c>）。ロンで完成した刻子は
+	/// 明刻扱いとなり三暗刻の暗刻数に数えない。
+	/// </summary>
 	/// <exception cref="ArgumentException">
 	/// <paramref name="concealedTiles"/>と<paramref name="melds"/>を合わせた手牌が和了形でない場合。
 	/// </exception>
 	internal static IReadOnlyList<Yaku> DetermineYaku(
-		IReadOnlyList<Tile> concealedTiles, IReadOnlyList<Meld> melds, Seat seatWind, Seat roundWind)
+		IReadOnlyList<Tile> concealedTiles, IReadOnlyList<Meld> melds, Seat seatWind, Seat roundWind,
+		Tile? ronTile = null)
 	{
 		var yaku = new List<Yaku>(DetermineYaku(concealedTiles, melds));
 		if (yaku.Contains(Yaku.Kokushi))
@@ -93,7 +98,54 @@ public static class YakuChecker
 			}
 		}
 
+		if (HasSanankou(concealedTiles, melds, ronTile))
+		{
+			yaku.Add(Yaku.Sanankou);
+		}
+
 		return yaku;
+	}
+
+	/// <summary>
+	/// 標準形（雀頭+4面子）として分解できるあらゆる組み合わせを横断し、いずれかの分解で
+	/// 暗刻（門前で完成した刻子。ロンで完成した刻子・鳴きの刻子・加槓は除く）が3つ以上あるかを判定する。
+	/// </summary>
+	private static bool HasSanankou(IReadOnlyList<Tile> concealedTiles, IReadOnlyList<Meld> melds, Tile? ronTile)
+	{
+		var counts = new int[KindCount];
+		foreach (var tile in concealedTiles)
+		{
+			counts[ToIndex(tile)]++;
+		}
+
+		var meldSets = melds.Select(ToDecomposedSet).ToArray();
+		var requiredSets = 4 - melds.Count;
+
+		for (var pairKind = 0; pairKind < KindCount; pairKind++)
+		{
+			if (counts[pairKind] < 2)
+			{
+				continue;
+			}
+
+			counts[pairKind] -= 2;
+			foreach (var searched in EnumerateSetDecompositions(counts, requiredSets))
+			{
+				DecomposedSet[] decomposition = [.. meldSets, .. searched];
+				var concealedTripletCount = decomposition.Count(set =>
+					set.IsTriplet && set.IsConcealed &&
+					!(ronTile is { } tile && set.Suit == tile.Suit && set.Rank == tile.Rank));
+				if (concealedTripletCount >= 3)
+				{
+					counts[pairKind] += 2;
+					return true;
+				}
+			}
+
+			counts[pairKind] += 2;
+		}
+
+		return false;
 	}
 
 	/// <summary>白(5)・發(6)・中(7)の字牌ランク。</summary>
@@ -348,14 +400,19 @@ public static class YakuChecker
 		}
 	}
 
-	/// <summary>分解済みの1面子（刻子または順子）。順子はRankを開始ランクとする。</summary>
-	private readonly record struct DecomposedSet(bool IsTriplet, TileSuit Suit, int Rank);
+	/// <summary>
+	/// 分解済みの1面子（刻子または順子）。順子はRankを開始ランクとする。
+	/// <paramref name="IsConcealed"/>は門前（暗刻・暗槓）かどうかで、三暗刻の判定に使う
+	/// （<see cref="EnumerateSetDecompositions"/>由来のものは常に門前なので既定値<c>true</c>のまま）。
+	/// </summary>
+	private readonly record struct DecomposedSet(bool IsTriplet, TileSuit Suit, int Rank, bool IsConcealed = true);
 
 	/// <summary>鳴きの面子(<see cref="Meld"/>)を分解済みの1面子(<see cref="DecomposedSet"/>)に変換する。</summary>
 	private static DecomposedSet ToDecomposedSet(Meld meld)
 	{
 		var first = meld.Tiles[0];
-		return new DecomposedSet(meld.Type != MeldType.Chi, first.Suit, first.Rank);
+		var isConcealed = meld.Type == MeldType.ClosedKan;
+		return new DecomposedSet(meld.Type != MeldType.Chi, first.Suit, first.Rank, isConcealed);
 	}
 
 	private static bool IsTanyao(IReadOnlyList<Tile> tiles) =>

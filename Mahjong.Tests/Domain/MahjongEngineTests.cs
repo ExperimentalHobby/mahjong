@@ -479,6 +479,67 @@ public class MahjongEngineTests
 	}
 
 	/// <summary>
+	/// パス条件: ロン牌が3つ目の刻子を完成させる場合、その刻子は暗刻に数えられないため
+	/// WinningYaku に Yaku.Sanankou が含まれないこと。
+	/// </summary>
+	[Fact]
+	public void CallRon_RonTileCompletesThirdTriplet_WinningYakuDoesNotContainSanankou()
+	{
+		var discardedTile = new Tile(TileSuit.Man, 1);
+		var hands = new Dictionary<Seat, Hand>
+		{
+			[Seat.East] = new Hand(CreateThirteenFillerTiles()),
+			[Seat.South] = new Hand(
+			[
+				new Tile(TileSuit.Man, 1), new Tile(TileSuit.Man, 1),
+				new Tile(TileSuit.Pin, 2), new Tile(TileSuit.Pin, 2), new Tile(TileSuit.Pin, 2),
+				new Tile(TileSuit.Sou, 3), new Tile(TileSuit.Sou, 3), new Tile(TileSuit.Sou, 3),
+				new Tile(TileSuit.Man, 5), new Tile(TileSuit.Man, 6), new Tile(TileSuit.Man, 7),
+				new Tile(TileSuit.Man, 9), new Tile(TileSuit.Man, 9),
+			]),
+			[Seat.West] = new Hand(CreateThirteenFillerTiles()),
+			[Seat.North] = new Hand(CreateThirteenFillerTiles()),
+		};
+		var engine = new MahjongEngine(
+			Wall.CreateShuffled(new Random(1)), hands, Seat.South, (discardedTile, Seat.East));
+
+		engine.CallRon(Seat.South);
+
+		Assert.DoesNotContain(Yaku.Sanankou, engine.WinningYaku[Seat.South]);
+	}
+
+	/// <summary>
+	/// パス条件: 同じ3暗刻の手をツモで和了した場合、全ての暗刻が数えられるため
+	/// WinningYaku に Yaku.Sanankou が含まれること。
+	/// </summary>
+	[Fact]
+	public void CallTsumo_ThreeConcealedTriplets_WinningYakuContainsSanankou()
+	{
+		List<Tile> startingTiles =
+		[
+			new Tile(TileSuit.Man, 1), new Tile(TileSuit.Man, 1),
+			new Tile(TileSuit.Pin, 2), new Tile(TileSuit.Pin, 2), new Tile(TileSuit.Pin, 2),
+			new Tile(TileSuit.Sou, 3), new Tile(TileSuit.Sou, 3), new Tile(TileSuit.Sou, 3),
+			new Tile(TileSuit.Man, 5), new Tile(TileSuit.Man, 6), new Tile(TileSuit.Man, 7),
+			new Tile(TileSuit.Man, 9), new Tile(TileSuit.Man, 9),
+		];
+		var eastHand = new Hand(startingTiles);
+		eastHand.Draw(new Tile(TileSuit.Man, 1));
+		var hands = new Dictionary<Seat, Hand>
+		{
+			[Seat.East] = eastHand,
+			[Seat.South] = new Hand(CreateThirteenFillerTiles()),
+			[Seat.West] = new Hand(CreateThirteenFillerTiles()),
+			[Seat.North] = new Hand(CreateThirteenFillerTiles()),
+		};
+		var engine = new MahjongEngine(Wall.CreateShuffled(new Random(1)), hands, Seat.East, lastDiscard: null);
+
+		engine.CallTsumo();
+
+		Assert.Contains(Yaku.Sanankou, engine.WinningYaku[Seat.East]);
+	}
+
+	/// <summary>
 	/// パス条件: 3人が同じ捨て牌に対して同時にロンを宣言すると、IsTripleRonDraw が true になり、
 	/// Winners は空のままであること（三家和）。
 	/// </summary>
