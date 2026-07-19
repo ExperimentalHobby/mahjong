@@ -189,6 +189,24 @@ public sealed class Hand
 		return WinningHandChecker.IsStandardFormComplete(_concealedTiles, 4 - _melds.Count);
 	}
 
+	/// <summary>
+	/// 現在の手牌（門前牌+副露）のシャンテン数を計算する（打牌待ちでない状態＝門前13枚相当が対象）。
+	/// 副露が無ければ標準形・七対子・国士無双のうち最小の値を、副露があれば標準形のみを判定する
+	/// （副露済みの面子は牌数に関わらず1面子として数え、七対子・国士無双は門前限定のため判定しない）。
+	/// </summary>
+	/// <exception cref="InvalidOperationException">打牌待ち（ツモ直後）の場合。</exception>
+	public int CalculateShanten()
+	{
+		EnsureNotPending("シャンテン数計算");
+
+		if (_melds.Count == 0)
+		{
+			return ShantenCalculator.CalculateShanten(_concealedTiles);
+		}
+
+		return ShantenCalculator.CalculateStandardFormShanten(_concealedTiles, _melds.Count);
+	}
+
 	/// <summary>打牌待ち（ツモ直後）でないことを確認する。</summary>
 	/// <exception cref="InvalidOperationException">打牌待ちの場合。</exception>
 	private void EnsureNotPending(string meldActionName)
