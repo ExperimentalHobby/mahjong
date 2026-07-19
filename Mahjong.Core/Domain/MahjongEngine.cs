@@ -1,8 +1,8 @@
 namespace Mahjong.Core.Domain;
 
 /// <summary>
-/// 四人麻雀の卓状態を管理し、ツモ・打牌・鳴き（ポン・チー・大明槓）・ロン・ツモ和了・流局判定による
-/// 手番進行を統括する。暗槓・加槓の統合・リーチ・役判定/得点計算は対象外（今後のマイルストーンで対応）。
+/// 四人麻雀の卓状態を管理し、ツモ・打牌・鳴き（ポン・チー・カン全種）・ロン・ツモ和了・流局判定による
+/// 手番進行を統括する。リーチ・役判定/得点計算は対象外（今後のマイルストーンで対応）。
 /// </summary>
 public sealed class MahjongEngine
 {
@@ -182,6 +182,34 @@ public sealed class MahjongEngine
 
 		var rinshanTile = _wall.DrawReplacement();
 		_hands[caller].Draw(rinshanTile);
+	}
+
+	/// <summary>
+	/// 現在の手番のプレイヤーが自分の手牌4枚（直前のツモを含む）で暗槓を宣言する。
+	/// 成立後、嶺上牌を1枚ツモった状態（打牌待ち）になる。
+	/// </summary>
+	/// <exception cref="InvalidOperationException">打牌待ち（ツモ直後）でない場合。</exception>
+	/// <exception cref="ArgumentException"><see cref="Hand.ClosedKan"/>の既存バリデーションに違反する場合。</exception>
+	public void CallClosedKan(Tile tile1, Tile tile2, Tile tile3, Tile tile4)
+	{
+		_hands[CurrentTurn].ClosedKan(tile1, tile2, tile3, tile4);
+
+		var rinshanTile = _wall.DrawReplacement();
+		_hands[CurrentTurn].Draw(rinshanTile);
+	}
+
+	/// <summary>
+	/// 現在の手番のプレイヤーが既存のポンにツモ牌を追加して加槓を宣言する。
+	/// 成立後、嶺上牌を1枚ツモった状態（打牌待ち）になる。
+	/// </summary>
+	/// <exception cref="InvalidOperationException">打牌待ち（ツモ直後）でない場合。</exception>
+	/// <exception cref="ArgumentException"><see cref="Hand.AddedKan"/>の既存バリデーションに違反する場合。</exception>
+	public void CallAddedKan(Tile tile)
+	{
+		_hands[CurrentTurn].AddedKan(tile);
+
+		var rinshanTile = _wall.DrawReplacement();
+		_hands[CurrentTurn].Draw(rinshanTile);
 	}
 
 	/// <summary>
