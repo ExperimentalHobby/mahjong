@@ -446,6 +446,80 @@ public class MahjongEngineTests
 		Assert.False(engine.IsExhaustiveDraw);
 	}
 
+	/// <summary>
+	/// パス条件: 他家の捨て牌に対して大明槓を宣言すると、Hand.Meldsに追加され、
+	/// CurrentTurnがカンした家に移り、嶺上牌をツモった状態（打牌待ち）になること。
+	/// </summary>
+	[Fact]
+	public void CallOpenKan_ByOtherSeat_AddsMeldMovesTurnAndDrawsReplacement()
+	{
+		var discardedTile = new Tile(TileSuit.Pin, 9);
+		var hands = new Dictionary<Seat, Hand>
+		{
+			[Seat.East] = new Hand(CreateThirteenFillerTiles()),
+			[Seat.South] = new Hand(
+			[
+				discardedTile, discardedTile, discardedTile,
+				new Tile(TileSuit.Man, 1), new Tile(TileSuit.Man, 2), new Tile(TileSuit.Man, 3),
+				new Tile(TileSuit.Man, 4), new Tile(TileSuit.Man, 5), new Tile(TileSuit.Man, 6),
+				new Tile(TileSuit.Man, 7), new Tile(TileSuit.Man, 8), new Tile(TileSuit.Man, 9),
+				new Tile(TileSuit.Pin, 1),
+			]),
+			[Seat.West] = new Hand(CreateThirteenFillerTiles()),
+			[Seat.North] = new Hand(CreateThirteenFillerTiles()),
+		};
+		var engine = new MahjongEngine(
+			Wall.CreateShuffled(new Random(1)), hands, Seat.South, (discardedTile, Seat.East));
+		var liveWallCountBefore = engine.LiveWallCount;
+
+		engine.CallOpenKan(Seat.South, discardedTile, discardedTile, discardedTile);
+
+		var meld = Assert.Single(engine.Hands[Seat.South].Melds);
+		Assert.Equal(MeldType.OpenKan, meld.Type);
+		Assert.Equal(Seat.South, engine.CurrentTurn);
+		Assert.Null(engine.LastDiscard);
+		Assert.Equal(11, engine.Hands[Seat.South].ConcealedTiles.Count);
+		Assert.Equal(liveWallCountBefore - 1, engine.LiveWallCount);
+		Assert.Throws<InvalidOperationException>(() => engine.Hands[Seat.South].Draw(new Tile(TileSuit.Sou, 9)));
+	}
+
+	/// <summary>パス条件: 自分の捨て牌に対して自分でカンしようとすると ArgumentException になること。</summary>
+	[Fact]
+	public void CallOpenKan_BySameSeatAsDiscarder_Throws()
+	{
+		var discardedTile = new Tile(TileSuit.Pin, 9);
+		var hands = new Dictionary<Seat, Hand>
+		{
+			[Seat.East] = new Hand(
+			[
+				discardedTile, discardedTile, discardedTile,
+				new Tile(TileSuit.Man, 1), new Tile(TileSuit.Man, 2), new Tile(TileSuit.Man, 3),
+				new Tile(TileSuit.Man, 4), new Tile(TileSuit.Man, 5), new Tile(TileSuit.Man, 6),
+				new Tile(TileSuit.Man, 7), new Tile(TileSuit.Man, 8), new Tile(TileSuit.Man, 9),
+				new Tile(TileSuit.Pin, 1),
+			]),
+			[Seat.South] = new Hand(CreateThirteenFillerTiles()),
+			[Seat.West] = new Hand(CreateThirteenFillerTiles()),
+			[Seat.North] = new Hand(CreateThirteenFillerTiles()),
+		};
+		var engine = new MahjongEngine(
+			Wall.CreateShuffled(new Random(1)), hands, Seat.South, (discardedTile, Seat.East));
+
+		Assert.Throws<ArgumentException>(
+			() => engine.CallOpenKan(Seat.East, discardedTile, discardedTile, discardedTile));
+	}
+
+	/// <summary>パス条件: LastDiscardが無い状態でCallOpenKan()を呼ぶと InvalidOperationException になること。</summary>
+	[Fact]
+	public void CallOpenKan_WithoutLastDiscard_Throws()
+	{
+		var engine = MahjongEngine.Start(new Random(1));
+		engine.DrawForCurrentPlayer();
+		var pinNine = new Tile(TileSuit.Pin, 9);
+
+		Assert.Throws<InvalidOperationException>(() => engine.CallOpenKan(Seat.South, pinNine, pinNine, pinNine));
+	}
+
 	private static List<Tile> CreateThirteenFillerTiles()
 	{
 		var tiles = new List<Tile>();

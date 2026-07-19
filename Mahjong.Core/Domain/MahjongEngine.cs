@@ -1,8 +1,8 @@
 namespace Mahjong.Core.Domain;
 
 /// <summary>
-/// 四人麻雀の卓状態を管理し、ツモ・打牌・鳴き（ポン・チー）・ロンによる手番進行を統括する。
-/// 大明槓（嶺上牌を引く処理を含む）・リーチ・流局判定・役判定/得点計算は対象外（今後のマイルストーンで対応）。
+/// 四人麻雀の卓状態を管理し、ツモ・打牌・鳴き（ポン・チー・大明槓）・ロン・ツモ和了・流局判定による
+/// 手番進行を統括する。暗槓・加槓の統合・リーチ・役判定/得点計算は対象外（今後のマイルストーンで対応）。
 /// </summary>
 public sealed class MahjongEngine
 {
@@ -154,6 +154,34 @@ public sealed class MahjongEngine
 		}
 
 		Winner = caller;
+	}
+
+	/// <summary>
+	/// 直前の捨て牌に対して<paramref name="caller"/>が大明槓を宣言する。
+	/// 成立後、手番は<paramref name="caller"/>に移り、嶺上牌を1枚ツモった状態（打牌待ち）になる。
+	/// </summary>
+	/// <exception cref="InvalidOperationException">直前の捨て牌が無い場合。</exception>
+	/// <exception cref="ArgumentException">
+	/// 自分自身の捨て牌に対してカンしようとした場合、または<see cref="Hand.OpenKan"/>の既存バリデーションに違反する場合。
+	/// </exception>
+	public void CallOpenKan(Seat caller, Tile handTile1, Tile handTile2, Tile handTile3)
+	{
+		if (LastDiscard is not { } lastDiscard)
+		{
+			throw new InvalidOperationException("カンできる捨て牌がありません。");
+		}
+
+		if (caller == lastDiscard.Discarder)
+		{
+			throw new ArgumentException("自分の捨て牌はカンできません。", nameof(caller));
+		}
+
+		_hands[caller].OpenKan(lastDiscard.Tile, handTile1, handTile2, handTile3);
+		CurrentTurn = caller;
+		LastDiscard = null;
+
+		var rinshanTile = _wall.DrawReplacement();
+		_hands[caller].Draw(rinshanTile);
 	}
 
 	/// <summary>
