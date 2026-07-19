@@ -1188,4 +1188,162 @@ public class HandTests
 		Assert.Contains(Yaku.Tanyao, yaku);
 		Assert.Equal(startingTiles, hand.ConcealedTiles);
 	}
+
+	/// <summary>
+	/// パス条件: 副露なし・指定した牌を打牌すると聴牌になる場合、Riichi(tile) で IsRiichi が true になり、
+	/// 打牌（Discardsへの追加・打牌待ち解除）も成立すること。
+	/// </summary>
+	[Fact]
+	public void Riichi_NoMelds_DiscardLeavesTenpai_SetsIsRiichiAndDiscards()
+	{
+		List<Tile> startingTiles =
+		[
+			new Tile(TileSuit.Man, 1), new Tile(TileSuit.Man, 1), new Tile(TileSuit.Man, 1),
+			new Tile(TileSuit.Pin, 2), new Tile(TileSuit.Pin, 2), new Tile(TileSuit.Pin, 2),
+			new Tile(TileSuit.Sou, 3), new Tile(TileSuit.Sou, 3), new Tile(TileSuit.Sou, 3),
+			new Tile(TileSuit.Honor, 1), new Tile(TileSuit.Honor, 1), new Tile(TileSuit.Honor, 1),
+			new Tile(TileSuit.Man, 9),
+		];
+		var hand = new Hand(startingTiles);
+		hand.Draw(new Tile(TileSuit.Sou, 9));
+
+		hand.Riichi(new Tile(TileSuit.Sou, 9));
+
+		Assert.True(hand.IsRiichi);
+		Assert.Contains(new Tile(TileSuit.Sou, 9), hand.Discards);
+		Assert.Equal(startingTiles, hand.ConcealedTiles);
+	}
+
+	/// <summary>パス条件: 副露がある場合、Riichi(tile) が ArgumentException になること（門前限定）。</summary>
+	[Fact]
+	public void Riichi_WithMeld_Throws()
+	{
+		List<Tile> startingTiles =
+		[
+			new Tile(TileSuit.Pin, 1), new Tile(TileSuit.Pin, 1),
+			new Tile(TileSuit.Man, 1), new Tile(TileSuit.Man, 1), new Tile(TileSuit.Man, 1),
+			new Tile(TileSuit.Sou, 2), new Tile(TileSuit.Sou, 3), new Tile(TileSuit.Sou, 4),
+			new Tile(TileSuit.Honor, 1), new Tile(TileSuit.Honor, 1), new Tile(TileSuit.Honor, 1),
+			new Tile(TileSuit.Sou, 9), new Tile(TileSuit.Man, 9),
+		];
+		var hand = new Hand(startingTiles);
+		hand.Pon(new Tile(TileSuit.Pin, 1), new Tile(TileSuit.Pin, 1), new Tile(TileSuit.Pin, 1));
+		hand.Discard(new Tile(TileSuit.Man, 9));
+		hand.Draw(new Tile(TileSuit.Sou, 9));
+
+		Assert.Throws<ArgumentException>(() => hand.Riichi(new Tile(TileSuit.Sou, 9)));
+	}
+
+	/// <summary>パス条件: 指定した牌を打牌しても聴牌にならない場合、Riichi(tile) が ArgumentException になること。</summary>
+	[Fact]
+	public void Riichi_DiscardDoesNotLeaveTenpai_Throws()
+	{
+		List<Tile> startingTiles =
+		[
+			new Tile(TileSuit.Man, 1), new Tile(TileSuit.Man, 4), new Tile(TileSuit.Man, 7),
+			new Tile(TileSuit.Pin, 1), new Tile(TileSuit.Pin, 4), new Tile(TileSuit.Pin, 7),
+			new Tile(TileSuit.Sou, 1), new Tile(TileSuit.Sou, 4),
+			new Tile(TileSuit.Honor, 1), new Tile(TileSuit.Honor, 2), new Tile(TileSuit.Honor, 3), new Tile(TileSuit.Honor, 4),
+			new Tile(TileSuit.Honor, 5),
+		];
+		var hand = new Hand(startingTiles);
+		hand.Draw(new Tile(TileSuit.Honor, 6));
+
+		Assert.Throws<ArgumentException>(() => hand.Riichi(new Tile(TileSuit.Honor, 6)));
+	}
+
+	/// <summary>パス条件: 既にリーチ宣言済みの状態で再度 Riichi() を呼ぶと InvalidOperationException になること。</summary>
+	[Fact]
+	public void Riichi_WhenAlreadyRiichi_Throws()
+	{
+		List<Tile> startingTiles =
+		[
+			new Tile(TileSuit.Man, 1), new Tile(TileSuit.Man, 1), new Tile(TileSuit.Man, 1),
+			new Tile(TileSuit.Pin, 2), new Tile(TileSuit.Pin, 2), new Tile(TileSuit.Pin, 2),
+			new Tile(TileSuit.Sou, 3), new Tile(TileSuit.Sou, 3), new Tile(TileSuit.Sou, 3),
+			new Tile(TileSuit.Honor, 1), new Tile(TileSuit.Honor, 1), new Tile(TileSuit.Honor, 1),
+			new Tile(TileSuit.Man, 9),
+		];
+		var hand = new Hand(startingTiles);
+		hand.Draw(new Tile(TileSuit.Sou, 9));
+		hand.Riichi(new Tile(TileSuit.Sou, 9));
+		hand.Draw(new Tile(TileSuit.Pin, 9));
+
+		Assert.Throws<InvalidOperationException>(() => hand.Riichi(new Tile(TileSuit.Pin, 9)));
+	}
+
+	/// <summary>
+	/// パス条件: 打牌待ちでない状態（ツモ前）で Riichi() を呼ぶと InvalidOperationException になること
+	/// （EnsurePending からの伝播確認）。
+	/// </summary>
+	[Fact]
+	public void Riichi_WhenNotPending_Throws()
+	{
+		var hand = new Hand(CreateThirteenTiles());
+
+		Assert.Throws<InvalidOperationException>(() => hand.Riichi(new Tile(TileSuit.Man, 1)));
+	}
+
+	/// <summary>パス条件: リーチ後、直前にツモった牌以外を Discard() しようとすると ArgumentException になること。</summary>
+	[Fact]
+	public void Discard_AfterRiichi_WithTileOtherThanDrawnTile_Throws()
+	{
+		List<Tile> startingTiles =
+		[
+			new Tile(TileSuit.Man, 1), new Tile(TileSuit.Man, 1), new Tile(TileSuit.Man, 1),
+			new Tile(TileSuit.Pin, 2), new Tile(TileSuit.Pin, 2), new Tile(TileSuit.Pin, 2),
+			new Tile(TileSuit.Sou, 3), new Tile(TileSuit.Sou, 3), new Tile(TileSuit.Sou, 3),
+			new Tile(TileSuit.Honor, 1), new Tile(TileSuit.Honor, 1), new Tile(TileSuit.Honor, 1),
+			new Tile(TileSuit.Man, 9),
+		];
+		var hand = new Hand(startingTiles);
+		hand.Draw(new Tile(TileSuit.Sou, 9));
+		hand.Riichi(new Tile(TileSuit.Sou, 9));
+		hand.Draw(new Tile(TileSuit.Pin, 9));
+
+		Assert.Throws<ArgumentException>(() => hand.Discard(new Tile(TileSuit.Man, 1)));
+	}
+
+	/// <summary>パス条件: リーチ後、直前にツモった牌は Discard() で問題なく打牌できること。</summary>
+	[Fact]
+	public void Discard_AfterRiichi_WithDrawnTile_Succeeds()
+	{
+		List<Tile> startingTiles =
+		[
+			new Tile(TileSuit.Man, 1), new Tile(TileSuit.Man, 1), new Tile(TileSuit.Man, 1),
+			new Tile(TileSuit.Pin, 2), new Tile(TileSuit.Pin, 2), new Tile(TileSuit.Pin, 2),
+			new Tile(TileSuit.Sou, 3), new Tile(TileSuit.Sou, 3), new Tile(TileSuit.Sou, 3),
+			new Tile(TileSuit.Honor, 1), new Tile(TileSuit.Honor, 1), new Tile(TileSuit.Honor, 1),
+			new Tile(TileSuit.Man, 9),
+		];
+		var hand = new Hand(startingTiles);
+		hand.Draw(new Tile(TileSuit.Sou, 9));
+		hand.Riichi(new Tile(TileSuit.Sou, 9));
+		hand.Draw(new Tile(TileSuit.Pin, 9));
+
+		hand.Discard(new Tile(TileSuit.Pin, 9));
+
+		Assert.Contains(new Tile(TileSuit.Pin, 9), hand.Discards);
+	}
+
+	/// <summary>パス条件: リーチ宣言後に Clone() すると、複製した手牌にも IsRiichi が保持されること。</summary>
+	[Fact]
+	public void Clone_PreservesIsRiichi()
+	{
+		List<Tile> startingTiles =
+		[
+			new Tile(TileSuit.Man, 1), new Tile(TileSuit.Man, 1), new Tile(TileSuit.Man, 1),
+			new Tile(TileSuit.Pin, 2), new Tile(TileSuit.Pin, 2), new Tile(TileSuit.Pin, 2),
+			new Tile(TileSuit.Sou, 3), new Tile(TileSuit.Sou, 3), new Tile(TileSuit.Sou, 3),
+			new Tile(TileSuit.Honor, 1), new Tile(TileSuit.Honor, 1), new Tile(TileSuit.Honor, 1),
+			new Tile(TileSuit.Man, 9),
+		];
+		var hand = new Hand(startingTiles);
+		hand.Draw(new Tile(TileSuit.Sou, 9));
+		hand.Riichi(new Tile(TileSuit.Sou, 9));
+
+		var clone = hand.Clone();
+
+		Assert.True(clone.IsRiichi);
+	}
 }

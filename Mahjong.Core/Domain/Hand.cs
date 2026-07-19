@@ -7,6 +7,7 @@ public sealed class Hand
 	private readonly List<Tile> _discards = [];
 	private readonly List<Meld> _melds = [];
 	private bool _hasPendingTile;
+	private bool _isRiichi;
 
 	/// <summary>配牌13枚から手牌を生成する。</summary>
 	/// <exception cref="ArgumentException">startingTilesが13枚でない場合。</exception>
@@ -20,12 +21,13 @@ public sealed class Hand
 	}
 
 	/// <summary>クローン用に、バリデーションを行わずに内部状態から直接手牌を生成する。</summary>
-	private Hand(List<Tile> concealedTiles, List<Tile> discards, List<Meld> melds, bool hasPendingTile)
+	private Hand(List<Tile> concealedTiles, List<Tile> discards, List<Meld> melds, bool hasPendingTile, bool isRiichi)
 	{
 		_concealedTiles = concealedTiles;
 		_discards = discards;
 		_melds = melds;
 		_hasPendingTile = hasPendingTile;
+		_isRiichi = isRiichi;
 	}
 
 	/// <summary>この手牌の独立した複製を返す（複製後は互いの操作が影響し合わない）。</summary>
@@ -33,7 +35,8 @@ public sealed class Hand
 		new List<Tile>(_concealedTiles),
 		new List<Tile>(_discards),
 		new List<Meld>(_melds),
-		_hasPendingTile);
+		_hasPendingTile,
+		_isRiichi);
 
 	/// <summary>手牌（門前）。配牌時13枚、ツモ後14枚、打牌後13枚に戻る。</summary>
 	public IReadOnlyList<Tile> ConcealedTiles => _concealedTiles;
@@ -43,6 +46,9 @@ public sealed class Hand
 
 	/// <summary>鳴きによって公開された面子。</summary>
 	public IReadOnlyList<Meld> Melds => _melds;
+
+	/// <summary>リーチを宣言しているかどうか。</summary>
+	public bool IsRiichi => _isRiichi;
 
 	/// <summary>ツモ牌を手牌に加える（13→14枚）。</summary>
 	/// <exception cref="InvalidOperationException">既に14枚保持している場合。</exception>
@@ -57,12 +63,21 @@ public sealed class Hand
 		_hasPendingTile = true;
 	}
 
-	/// <summary>指定した牌を手牌から取り除く（14→13枚）。</summary>
+	/// <summary>
+	/// 指定した牌を手牌から取り除く（14→13枚）。リーチ宣言後は直前にツモった牌以外を指定できない。
+	/// </summary>
 	/// <exception cref="InvalidOperationException">ツモ前（手牌13枚）の場合。</exception>
-	/// <exception cref="ArgumentException">手牌に存在しない牌を指定した場合。</exception>
+	/// <exception cref="ArgumentException">
+	/// 手牌に存在しない牌を指定した場合、またはリーチ宣言後に直前にツモった牌以外を指定した場合。
+	/// </exception>
 	public void Discard(Tile tile)
 	{
 		EnsurePending("打牌");
+
+		if (_isRiichi && !tile.Equals(_concealedTiles[^1]))
+		{
+			throw new ArgumentException("リーチ後は直前にツモった牌以外を打牌できません。", nameof(tile));
+		}
 
 		if (!_concealedTiles.Remove(tile))
 		{
@@ -71,6 +86,45 @@ public sealed class Hand
 
 		_discards.Add(tile);
 		_hasPendingTile = false;
+	}
+
+	/// <summary>
+	/// リーチを宣言し、指定した牌<paramref name="tile"/>を打牌する（打牌待ち→打牌済みの遷移も同時に行う）。
+	/// </summary>
+	/// <exception cref="InvalidOperationException">打牌待ち（ツモ直後）でない場合、または既にリーチ宣言済みの場合。</exception>
+	/// <exception cref="ArgumentException">
+	/// 副露がある場合、手牌に存在しない牌を指定した場合、または指定した牌を打牌しても聴牌にならない場合。
+	/// </exception>
+	public void Riichi(Tile tile)
+	{
+		EnsurePending("リーチ");
+
+		if (_isRiichi)
+		{
+			throw new InvalidOperationException("既にリーチ宣言済みです。");
+		}
+
+		if (_melds.Count > 0)
+		{
+			throw new ArgumentException("リーチは門前（副露なし）でのみ宣言できます。");
+		}
+
+		if (!_concealedTiles.Contains(tile))
+		{
+			throw new ArgumentException($"手牌に存在しない牌です: {tile}", nameof(tile));
+		}
+
+		var remaining = new List<Tile>(_concealedTiles);
+		remaining.Remove(tile);
+		if (ShantenCalculator.CalculateShanten(remaining) != 0)
+		{
+			throw new ArgumentException("指定した牌を打牌しても聴牌になりません。", nameof(tile));
+		}
+
+		_concealedTiles.Remove(tile);
+		_discards.Add(tile);
+		_hasPendingTile = false;
+		_isRiichi = true;
 	}
 
 	/// <summary>他家の捨て牌 <paramref name="claimedTile"/> と手牌2枚でポン（刻子）を成立させる。</summary>
