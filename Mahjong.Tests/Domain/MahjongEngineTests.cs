@@ -108,6 +108,37 @@ public class MahjongEngineTests
 		Assert.Contains(Yaku.Toitoitsu, clone.WinningYaku!);
 	}
 
+	/// <summary>パス条件: Riichi() 後、手番が次の座席に進み、LastDiscard に打牌した牌と打牌者が記録されること。</summary>
+	[Fact]
+	public void Riichi_MovesTurnToNextSeatAndRecordsLastDiscard()
+	{
+		List<Tile> startingTiles =
+		[
+			new Tile(TileSuit.Man, 1), new Tile(TileSuit.Man, 1), new Tile(TileSuit.Man, 1),
+			new Tile(TileSuit.Pin, 2), new Tile(TileSuit.Pin, 2), new Tile(TileSuit.Pin, 2),
+			new Tile(TileSuit.Sou, 3), new Tile(TileSuit.Sou, 3), new Tile(TileSuit.Sou, 3),
+			new Tile(TileSuit.Honor, 1), new Tile(TileSuit.Honor, 1), new Tile(TileSuit.Honor, 1),
+			new Tile(TileSuit.Man, 9),
+		];
+		var eastHand = new Hand(startingTiles);
+		eastHand.Draw(new Tile(TileSuit.Sou, 9));
+		var hands = new Dictionary<Seat, Hand>
+		{
+			[Seat.East] = eastHand,
+			[Seat.South] = new Hand(CreateThirteenFillerTiles()),
+			[Seat.West] = new Hand(CreateThirteenFillerTiles()),
+			[Seat.North] = new Hand(CreateThirteenFillerTiles()),
+		};
+		var engine = new MahjongEngine(Wall.CreateShuffled(new Random(1)), hands, Seat.East, lastDiscard: null);
+		var riichiTile = new Tile(TileSuit.Sou, 9);
+
+		engine.Riichi(riichiTile);
+
+		Assert.Equal(Seat.South, engine.CurrentTurn);
+		Assert.Equal((riichiTile, Seat.East), engine.LastDiscard);
+		Assert.True(engine.Hands[Seat.East].IsRiichi);
+	}
+
 	/// <summary>パス条件: Discard() 後、LastDiscard に打牌した牌と打牌者（座席）が記録されること。</summary>
 	[Fact]
 	public void Discard_RecordsLastDiscard()

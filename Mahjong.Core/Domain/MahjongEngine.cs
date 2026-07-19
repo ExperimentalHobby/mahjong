@@ -85,6 +85,23 @@ public sealed class MahjongEngine
 	}
 
 	/// <summary>
+	/// 現在の手番のプレイヤーがリーチを宣言し、<paramref name="tile"/>を打牌して手番を次の座席に進める。
+	/// </summary>
+	/// <exception cref="InvalidOperationException">
+	/// 打牌待ち（ツモ直後）でない場合、または既にリーチ宣言済みの場合。
+	/// </exception>
+	/// <exception cref="ArgumentException">
+	/// 副露がある場合、手牌に存在しない牌を指定した場合、または指定した牌を打牌しても聴牌にならない場合。
+	/// </exception>
+	public void Riichi(Tile tile)
+	{
+		var discarder = CurrentTurn;
+		_hands[discarder].Riichi(tile);
+		LastDiscard = (tile, discarder);
+		CurrentTurn = NextSeat(discarder);
+	}
+
+	/// <summary>
 	/// 直前の捨て牌に対して<paramref name="caller"/>がポンを宣言する。
 	/// 成立後、手番は<paramref name="caller"/>に移る（打牌待ちになるため、続けて<see cref="Discard"/>を呼ぶ想定）。
 	/// </summary>
