@@ -520,6 +520,114 @@ public class MahjongEngineTests
 		Assert.Throws<InvalidOperationException>(() => engine.CallOpenKan(Seat.South, pinNine, pinNine, pinNine));
 	}
 
+	/// <summary>
+	/// パス条件: 現在の手番の手牌4枚で暗槓が成立すると、Hand.Meldsに追加され、
+	/// 嶺上牌をツモった状態（打牌待ち）になること。
+	/// </summary>
+	[Fact]
+	public void CallClosedKan_ByCurrentTurn_AddsMeldAndDrawsReplacement()
+	{
+		var pinOne = new Tile(TileSuit.Pin, 1);
+		var eastHand = new Hand(
+		[
+			pinOne, pinOne, pinOne,
+			new Tile(TileSuit.Man, 1), new Tile(TileSuit.Man, 2), new Tile(TileSuit.Man, 3),
+			new Tile(TileSuit.Man, 4), new Tile(TileSuit.Man, 5), new Tile(TileSuit.Man, 6),
+			new Tile(TileSuit.Man, 7), new Tile(TileSuit.Man, 8), new Tile(TileSuit.Man, 9),
+			new Tile(TileSuit.Sou, 9),
+		]);
+		eastHand.Draw(pinOne);
+		var hands = new Dictionary<Seat, Hand>
+		{
+			[Seat.East] = eastHand,
+			[Seat.South] = new Hand(CreateThirteenFillerTiles()),
+			[Seat.West] = new Hand(CreateThirteenFillerTiles()),
+			[Seat.North] = new Hand(CreateThirteenFillerTiles()),
+		};
+		var engine = new MahjongEngine(Wall.CreateShuffled(new Random(1)), hands, Seat.East, lastDiscard: null);
+		var liveWallCountBefore = engine.LiveWallCount;
+
+		engine.CallClosedKan(pinOne, pinOne, pinOne, pinOne);
+
+		var meld = Assert.Single(engine.Hands[Seat.East].Melds);
+		Assert.Equal(MeldType.ClosedKan, meld.Type);
+		Assert.Equal(11, engine.Hands[Seat.East].ConcealedTiles.Count);
+		Assert.Equal(liveWallCountBefore - 1, engine.LiveWallCount);
+		Assert.Throws<InvalidOperationException>(() => engine.Hands[Seat.East].Draw(new Tile(TileSuit.Sou, 8)));
+	}
+
+	/// <summary>
+	/// パス条件: 打牌待ちでない状態（ツモ前）で CallClosedKan() を呼ぶと InvalidOperationException になること
+	/// （Hand.ClosedKan() からの伝播確認）。
+	/// </summary>
+	[Fact]
+	public void CallClosedKan_WhenNotPending_Throws()
+	{
+		var engine = MahjongEngine.Start(new Random(1));
+		var pinOne = new Tile(TileSuit.Pin, 1);
+
+		Assert.Throws<InvalidOperationException>(() => engine.CallClosedKan(pinOne, pinOne, pinOne, pinOne));
+	}
+
+	/// <summary>
+	/// パス条件: 現在の手番の既存ポンに対して加槓が成立すると、Hand.MeldsのPonがAddedKanに置き換わり、
+	/// 嶺上牌をツモった状態（打牌待ち）になること。
+	/// </summary>
+	[Fact]
+	public void CallAddedKan_ByCurrentTurn_ReplacesPonMeldAndDrawsReplacement()
+	{
+		var pinOne = new Tile(TileSuit.Pin, 1);
+		var eastHand = new Hand(
+		[
+			pinOne, pinOne,
+			new Tile(TileSuit.Man, 1), new Tile(TileSuit.Man, 2), new Tile(TileSuit.Man, 3),
+			new Tile(TileSuit.Man, 4), new Tile(TileSuit.Man, 5), new Tile(TileSuit.Man, 6),
+			new Tile(TileSuit.Man, 7), new Tile(TileSuit.Man, 8), new Tile(TileSuit.Man, 9),
+			new Tile(TileSuit.Pin, 9), new Tile(TileSuit.Sou, 9),
+		]);
+		eastHand.Pon(pinOne, pinOne, pinOne);
+		eastHand.Discard(new Tile(TileSuit.Pin, 9));
+		eastHand.Draw(pinOne);
+		var hands = new Dictionary<Seat, Hand>
+		{
+			[Seat.East] = eastHand,
+			[Seat.South] = new Hand(CreateThirteenFillerTiles()),
+			[Seat.West] = new Hand(CreateThirteenFillerTiles()),
+			[Seat.North] = new Hand(CreateThirteenFillerTiles()),
+		};
+		var engine = new MahjongEngine(Wall.CreateShuffled(new Random(1)), hands, Seat.East, lastDiscard: null);
+		var liveWallCountBefore = engine.LiveWallCount;
+
+		engine.CallAddedKan(pinOne);
+
+		var meld = Assert.Single(engine.Hands[Seat.East].Melds);
+		Assert.Equal(MeldType.AddedKan, meld.Type);
+		Assert.Equal(11, engine.Hands[Seat.East].ConcealedTiles.Count);
+		Assert.Equal(liveWallCountBefore - 1, engine.LiveWallCount);
+		Assert.Throws<InvalidOperationException>(() => engine.Hands[Seat.East].Draw(new Tile(TileSuit.Sou, 8)));
+	}
+
+	/// <summary>
+	/// パス条件: 対応するポンが存在しない場合、CallAddedKan() が ArgumentException になること
+	/// （Hand.AddedKan() からの伝播確認）。
+	/// </summary>
+	[Fact]
+	public void CallAddedKan_WithoutMatchingPon_Throws()
+	{
+		var eastHand = new Hand(CreateThirteenFillerTiles());
+		eastHand.Draw(new Tile(TileSuit.Pin, 1));
+		var hands = new Dictionary<Seat, Hand>
+		{
+			[Seat.East] = eastHand,
+			[Seat.South] = new Hand(CreateThirteenFillerTiles()),
+			[Seat.West] = new Hand(CreateThirteenFillerTiles()),
+			[Seat.North] = new Hand(CreateThirteenFillerTiles()),
+		};
+		var engine = new MahjongEngine(Wall.CreateShuffled(new Random(1)), hands, Seat.East, lastDiscard: null);
+
+		Assert.Throws<ArgumentException>(() => engine.CallAddedKan(new Tile(TileSuit.Pin, 1)));
+	}
+
 	private static List<Tile> CreateThirteenFillerTiles()
 	{
 		var tiles = new List<Tile>();
