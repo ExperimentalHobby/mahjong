@@ -20,4 +20,16 @@ public enum Yaku
 
 	/// <summary>国士無双。</summary>
 	Kokushi,
+
+	/// <summary>対々和。</summary>
+	Toitoitsu,
+
+	/// <summary>一盃口。</summary>
+	Iipeikou,
+
+	/// <summary>三色同順。</summary>
+	SanshokuDoujun,
+
+	/// <summary>一気通貫。</summary>
+	Ittsuu,
 }
