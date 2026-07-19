@@ -499,4 +499,84 @@ public class YakuCheckerTests
 		Assert.Contains(Yaku.Chanta, yaku);
 		Assert.Contains(Yaku.Toitoitsu, yaku);
 	}
+
+	/// <summary>パス条件: 鳴き（ポン1つ）を含む手に対して2〜8のみで構成されていれば Yaku.Tanyao が含まれること。</summary>
+	[Fact]
+	public void DetermineYaku_WithPonMeldWithoutTerminalsOrHonors_ContainsTanyao()
+	{
+		Tile[] concealedTiles =
+		[
+			new Tile(TileSuit.Man, 5), new Tile(TileSuit.Man, 6), new Tile(TileSuit.Man, 7),
+			new Tile(TileSuit.Pin, 4), new Tile(TileSuit.Pin, 5), new Tile(TileSuit.Pin, 6),
+			new Tile(TileSuit.Sou, 2), new Tile(TileSuit.Sou, 3), new Tile(TileSuit.Sou, 4),
+			new Tile(TileSuit.Pin, 8), new Tile(TileSuit.Pin, 8),
+		];
+		Meld[] melds = [new Meld(MeldType.Pon, [new Tile(TileSuit.Man, 3), new Tile(TileSuit.Man, 3), new Tile(TileSuit.Man, 3)])];
+
+		var yaku = YakuChecker.DetermineYaku(concealedTiles, melds);
+
+		Assert.Contains(Yaku.Tanyao, yaku);
+	}
+
+	/// <summary>パス条件: 鳴きがある場合、Yaku.Chiitoitsu・Yaku.Kokushi は判定されないこと（門前限定のため）。</summary>
+	[Fact]
+	public void DetermineYaku_WithMeld_DoesNotContainChiitoitsuOrKokushi()
+	{
+		Tile[] concealedTiles =
+		[
+			new Tile(TileSuit.Man, 5), new Tile(TileSuit.Man, 6), new Tile(TileSuit.Man, 7),
+			new Tile(TileSuit.Pin, 4), new Tile(TileSuit.Pin, 5), new Tile(TileSuit.Pin, 6),
+			new Tile(TileSuit.Sou, 2), new Tile(TileSuit.Sou, 3), new Tile(TileSuit.Sou, 4),
+			new Tile(TileSuit.Pin, 8), new Tile(TileSuit.Pin, 8),
+		];
+		Meld[] melds = [new Meld(MeldType.Pon, [new Tile(TileSuit.Man, 3), new Tile(TileSuit.Man, 3), new Tile(TileSuit.Man, 3)])];
+
+		var yaku = YakuChecker.DetermineYaku(concealedTiles, melds);
+
+		Assert.DoesNotContain(Yaku.Chiitoitsu, yaku);
+		Assert.DoesNotContain(Yaku.Kokushi, yaku);
+	}
+
+	/// <summary>
+	/// パス条件: 鳴き（チー1つ）を含む手に対して、鳴きの面子を含めた分解で三色同順が成立する場合、
+	/// Yaku.SanshokuDoujun が含まれること。
+	/// </summary>
+	[Fact]
+	public void DetermineYaku_WithChiMeldFormingSanshokuDoujun_ContainsSanshokuDoujun()
+	{
+		Tile[] concealedTiles =
+		[
+			new Tile(TileSuit.Pin, 1), new Tile(TileSuit.Pin, 2), new Tile(TileSuit.Pin, 3),
+			new Tile(TileSuit.Sou, 1), new Tile(TileSuit.Sou, 2), new Tile(TileSuit.Sou, 3),
+			new Tile(TileSuit.Man, 7), new Tile(TileSuit.Man, 8), new Tile(TileSuit.Man, 9),
+			new Tile(TileSuit.Sou, 9), new Tile(TileSuit.Sou, 9),
+		];
+		Meld[] melds = [new Meld(MeldType.Chi, [new Tile(TileSuit.Man, 1), new Tile(TileSuit.Man, 2), new Tile(TileSuit.Man, 3)])];
+
+		var yaku = YakuChecker.DetermineYaku(concealedTiles, melds);
+
+		Assert.Contains(Yaku.SanshokuDoujun, yaku);
+	}
+
+	/// <summary>
+	/// パス条件: 鳴き（チー1つ）を含む手は、門前であれば一盃口になるはずの同一順子の重複があっても
+	/// Yaku.Iipeikou・Yaku.Ryanpeikou は含まれないこと（門前限定のため）。
+	/// </summary>
+	[Fact]
+	public void DetermineYaku_WithMeldAndDuplicateSequence_DoesNotContainIipeikouOrRyanpeikou()
+	{
+		Tile[] concealedTiles =
+		[
+			new Tile(TileSuit.Man, 2), new Tile(TileSuit.Man, 3), new Tile(TileSuit.Man, 4),
+			new Tile(TileSuit.Pin, 5), new Tile(TileSuit.Pin, 6), new Tile(TileSuit.Pin, 7),
+			new Tile(TileSuit.Sou, 1), new Tile(TileSuit.Sou, 1), new Tile(TileSuit.Sou, 1),
+			new Tile(TileSuit.Pin, 9), new Tile(TileSuit.Pin, 9),
+		];
+		Meld[] melds = [new Meld(MeldType.Chi, [new Tile(TileSuit.Man, 2), new Tile(TileSuit.Man, 3), new Tile(TileSuit.Man, 4)])];
+
+		var yaku = YakuChecker.DetermineYaku(concealedTiles, melds);
+
+		Assert.DoesNotContain(Yaku.Iipeikou, yaku);
+		Assert.DoesNotContain(Yaku.Ryanpeikou, yaku);
+	}
 }

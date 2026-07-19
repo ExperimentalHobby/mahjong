@@ -1145,4 +1145,47 @@ public class HandTests
 
 		Assert.Equal(startingTiles, hand.ConcealedTiles);
 	}
+
+	/// <summary>パス条件: ツモ和了後の手牌（副露なし・断幺九の標準形）から DetermineYaku() で Yaku.Tanyao が判定できること。</summary>
+	[Fact]
+	public void DetermineYaku_NoMelds_StandardForm_ContainsTanyao()
+	{
+		List<Tile> startingTiles =
+		[
+			new Tile(TileSuit.Man, 2), new Tile(TileSuit.Man, 3), new Tile(TileSuit.Man, 4),
+			new Tile(TileSuit.Man, 5), new Tile(TileSuit.Man, 5), new Tile(TileSuit.Man, 5),
+			new Tile(TileSuit.Pin, 4), new Tile(TileSuit.Pin, 5), new Tile(TileSuit.Pin, 6),
+			new Tile(TileSuit.Sou, 6), new Tile(TileSuit.Sou, 7), new Tile(TileSuit.Sou, 8),
+			new Tile(TileSuit.Pin, 2),
+		];
+		var hand = new Hand(startingTiles);
+		hand.Draw(new Tile(TileSuit.Pin, 2));
+
+		var yaku = hand.DetermineYaku();
+
+		Assert.Contains(Yaku.Tanyao, yaku);
+	}
+
+	/// <summary>
+	/// パス条件: ロン牌tileを仮に加えると断幺九の標準形で完成する場合、DetermineYakuOn(tile) で
+	/// Yaku.Tanyao が判定でき、呼び出し後も ConcealedTiles が変化しないこと（非破壊であることの確認）。
+	/// </summary>
+	[Fact]
+	public void DetermineYakuOn_NoMelds_StandardForm_ContainsTanyaoAndDoesNotMutateConcealedTiles()
+	{
+		List<Tile> startingTiles =
+		[
+			new Tile(TileSuit.Man, 2), new Tile(TileSuit.Man, 3), new Tile(TileSuit.Man, 4),
+			new Tile(TileSuit.Man, 5), new Tile(TileSuit.Man, 5), new Tile(TileSuit.Man, 5),
+			new Tile(TileSuit.Pin, 4), new Tile(TileSuit.Pin, 5), new Tile(TileSuit.Pin, 6),
+			new Tile(TileSuit.Sou, 6), new Tile(TileSuit.Sou, 7), new Tile(TileSuit.Sou, 8),
+			new Tile(TileSuit.Pin, 2),
+		];
+		var hand = new Hand(startingTiles);
+
+		var yaku = hand.DetermineYakuOn(new Tile(TileSuit.Pin, 2));
+
+		Assert.Contains(Yaku.Tanyao, yaku);
+		Assert.Equal(startingTiles, hand.ConcealedTiles);
+	}
 }

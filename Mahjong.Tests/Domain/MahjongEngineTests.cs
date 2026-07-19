@@ -79,6 +79,35 @@ public class MahjongEngineTests
 		Assert.Equal(engine.LiveWallCount + 1, clone.LiveWallCount);
 	}
 
+	/// <summary>パス条件: ツモ和了成立後に Clone() すると、複製したエンジンにも WinningYaku が保持されること。</summary>
+	[Fact]
+	public void Clone_PreservesWinningYaku()
+	{
+		List<Tile> startingTiles =
+		[
+			new Tile(TileSuit.Man, 1), new Tile(TileSuit.Man, 1), new Tile(TileSuit.Man, 1),
+			new Tile(TileSuit.Pin, 2), new Tile(TileSuit.Pin, 2), new Tile(TileSuit.Pin, 2),
+			new Tile(TileSuit.Sou, 3), new Tile(TileSuit.Sou, 3), new Tile(TileSuit.Sou, 3),
+			new Tile(TileSuit.Honor, 1), new Tile(TileSuit.Honor, 1), new Tile(TileSuit.Honor, 1),
+			new Tile(TileSuit.Man, 9),
+		];
+		var eastHand = new Hand(startingTiles);
+		eastHand.Draw(new Tile(TileSuit.Man, 9));
+		var hands = new Dictionary<Seat, Hand>
+		{
+			[Seat.East] = eastHand,
+			[Seat.South] = new Hand(CreateThirteenFillerTiles()),
+			[Seat.West] = new Hand(CreateThirteenFillerTiles()),
+			[Seat.North] = new Hand(CreateThirteenFillerTiles()),
+		};
+		var engine = new MahjongEngine(Wall.CreateShuffled(new Random(1)), hands, Seat.East, lastDiscard: null);
+		engine.CallTsumo();
+
+		var clone = engine.Clone();
+
+		Assert.Contains(Yaku.Toitoitsu, clone.WinningYaku!);
+	}
+
 	/// <summary>パス条件: Discard() 後、LastDiscard に打牌した牌と打牌者（座席）が記録されること。</summary>
 	[Fact]
 	public void Discard_RecordsLastDiscard()
@@ -292,6 +321,33 @@ public class MahjongEngineTests
 		Assert.Equal(Seat.South, engine.Winner);
 	}
 
+	/// <summary>パス条件: 他家の捨て牌が自分の和了牌のときロンを宣言すると、WinningYaku に成立した役が設定されること。</summary>
+	[Fact]
+	public void CallRon_WhenHandCompletesWithDiscardedTile_SetsWinningYaku()
+	{
+		var discardedTile = new Tile(TileSuit.Man, 9);
+		var hands = new Dictionary<Seat, Hand>
+		{
+			[Seat.East] = new Hand(CreateThirteenFillerTiles()),
+			[Seat.South] = new Hand(
+			[
+				new Tile(TileSuit.Man, 1), new Tile(TileSuit.Man, 1), new Tile(TileSuit.Man, 1),
+				new Tile(TileSuit.Pin, 2), new Tile(TileSuit.Pin, 2), new Tile(TileSuit.Pin, 2),
+				new Tile(TileSuit.Sou, 3), new Tile(TileSuit.Sou, 3), new Tile(TileSuit.Sou, 3),
+				new Tile(TileSuit.Honor, 1), new Tile(TileSuit.Honor, 1), new Tile(TileSuit.Honor, 1),
+				new Tile(TileSuit.Man, 9),
+			]),
+			[Seat.West] = new Hand(CreateThirteenFillerTiles()),
+			[Seat.North] = new Hand(CreateThirteenFillerTiles()),
+		};
+		var engine = new MahjongEngine(
+			Wall.CreateShuffled(new Random(1)), hands, Seat.South, (discardedTile, Seat.East));
+
+		engine.CallRon(Seat.South);
+
+		Assert.Contains(Yaku.Toitoitsu, engine.WinningYaku!);
+	}
+
 	/// <summary>パス条件: 自分の捨て牌に対して自分でロンしようとすると ArgumentException になること。</summary>
 	[Fact]
 	public void CallRon_BySameSeatAsDiscarder_Throws()
@@ -371,6 +427,34 @@ public class MahjongEngineTests
 		engine.CallTsumo();
 
 		Assert.Equal(Seat.East, engine.Winner);
+	}
+
+	/// <summary>パス条件: 現在の手番の手牌がツモ和了形の場合、CallTsumo() で WinningYaku に成立した役が設定されること。</summary>
+	[Fact]
+	public void CallTsumo_WhenHandIsComplete_SetsWinningYaku()
+	{
+		List<Tile> startingTiles =
+		[
+			new Tile(TileSuit.Man, 1), new Tile(TileSuit.Man, 1), new Tile(TileSuit.Man, 1),
+			new Tile(TileSuit.Pin, 2), new Tile(TileSuit.Pin, 2), new Tile(TileSuit.Pin, 2),
+			new Tile(TileSuit.Sou, 3), new Tile(TileSuit.Sou, 3), new Tile(TileSuit.Sou, 3),
+			new Tile(TileSuit.Honor, 1), new Tile(TileSuit.Honor, 1), new Tile(TileSuit.Honor, 1),
+			new Tile(TileSuit.Man, 9),
+		];
+		var eastHand = new Hand(startingTiles);
+		eastHand.Draw(new Tile(TileSuit.Man, 9));
+		var hands = new Dictionary<Seat, Hand>
+		{
+			[Seat.East] = eastHand,
+			[Seat.South] = new Hand(CreateThirteenFillerTiles()),
+			[Seat.West] = new Hand(CreateThirteenFillerTiles()),
+			[Seat.North] = new Hand(CreateThirteenFillerTiles()),
+		};
+		var engine = new MahjongEngine(Wall.CreateShuffled(new Random(1)), hands, Seat.East, lastDiscard: null);
+
+		engine.CallTsumo();
+
+		Assert.Contains(Yaku.Toitoitsu, engine.WinningYaku!);
 	}
 
 	/// <summary>パス条件: 現在の手番の手牌が和了形になっていない場合、CallTsumo() が ArgumentException になること。</summary>
