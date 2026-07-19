@@ -78,4 +78,206 @@ public class MahjongEngineTests
 		Assert.Equal(13, clone.Hands[Seat.East].ConcealedTiles.Count);
 		Assert.Equal(engine.LiveWallCount + 1, clone.LiveWallCount);
 	}
+
+	/// <summary>パス条件: Discard() 後、LastDiscard に打牌した牌と打牌者（座席）が記録されること。</summary>
+	[Fact]
+	public void Discard_RecordsLastDiscard()
+	{
+		var engine = MahjongEngine.Start(new Random(1));
+		engine.DrawForCurrentPlayer();
+		var drawnTile = engine.Hands[Seat.East].ConcealedTiles[^1];
+
+		engine.Discard(drawnTile);
+
+		Assert.Equal((drawnTile, Seat.East), engine.LastDiscard);
+	}
+
+	/// <summary>パス条件: DrawForCurrentPlayer() を呼ぶと LastDiscard が null にクリアされること（誰も鳴かなかった扱い）。</summary>
+	[Fact]
+	public void DrawForCurrentPlayer_ClearsLastDiscard()
+	{
+		var engine = MahjongEngine.Start(new Random(1));
+		engine.DrawForCurrentPlayer();
+		var drawnTile = engine.Hands[Seat.East].ConcealedTiles[^1];
+		engine.Discard(drawnTile);
+
+		engine.DrawForCurrentPlayer();
+
+		Assert.Null(engine.LastDiscard);
+	}
+
+	/// <summary>
+	/// パス条件: 他家が直前の捨て牌に対してポンを宣言すると、
+	/// その家のHand.Meldsに追加され、CurrentTurnがポンした家に移ること。
+	/// </summary>
+	[Fact]
+	public void CallPon_ByOtherSeat_AddsMeldAndMovesTurnToCaller()
+	{
+		var discardedTile = new Tile(TileSuit.Pin, 9);
+		var hands = new Dictionary<Seat, Hand>
+		{
+			[Seat.East] = new Hand(CreateThirteenFillerTiles()),
+			[Seat.South] = new Hand(
+			[
+				discardedTile, discardedTile,
+				new Tile(TileSuit.Man, 1), new Tile(TileSuit.Man, 2), new Tile(TileSuit.Man, 3),
+				new Tile(TileSuit.Man, 4), new Tile(TileSuit.Man, 5), new Tile(TileSuit.Man, 6),
+				new Tile(TileSuit.Man, 7), new Tile(TileSuit.Man, 8), new Tile(TileSuit.Man, 9),
+				new Tile(TileSuit.Pin, 1), new Tile(TileSuit.Pin, 2),
+			]),
+			[Seat.West] = new Hand(CreateThirteenFillerTiles()),
+			[Seat.North] = new Hand(CreateThirteenFillerTiles()),
+		};
+		var engine = new MahjongEngine(
+			Wall.CreateShuffled(new Random(1)), hands, Seat.South, (discardedTile, Seat.East));
+
+		engine.CallPon(Seat.South, discardedTile, discardedTile);
+
+		var meld = Assert.Single(engine.Hands[Seat.South].Melds);
+		Assert.Equal(MeldType.Pon, meld.Type);
+		Assert.Equal(Seat.South, engine.CurrentTurn);
+		Assert.Null(engine.LastDiscard);
+	}
+
+	/// <summary>パス条件: 自分の捨て牌に対して自分でポンしようとすると ArgumentException になること。</summary>
+	[Fact]
+	public void CallPon_BySameSeatAsDiscarder_Throws()
+	{
+		var discardedTile = new Tile(TileSuit.Pin, 9);
+		var hands = new Dictionary<Seat, Hand>
+		{
+			[Seat.East] = new Hand(
+			[
+				discardedTile, discardedTile,
+				new Tile(TileSuit.Man, 1), new Tile(TileSuit.Man, 2), new Tile(TileSuit.Man, 3),
+				new Tile(TileSuit.Man, 4), new Tile(TileSuit.Man, 5), new Tile(TileSuit.Man, 6),
+				new Tile(TileSuit.Man, 7), new Tile(TileSuit.Man, 8), new Tile(TileSuit.Man, 9),
+				new Tile(TileSuit.Pin, 1), new Tile(TileSuit.Pin, 2),
+			]),
+			[Seat.South] = new Hand(CreateThirteenFillerTiles()),
+			[Seat.West] = new Hand(CreateThirteenFillerTiles()),
+			[Seat.North] = new Hand(CreateThirteenFillerTiles()),
+		};
+		var engine = new MahjongEngine(
+			Wall.CreateShuffled(new Random(1)), hands, Seat.South, (discardedTile, Seat.East));
+
+		Assert.Throws<ArgumentException>(() => engine.CallPon(Seat.East, discardedTile, discardedTile));
+	}
+
+	/// <summary>パス条件: LastDiscardが無い状態でCallPon()を呼ぶと InvalidOperationException になること。</summary>
+	[Fact]
+	public void CallPon_WithoutLastDiscard_Throws()
+	{
+		var engine = MahjongEngine.Start(new Random(1));
+		engine.DrawForCurrentPlayer();
+		var pinOne = new Tile(TileSuit.Pin, 1);
+
+		Assert.Throws<InvalidOperationException>(() => engine.CallPon(Seat.South, pinOne, pinOne));
+	}
+
+	/// <summary>
+	/// パス条件: 上家（打牌者の下家＝NextSeat(打牌者)）がチーを宣言すると、
+	/// Hand.Meldsに追加され、CurrentTurnがチーした家に移ること。
+	/// </summary>
+	[Fact]
+	public void CallChi_ByNextSeat_AddsMeldAndMovesTurnToCaller()
+	{
+		var discardedTile = new Tile(TileSuit.Sou, 1);
+		var hands = new Dictionary<Seat, Hand>
+		{
+			[Seat.East] = new Hand(CreateThirteenFillerTiles()),
+			[Seat.South] = new Hand(
+			[
+				new Tile(TileSuit.Sou, 2), new Tile(TileSuit.Sou, 3),
+				new Tile(TileSuit.Man, 1), new Tile(TileSuit.Man, 2), new Tile(TileSuit.Man, 3),
+				new Tile(TileSuit.Man, 4), new Tile(TileSuit.Man, 5), new Tile(TileSuit.Man, 6),
+				new Tile(TileSuit.Man, 7), new Tile(TileSuit.Man, 8), new Tile(TileSuit.Man, 9),
+				new Tile(TileSuit.Pin, 1), new Tile(TileSuit.Pin, 2),
+			]),
+			[Seat.West] = new Hand(CreateThirteenFillerTiles()),
+			[Seat.North] = new Hand(CreateThirteenFillerTiles()),
+		};
+		var engine = new MahjongEngine(
+			Wall.CreateShuffled(new Random(1)), hands, Seat.South, (discardedTile, Seat.East));
+
+		engine.CallChi(Seat.South, new Tile(TileSuit.Sou, 2), new Tile(TileSuit.Sou, 3));
+
+		var meld = Assert.Single(engine.Hands[Seat.South].Melds);
+		Assert.Equal(MeldType.Chi, meld.Type);
+		Assert.Equal(Seat.South, engine.CurrentTurn);
+		Assert.Null(engine.LastDiscard);
+	}
+
+	/// <summary>パス条件: 上家以外（対面・下家側）がチーしようとすると ArgumentException になること。</summary>
+	[Fact]
+	public void CallChi_ByNonNextSeat_Throws()
+	{
+		var discardedTile = new Tile(TileSuit.Sou, 1);
+		var hands = new Dictionary<Seat, Hand>
+		{
+			[Seat.East] = new Hand(CreateThirteenFillerTiles()),
+			[Seat.South] = new Hand(CreateThirteenFillerTiles()),
+			[Seat.West] = new Hand(
+			[
+				new Tile(TileSuit.Sou, 2), new Tile(TileSuit.Sou, 3),
+				new Tile(TileSuit.Man, 1), new Tile(TileSuit.Man, 2), new Tile(TileSuit.Man, 3),
+				new Tile(TileSuit.Man, 4), new Tile(TileSuit.Man, 5), new Tile(TileSuit.Man, 6),
+				new Tile(TileSuit.Man, 7), new Tile(TileSuit.Man, 8), new Tile(TileSuit.Man, 9),
+				new Tile(TileSuit.Pin, 1), new Tile(TileSuit.Pin, 2),
+			]),
+			[Seat.North] = new Hand(CreateThirteenFillerTiles()),
+		};
+		var engine = new MahjongEngine(
+			Wall.CreateShuffled(new Random(1)), hands, Seat.South, (discardedTile, Seat.East));
+
+		Assert.Throws<ArgumentException>(
+			() => engine.CallChi(Seat.West, new Tile(TileSuit.Sou, 2), new Tile(TileSuit.Sou, 3)));
+	}
+
+	/// <summary>
+	/// パス条件: 鳴き成立後、鳴いた家がDiscard()すると、そこからさらに次の席へ手番が進むこと
+	/// （本来の手番順をスキップして鳴いた家から再開することの確認）。
+	/// </summary>
+	[Fact]
+	public void AfterCall_Discard_AdvancesFromCallerSkippingOriginalOrder()
+	{
+		var discardedTile = new Tile(TileSuit.Pin, 9);
+		var hands = new Dictionary<Seat, Hand>
+		{
+			[Seat.East] = new Hand(CreateThirteenFillerTiles()),
+			[Seat.South] = new Hand(CreateThirteenFillerTiles()),
+			[Seat.West] = new Hand(
+			[
+				discardedTile, discardedTile,
+				new Tile(TileSuit.Man, 1), new Tile(TileSuit.Man, 2), new Tile(TileSuit.Man, 3),
+				new Tile(TileSuit.Man, 4), new Tile(TileSuit.Man, 5), new Tile(TileSuit.Man, 6),
+				new Tile(TileSuit.Man, 7), new Tile(TileSuit.Man, 8), new Tile(TileSuit.Man, 9),
+				new Tile(TileSuit.Pin, 1), new Tile(TileSuit.Pin, 2),
+			]),
+			[Seat.North] = new Hand(CreateThirteenFillerTiles()),
+		};
+		var engine = new MahjongEngine(
+			Wall.CreateShuffled(new Random(1)), hands, Seat.South, (discardedTile, Seat.East));
+
+		engine.CallPon(Seat.West, discardedTile, discardedTile);
+		engine.Discard(new Tile(TileSuit.Man, 1));
+
+		Assert.Equal(Seat.North, engine.CurrentTurn);
+	}
+
+	private static List<Tile> CreateThirteenFillerTiles()
+	{
+		var tiles = new List<Tile>();
+		for (var rank = 1; rank <= 9; rank++)
+		{
+			tiles.Add(new Tile(TileSuit.Man, rank));
+		}
+
+		for (var rank = 1; rank <= 4; rank++)
+		{
+			tiles.Add(new Tile(TileSuit.Pin, rank));
+		}
+
+		return tiles;
+	}
 }
