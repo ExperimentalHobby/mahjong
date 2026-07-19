@@ -764,4 +764,158 @@ public class HandTests
 
 		Assert.Throws<InvalidOperationException>(() => hand.Discard(new Tile(TileSuit.Man, 2)));
 	}
+
+	/// <summary>パス条件: 副露なし・標準形で完成している14枚の場合、IsComplete() が true になること。</summary>
+	[Fact]
+	public void IsComplete_NoMelds_StandardForm_ReturnsTrue()
+	{
+		List<Tile> startingTiles =
+		[
+			new Tile(TileSuit.Man, 1), new Tile(TileSuit.Man, 1), new Tile(TileSuit.Man, 1),
+			new Tile(TileSuit.Pin, 2), new Tile(TileSuit.Pin, 2), new Tile(TileSuit.Pin, 2),
+			new Tile(TileSuit.Sou, 3), new Tile(TileSuit.Sou, 3), new Tile(TileSuit.Sou, 3),
+			new Tile(TileSuit.Honor, 1), new Tile(TileSuit.Honor, 1), new Tile(TileSuit.Honor, 1),
+			new Tile(TileSuit.Man, 9),
+		];
+		var hand = new Hand(startingTiles);
+		hand.Draw(new Tile(TileSuit.Man, 9));
+
+		Assert.True(hand.IsComplete());
+	}
+
+	/// <summary>パス条件: 副露なし・七対子で完成している14枚の場合、IsComplete() が true になること。</summary>
+	[Fact]
+	public void IsComplete_NoMelds_SevenPairs_ReturnsTrue()
+	{
+		List<Tile> startingTiles =
+		[
+			new Tile(TileSuit.Man, 1), new Tile(TileSuit.Man, 1),
+			new Tile(TileSuit.Man, 2), new Tile(TileSuit.Man, 2),
+			new Tile(TileSuit.Pin, 3), new Tile(TileSuit.Pin, 3),
+			new Tile(TileSuit.Pin, 4), new Tile(TileSuit.Pin, 4),
+			new Tile(TileSuit.Sou, 5), new Tile(TileSuit.Sou, 5),
+			new Tile(TileSuit.Sou, 6), new Tile(TileSuit.Sou, 6),
+			new Tile(TileSuit.Honor, 1),
+		];
+		var hand = new Hand(startingTiles);
+		hand.Draw(new Tile(TileSuit.Honor, 1));
+
+		Assert.True(hand.IsComplete());
+	}
+
+	/// <summary>パス条件: 副露なし・国士無双で完成している14枚の場合、IsComplete() が true になること。</summary>
+	[Fact]
+	public void IsComplete_NoMelds_ThirteenOrphans_ReturnsTrue()
+	{
+		List<Tile> startingTiles =
+		[
+			new Tile(TileSuit.Man, 1), new Tile(TileSuit.Man, 9),
+			new Tile(TileSuit.Pin, 1), new Tile(TileSuit.Pin, 9),
+			new Tile(TileSuit.Sou, 1), new Tile(TileSuit.Sou, 9),
+			new Tile(TileSuit.Honor, 1), new Tile(TileSuit.Honor, 2), new Tile(TileSuit.Honor, 3),
+			new Tile(TileSuit.Honor, 4), new Tile(TileSuit.Honor, 5), new Tile(TileSuit.Honor, 6),
+			new Tile(TileSuit.Honor, 7),
+		];
+		var hand = new Hand(startingTiles);
+		hand.Draw(new Tile(TileSuit.Honor, 7));
+
+		Assert.True(hand.IsComplete());
+	}
+
+	/// <summary>パス条件: 副露なし・完成していない14枚の場合、IsComplete() が false になること。</summary>
+	[Fact]
+	public void IsComplete_NoMelds_Incomplete_ReturnsFalse()
+	{
+		var hand = new Hand(CreateThirteenTiles());
+		hand.Draw(new Tile(TileSuit.Sou, 9));
+
+		Assert.False(hand.IsComplete());
+	}
+
+	/// <summary>パス条件: ポン1つ+残り11枚が3面子+雀頭に分解できる場合、IsComplete() が true になること。</summary>
+	[Fact]
+	public void IsComplete_OnePon_RemainingTilesComplete_ReturnsTrue()
+	{
+		List<Tile> startingTiles =
+		[
+			new Tile(TileSuit.Pin, 1), new Tile(TileSuit.Pin, 1),
+			new Tile(TileSuit.Man, 1), new Tile(TileSuit.Man, 1), new Tile(TileSuit.Man, 1),
+			new Tile(TileSuit.Sou, 2), new Tile(TileSuit.Sou, 3), new Tile(TileSuit.Sou, 4),
+			new Tile(TileSuit.Honor, 1), new Tile(TileSuit.Honor, 1), new Tile(TileSuit.Honor, 1),
+			new Tile(TileSuit.Sou, 9), new Tile(TileSuit.Man, 9),
+		];
+		var hand = new Hand(startingTiles);
+		hand.Pon(new Tile(TileSuit.Pin, 1), new Tile(TileSuit.Pin, 1), new Tile(TileSuit.Pin, 1));
+		hand.Discard(new Tile(TileSuit.Man, 9));
+		hand.Draw(new Tile(TileSuit.Sou, 9));
+
+		Assert.True(hand.IsComplete());
+	}
+
+	/// <summary>パス条件: ポン1つ+残り11枚が分解できない場合、IsComplete() が false になること。</summary>
+	[Fact]
+	public void IsComplete_OnePon_RemainingTilesIncomplete_ReturnsFalse()
+	{
+		var hand = new Hand(CreateThirteenTilesWithDuplicatePinOne());
+		hand.Pon(new Tile(TileSuit.Pin, 1), new Tile(TileSuit.Pin, 1), new Tile(TileSuit.Pin, 1));
+		hand.Discard(new Tile(TileSuit.Man, 9));
+		hand.Draw(new Tile(TileSuit.Sou, 9));
+
+		Assert.False(hand.IsComplete());
+	}
+
+	/// <summary>
+	/// パス条件: 暗槓（4枚の副露）1つ+残り11枚が3面子+雀頭に分解できる場合、IsComplete() が true になること
+	/// （カンの牌数が4枚でも面子1つ分としてしか数えないことの確認）。
+	/// </summary>
+	[Fact]
+	public void IsComplete_OneClosedKan_RemainingTilesComplete_ReturnsTrue()
+	{
+		List<Tile> startingTiles =
+		[
+			new Tile(TileSuit.Pin, 1), new Tile(TileSuit.Pin, 1), new Tile(TileSuit.Pin, 1),
+			new Tile(TileSuit.Man, 1), new Tile(TileSuit.Man, 1), new Tile(TileSuit.Man, 1),
+			new Tile(TileSuit.Sou, 2), new Tile(TileSuit.Sou, 3), new Tile(TileSuit.Sou, 4),
+			new Tile(TileSuit.Honor, 1), new Tile(TileSuit.Honor, 1), new Tile(TileSuit.Honor, 1),
+			new Tile(TileSuit.Sou, 9),
+		];
+		var hand = new Hand(startingTiles);
+		hand.Draw(new Tile(TileSuit.Pin, 1));
+		hand.ClosedKan(
+			new Tile(TileSuit.Pin, 1), new Tile(TileSuit.Pin, 1), new Tile(TileSuit.Pin, 1), new Tile(TileSuit.Pin, 1));
+		hand.Draw(new Tile(TileSuit.Sou, 9));
+
+		Assert.True(hand.IsComplete());
+	}
+
+	/// <summary>パス条件: ポン+チーの2副露+残り8枚が2面子+雀頭に分解できる場合、IsComplete() が true になること。</summary>
+	[Fact]
+	public void IsComplete_PonAndChi_RemainingTilesComplete_ReturnsTrue()
+	{
+		List<Tile> startingTiles =
+		[
+			new Tile(TileSuit.Pin, 1), new Tile(TileSuit.Pin, 1),
+			new Tile(TileSuit.Sou, 2), new Tile(TileSuit.Sou, 3),
+			new Tile(TileSuit.Man, 1), new Tile(TileSuit.Man, 1), new Tile(TileSuit.Man, 1),
+			new Tile(TileSuit.Honor, 1), new Tile(TileSuit.Honor, 1), new Tile(TileSuit.Honor, 1),
+			new Tile(TileSuit.Man, 9), new Tile(TileSuit.Sou, 9), new Tile(TileSuit.Pin, 9),
+		];
+		var hand = new Hand(startingTiles);
+		hand.Pon(new Tile(TileSuit.Pin, 1), new Tile(TileSuit.Pin, 1), new Tile(TileSuit.Pin, 1));
+		hand.Discard(new Tile(TileSuit.Pin, 9));
+		hand.Chi(new Tile(TileSuit.Sou, 1), new Tile(TileSuit.Sou, 2), new Tile(TileSuit.Sou, 3));
+		hand.Discard(new Tile(TileSuit.Sou, 9));
+		hand.Draw(new Tile(TileSuit.Man, 9));
+
+		Assert.True(hand.IsComplete());
+	}
+
+	/// <summary>パス条件: 打牌待ちでない状態（ツモ前）で IsComplete() を呼ぶと InvalidOperationException になること。</summary>
+	[Fact]
+	public void IsComplete_WhenNotPending_Throws()
+	{
+		var hand = new Hand(CreateThirteenTiles());
+
+		Assert.Throws<InvalidOperationException>(() => hand.IsComplete());
+	}
 }
