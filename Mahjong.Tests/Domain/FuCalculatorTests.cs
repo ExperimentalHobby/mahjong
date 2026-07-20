@@ -129,7 +129,10 @@ public class FuCalculatorTests
 		Assert.Equal(40, fu);
 	}
 
-	/// <summary>パス条件: 大明槓（明槓）は基本符20+ツモ符2+明槓符8=30が切り上げられて30になり、暗槓より低いこと。</summary>
+	/// <summary>
+	/// パス条件: 大明槓（明槓）は基本符20+ツモ符2+明槓符8=30が切り上げられて30になり、暗槓より低いこと
+	/// （和了牌Man8はMan6,7待ちの両面完成のため待ちの符0符。和了牌が単騎待ちにならない手牌で確認）。
+	/// </summary>
 	[Fact]
 	public void CalculateFu_WithOpenKan_ReturnsLowerThanClosedKan()
 	{
@@ -137,8 +140,8 @@ public class FuCalculatorTests
 		[
 			new Tile(TileSuit.Pin, 3), new Tile(TileSuit.Pin, 4), new Tile(TileSuit.Pin, 5),
 			new Tile(TileSuit.Sou, 5), new Tile(TileSuit.Sou, 6), new Tile(TileSuit.Sou, 7),
-			new Tile(TileSuit.Man, 6), new Tile(TileSuit.Man, 7), new Tile(TileSuit.Man, 8),
 			new Tile(TileSuit.Pin, 9), new Tile(TileSuit.Pin, 9),
+			new Tile(TileSuit.Man, 6), new Tile(TileSuit.Man, 7), new Tile(TileSuit.Man, 8),
 		];
 		Meld[] melds =
 		[
@@ -214,5 +217,127 @@ public class FuCalculatorTests
 		var fu = FuCalculator.CalculateFu(tiles, [], Seat.East, Seat.East, ronTile);
 
 		Assert.Equal(50, fu);
+	}
+
+	/// <summary>
+	/// パス条件: 嵌張待ち（Sou5,7待ちのSou6）で完成した場合、基本符20+門前ロン符10+嵌張符2=32が
+	/// 切り上げられて40になること（待ちの符が無ければ30のままのはずの手牌で確認）。
+	/// </summary>
+	[Fact]
+	public void CalculateFu_KanchanWait_AddsTwoFu()
+	{
+		Tile[] tiles =
+		[
+			new Tile(TileSuit.Man, 2), new Tile(TileSuit.Man, 3), new Tile(TileSuit.Man, 4),
+			new Tile(TileSuit.Pin, 3), new Tile(TileSuit.Pin, 4), new Tile(TileSuit.Pin, 5),
+			new Tile(TileSuit.Sou, 5), new Tile(TileSuit.Sou, 6), new Tile(TileSuit.Sou, 7),
+			new Tile(TileSuit.Man, 7), new Tile(TileSuit.Man, 8), new Tile(TileSuit.Man, 9),
+			new Tile(TileSuit.Pin, 2), new Tile(TileSuit.Pin, 2),
+		];
+		var ronTile = new Tile(TileSuit.Sou, 6);
+
+		var fu = FuCalculator.CalculateFu(tiles, [], Seat.East, Seat.East, ronTile);
+
+		Assert.Equal(40, fu);
+	}
+
+	/// <summary>パス条件: 辺張待ち（Man1,2待ちのMan3）で完成した場合も同様に40になること。</summary>
+	[Fact]
+	public void CalculateFu_PenchanWait_AddsTwoFu()
+	{
+		Tile[] tiles =
+		[
+			new Tile(TileSuit.Man, 1), new Tile(TileSuit.Man, 2), new Tile(TileSuit.Man, 3),
+			new Tile(TileSuit.Pin, 3), new Tile(TileSuit.Pin, 4), new Tile(TileSuit.Pin, 5),
+			new Tile(TileSuit.Sou, 5), new Tile(TileSuit.Sou, 6), new Tile(TileSuit.Sou, 7),
+			new Tile(TileSuit.Man, 7), new Tile(TileSuit.Man, 8), new Tile(TileSuit.Man, 9),
+			new Tile(TileSuit.Pin, 2), new Tile(TileSuit.Pin, 2),
+		];
+		var ronTile = new Tile(TileSuit.Man, 3);
+
+		var fu = FuCalculator.CalculateFu(tiles, [], Seat.East, Seat.East, ronTile);
+
+		Assert.Equal(40, fu);
+	}
+
+	/// <summary>パス条件: 両面待ちで完成した場合、待ちの符は0符のままで30になること（嵌張・辺張との対比）。</summary>
+	[Fact]
+	public void CalculateFu_RyanmenWait_AddsNoFu()
+	{
+		Tile[] tiles =
+		[
+			new Tile(TileSuit.Man, 2), new Tile(TileSuit.Man, 3), new Tile(TileSuit.Man, 4),
+			new Tile(TileSuit.Pin, 3), new Tile(TileSuit.Pin, 4), new Tile(TileSuit.Pin, 5),
+			new Tile(TileSuit.Sou, 5), new Tile(TileSuit.Sou, 6), new Tile(TileSuit.Sou, 7),
+			new Tile(TileSuit.Man, 6), new Tile(TileSuit.Man, 7), new Tile(TileSuit.Man, 8),
+			new Tile(TileSuit.Pin, 2), new Tile(TileSuit.Pin, 2),
+		];
+		var ronTile = new Tile(TileSuit.Man, 6);
+
+		var fu = FuCalculator.CalculateFu(tiles, [], Seat.East, Seat.East, ronTile);
+
+		Assert.Equal(30, fu);
+	}
+
+	/// <summary>
+	/// パス条件: 単騎待ち（非役牌雀頭）で完成した場合、基本符20+門前ロン符10+単騎符2=32が
+	/// 切り上げられて40になること。
+	/// </summary>
+	[Fact]
+	public void CalculateFu_TankiWait_AddsTwoFu()
+	{
+		Tile[] tiles =
+		[
+			new Tile(TileSuit.Man, 2), new Tile(TileSuit.Man, 3), new Tile(TileSuit.Man, 4),
+			new Tile(TileSuit.Pin, 3), new Tile(TileSuit.Pin, 4), new Tile(TileSuit.Pin, 5),
+			new Tile(TileSuit.Sou, 5), new Tile(TileSuit.Sou, 6), new Tile(TileSuit.Sou, 7),
+			new Tile(TileSuit.Man, 7), new Tile(TileSuit.Man, 8), new Tile(TileSuit.Man, 9),
+			new Tile(TileSuit.Pin, 2), new Tile(TileSuit.Pin, 2),
+		];
+		var ronTile = new Tile(TileSuit.Pin, 2);
+
+		var fu = FuCalculator.CalculateFu(tiles, [], Seat.East, Seat.East, ronTile);
+
+		Assert.Equal(40, fu);
+	}
+
+	/// <summary>パス条件: 平和・ツモ和了の場合、他の要素を無視して常に20符になること。</summary>
+	[Fact]
+	public void CalculateFu_PinfuTsumo_ReturnsTwenty()
+	{
+		Tile[] tiles =
+		[
+			new Tile(TileSuit.Man, 2), new Tile(TileSuit.Man, 3), new Tile(TileSuit.Man, 4),
+			new Tile(TileSuit.Pin, 3), new Tile(TileSuit.Pin, 4), new Tile(TileSuit.Pin, 5),
+			new Tile(TileSuit.Sou, 5), new Tile(TileSuit.Sou, 6), new Tile(TileSuit.Sou, 7),
+			new Tile(TileSuit.Pin, 2), new Tile(TileSuit.Pin, 2),
+			new Tile(TileSuit.Man, 6), new Tile(TileSuit.Man, 7), new Tile(TileSuit.Man, 8),
+		];
+
+		var fu = FuCalculator.CalculateFu(tiles, [Yaku.Pinfu], Seat.East, Seat.East, ronTile: null);
+
+		Assert.Equal(20, fu);
+	}
+
+	/// <summary>
+	/// パス条件: 平和・ロン和了の場合は20符固定の対象外で、通常通り計算されること
+	/// （基本符20+門前ロン符10=30。ツモの場合の20符固定との対比）。
+	/// </summary>
+	[Fact]
+	public void CalculateFu_PinfuRon_ReturnsNormalCalculation()
+	{
+		Tile[] tiles =
+		[
+			new Tile(TileSuit.Man, 2), new Tile(TileSuit.Man, 3), new Tile(TileSuit.Man, 4),
+			new Tile(TileSuit.Pin, 3), new Tile(TileSuit.Pin, 4), new Tile(TileSuit.Pin, 5),
+			new Tile(TileSuit.Sou, 5), new Tile(TileSuit.Sou, 6), new Tile(TileSuit.Sou, 7),
+			new Tile(TileSuit.Man, 6), new Tile(TileSuit.Man, 7), new Tile(TileSuit.Man, 8),
+			new Tile(TileSuit.Pin, 2), new Tile(TileSuit.Pin, 2),
+		];
+		var ronTile = new Tile(TileSuit.Man, 6);
+
+		var fu = FuCalculator.CalculateFu(tiles, [Yaku.Pinfu], Seat.East, Seat.East, ronTile);
+
+		Assert.Equal(30, fu);
 	}
 }
