@@ -41,6 +41,12 @@ public sealed class MahjongEngine
 	public Seat RoundWind { get; }
 
 	/// <summary>
+	/// この局の親（ディーラー）。局の推移（連荘・親の交代）は対象外のため、常に東家（Seat.East）を
+	/// 親として扱う簡略化（<see cref="RoundWind"/>が常に東で開始されるのと同じ考え方）。
+	/// </summary>
+	public Seat DealerSeat => Seat.East;
+
+	/// <summary>
 	/// 和了した座席。まだ誰も和了していない場合は空。通常和了・ダブロン（頭跳ねなし）では1〜2人分の座席を含む
 	/// （<see cref="CallRon"/>・<see cref="CallTsumo"/>で設定される。トリプルロン成立時は<see cref="IsTripleRonDraw"/>
 	/// が<c>true</c>になり、空のままになる）。
@@ -67,6 +73,14 @@ public sealed class MahjongEngine
 	/// 引き続き含まれる）。まだ誰も和了していない場合は空。
 	/// </summary>
 	public IReadOnlyDictionary<Seat, int> WinningFu { get; private set; } = new Dictionary<Seat, int>();
+
+	/// <summary>
+	/// 和了時の点数。座席をキーにする。ツモ和了の場合は他家からの支払いの合計（内訳は含まない）。
+	/// 役満（国士無双・字一色）の場合は点数計算の対象外のためエントリを持たない
+	/// （<see cref="Winners"/>・<see cref="WinningYaku"/>・<see cref="WinningHan"/>・<see cref="WinningFu"/>には
+	/// 引き続き含まれる）。まだ誰も和了していない場合は空。
+	/// </summary>
+	public IReadOnlyDictionary<Seat, int> WinningPoints { get; private set; } = new Dictionary<Seat, int>();
 
 	/// <summary>
 	/// 3人が同じ捨て牌に対して同時にロンを宣言した場合（三家和）に<c>true</c>になる。
@@ -245,23 +259,28 @@ public sealed class MahjongEngine
 		var winningYaku = new Dictionary<Seat, IReadOnlyList<Yaku>>();
 		var winningHan = new Dictionary<Seat, int>();
 		var winningFu = new Dictionary<Seat, int>();
+		var winningPoints = new Dictionary<Seat, int>();
 		foreach (var caller in callers)
 		{
 			var yaku = _hands[caller].DetermineYakuOn(lastDiscard.Tile, caller, RoundWind);
 			winningYaku[caller] = yaku;
 			if (!HanCalculator.IsYakuman(yaku))
 			{
-				winningHan[caller] = HanCalculator.CalculateHan(yaku, _hands[caller].Melds.Count == 0);
+				var han = HanCalculator.CalculateHan(yaku, _hands[caller].Melds.Count == 0);
 
 				var hypotheticalTiles = new List<Tile>(_hands[caller].ConcealedTiles) { lastDiscard.Tile };
-				winningFu[caller] = FuCalculator.CalculateFu(
+				var fu = FuCalculator.CalculateFu(
 					hypotheticalTiles, _hands[caller].Melds, yaku, caller, RoundWind, lastDiscard.Tile);
+				winningHan[caller] = han;
+				winningFu[caller] = fu;
+				winningPoints[caller] = ScoreCalculator.CalculateRonPoints(han, fu, isDealer: caller == DealerSeat);
 			}
 		}
 
 		WinningYaku = winningYaku;
 		WinningHan = winningHan;
 		WinningFu = winningFu;
+		WinningPoints = winningPoints;
 	}
 
 	/// <summary>
@@ -338,15 +357,28 @@ public sealed class MahjongEngine
 
 		var winningHan = new Dictionary<Seat, int>();
 		var winningFu = new Dictionary<Seat, int>();
+		var winningPoints = new Dictionary<Seat, int>();
 		if (!HanCalculator.IsYakuman(yaku))
 		{
-			winningHan[CurrentTurn] = HanCalculator.CalculateHan(yaku, _hands[CurrentTurn].Melds.Count == 0);
-			winningFu[CurrentTurn] = FuCalculator.CalculateFu(
+			var han = HanCalculator.CalculateHan(yaku, _hands[CurrentTurn].Melds.Count == 0);
+			var fu = FuCalculator.CalculateFu(
 				_hands[CurrentTurn].ConcealedTiles, _hands[CurrentTurn].Melds, yaku, CurrentTurn, RoundWind, ronTile: null);
+			winningHan[CurrentTurn] = han;
+			winningFu[CurrentTurn] = fu;
+			if (CurrentTurn == DealerSeat)
+			{
+				winningPoints[CurrentTurn] = ScoreCalculator.CalculateDealerTsumoPointsFromEach(han, fu) * 3;
+			}
+			else
+			{
+				var (fromDealer, fromNonDealer) = ScoreCalculator.CalculateNonDealerTsumoPoints(han, fu);
+				winningPoints[CurrentTurn] = fromDealer + (fromNonDealer * 2);
+			}
 		}
 
 		WinningHan = winningHan;
 		WinningFu = winningFu;
+		WinningPoints = winningPoints;
 	}
 
 	/// <summary>この卓状態の独立した複製を返す（複製後は互いの操作が影響し合わない）。</summary>
@@ -363,6 +395,7 @@ public sealed class MahjongEngine
 			WinningYaku = WinningYaku,
 			WinningHan = WinningHan,
 			WinningFu = WinningFu,
+			WinningPoints = WinningPoints,
 			IsTripleRonDraw = IsTripleRonDraw,
 		};
 	}
