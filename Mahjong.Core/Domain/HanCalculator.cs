@@ -8,6 +8,7 @@ public static class HanCalculator
 	[
 		Yaku.Kokushi, Yaku.Tsuiisou, Yaku.Suuankou, Yaku.Daisangen, Yaku.Ryuuiisou,
 		Yaku.Chinroutou, Yaku.Shousuushi, Yaku.Daisuushi, Yaku.Suukantsu, Yaku.Chuurenpoutou,
+		Yaku.Tenhou, Yaku.Chiihou,
 	];
 
 	/// <summary>役満が含まれているかどうかを判定する。</summary>
@@ -56,6 +57,8 @@ public static class HanCalculator
 		Yaku.SanshokuDoukou => 2,
 		Yaku.Shousangen => 2,
 		Yaku.Sankantsu => 2,
+		Yaku.Ippatsu => 1,
+		Yaku.DaburuRiichi => 2,
 		_ => throw new ArgumentOutOfRangeException(nameof(yaku), yaku, $"未対応のYakuです: {yaku}"),
 	};
 }

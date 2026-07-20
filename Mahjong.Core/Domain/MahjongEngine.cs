@@ -2,11 +2,11 @@ namespace Mahjong.Core.Domain;
 
 /// <summary>
 /// 四人麻雀の卓状態を管理し、ツモ・打牌・鳴き（ポン・チー・カン全種）・リーチ・ロン・ツモ和了・流局判定による
-/// 手番進行を統括する。ロン/ツモ和了の成立時に<see cref="WinningYaku"/>で役牌・三暗刻・リーチ・嶺上開花・
-/// 海底摸月・河底撈魚・槍槓を含む役を確定させ、<see cref="WinningHan"/>・<see cref="WinningFu"/>・
-/// <see cref="WinningPoints"/>で翻数・符・点数も計算し、<see cref="Scores"/>で座席ごとの持ち点も
-/// 実際に増減させる（役満を除く）。平和など待ちの形を条件とする役、一発・裏ドラ、供託・積み棒、
-/// 局の推移（連荘・場風の遷移）は対象外（今後のマイルストーンで対応）。
+/// 手番進行を統括する。ロン/ツモ和了の成立時に<see cref="WinningYaku"/>で役牌・三暗刻・リーチ・ダブル立直・
+/// 一発・嶺上開花・海底摸月・河底撈魚・槍槓・天和・地和を含む役を確定させ、<see cref="WinningHan"/>・
+/// <see cref="WinningFu"/>・<see cref="WinningPoints"/>で翻数・符・点数も計算し、<see cref="Scores"/>で
+/// 座席ごとの持ち点も実際に増減させる（役満を除く）。裏ドラ、供託・積み棒、局の推移（連荘・場風の遷移）は
+/// 対象外（今後のマイルストーンで対応）。
 /// </summary>
 public sealed class MahjongEngine
 {
@@ -17,12 +17,16 @@ public sealed class MahjongEngine
 	private readonly Dictionary<Seat, int> _scores;
 	private bool _isRinshanDraw;
 	private bool _isChankanTile;
+	private bool _hasAnyCallOccurred;
+	private readonly HashSet<Seat> _doubleRiichiSeats;
+	private readonly HashSet<Seat> _ippatsuEligibleSeats;
 
 	/// <summary>テスト用に卓状態を直接組み立てるための内部コンストラクタ。</summary>
 	internal MahjongEngine(
 		Wall wall, Dictionary<Seat, Hand> hands, Seat currentTurn, (Tile Tile, Seat Discarder)? lastDiscard,
 		IReadOnlyList<Seat>? winners = null, Seat roundWind = Seat.East, bool isRinshanDraw = false,
-		bool isChankanTile = false, Dictionary<Seat, int>? scores = null)
+		bool isChankanTile = false, Dictionary<Seat, int>? scores = null, bool hasAnyCallOccurred = false,
+		IEnumerable<Seat>? doubleRiichiSeats = null, IEnumerable<Seat>? ippatsuEligibleSeats = null)
 	{
 		_wall = wall;
 		_hands = hands;
@@ -33,6 +37,9 @@ public sealed class MahjongEngine
 		_isRinshanDraw = isRinshanDraw;
 		_isChankanTile = isChankanTile;
 		_scores = scores ?? hands.Keys.ToDictionary(seat => seat, _ => StartingScore);
+		_hasAnyCallOccurred = hasAnyCallOccurred;
+		_doubleRiichiSeats = doubleRiichiSeats is null ? [] : [.. doubleRiichiSeats];
+		_ippatsuEligibleSeats = ippatsuEligibleSeats is null ? [] : [.. ippatsuEligibleSeats];
 	}
 
 	/// <summary>現在の手番の座席。</summary>
@@ -146,6 +153,7 @@ public sealed class MahjongEngine
 		_hands[discarder].Discard(tile);
 		LastDiscard = (tile, discarder);
 		_isChankanTile = false;
+		_ippatsuEligibleSeats.Remove(discarder);
 		CurrentTurn = NextSeat(discarder);
 	}
 
@@ -161,9 +169,15 @@ public sealed class MahjongEngine
 	public void Riichi(Tile tile)
 	{
 		var discarder = CurrentTurn;
+		if (_hands[discarder].Discards.Count == 0 && !_hasAnyCallOccurred)
+		{
+			_doubleRiichiSeats.Add(discarder);
+		}
+
 		_hands[discarder].Riichi(tile);
 		LastDiscard = (tile, discarder);
 		_isChankanTile = false;
+		_ippatsuEligibleSeats.Add(discarder);
 		CurrentTurn = NextSeat(discarder);
 	}
 
@@ -195,6 +209,8 @@ public sealed class MahjongEngine
 		_hands[caller].Pon(lastDiscard.Tile, handTile1, handTile2);
 		CurrentTurn = caller;
 		LastDiscard = null;
+		_hasAnyCallOccurred = true;
+		_ippatsuEligibleSeats.Clear();
 	}
 
 	/// <summary>
@@ -226,6 +242,8 @@ public sealed class MahjongEngine
 		_hands[caller].Chi(lastDiscard.Tile, handTile1, handTile2);
 		CurrentTurn = caller;
 		LastDiscard = null;
+		_hasAnyCallOccurred = true;
+		_ippatsuEligibleSeats.Clear();
 	}
 
 	/// <summary>
@@ -304,6 +322,16 @@ public sealed class MahjongEngine
 				yaku.Add(Yaku.Houtei);
 			}
 
+			if (_doubleRiichiSeats.Contains(caller) && yaku.Remove(Yaku.Riichi))
+			{
+				yaku.Add(Yaku.DaburuRiichi);
+			}
+
+			if (_ippatsuEligibleSeats.Contains(caller))
+			{
+				yaku.Add(Yaku.Ippatsu);
+			}
+
 			winningYaku[caller] = yaku;
 			if (!HanCalculator.IsYakuman(yaku))
 			{
@@ -355,6 +383,8 @@ public sealed class MahjongEngine
 		_hands[caller].OpenKan(lastDiscard.Tile, handTile1, handTile2, handTile3);
 		CurrentTurn = caller;
 		LastDiscard = null;
+		_hasAnyCallOccurred = true;
+		_ippatsuEligibleSeats.Clear();
 
 		var rinshanTile = _wall.DrawReplacement();
 		_hands[caller].Draw(rinshanTile);
@@ -370,6 +400,8 @@ public sealed class MahjongEngine
 	public void CallClosedKan(Tile tile1, Tile tile2, Tile tile3, Tile tile4)
 	{
 		_hands[CurrentTurn].ClosedKan(tile1, tile2, tile3, tile4);
+		_hasAnyCallOccurred = true;
+		_ippatsuEligibleSeats.Clear();
 
 		var rinshanTile = _wall.DrawReplacement();
 		_hands[CurrentTurn].Draw(rinshanTile);
@@ -386,6 +418,8 @@ public sealed class MahjongEngine
 	public void CallAddedKan(Tile tile)
 	{
 		_hands[CurrentTurn].AddedKan(tile);
+		_hasAnyCallOccurred = true;
+		_ippatsuEligibleSeats.Clear();
 
 		LastDiscard = (tile, CurrentTurn);
 		_isChankanTile = true;
@@ -432,6 +466,21 @@ public sealed class MahjongEngine
 		else if (LiveWallCount == 0)
 		{
 			yaku.Add(Yaku.Haitei);
+		}
+
+		if (!_isRinshanDraw && !_hasAnyCallOccurred && _hands[CurrentTurn].Discards.Count == 0)
+		{
+			yaku.Add(CurrentTurn == DealerSeat ? Yaku.Tenhou : Yaku.Chiihou);
+		}
+
+		if (_doubleRiichiSeats.Contains(CurrentTurn) && yaku.Remove(Yaku.Riichi))
+		{
+			yaku.Add(Yaku.DaburuRiichi);
+		}
+
+		if (_ippatsuEligibleSeats.Contains(CurrentTurn))
+		{
+			yaku.Add(Yaku.Ippatsu);
 		}
 
 		WinningYaku = new Dictionary<Seat, IReadOnlyList<Yaku>> { [CurrentTurn] = yaku };
@@ -487,7 +536,7 @@ public sealed class MahjongEngine
 
 		return new MahjongEngine(
 			_wall.Clone(), clonedHands, CurrentTurn, LastDiscard, Winners, RoundWind, _isRinshanDraw, _isChankanTile,
-			new Dictionary<Seat, int>(_scores))
+			new Dictionary<Seat, int>(_scores), _hasAnyCallOccurred, _doubleRiichiSeats, _ippatsuEligibleSeats)
 		{
 			WinningYaku = WinningYaku,
 			WinningHan = WinningHan,
