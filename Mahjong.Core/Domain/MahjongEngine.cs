@@ -61,6 +61,13 @@ public sealed class MahjongEngine
 	public IReadOnlyDictionary<Seat, int> WinningHan { get; private set; } = new Dictionary<Seat, int>();
 
 	/// <summary>
+	/// 和了時の符。座席をキーにする。役満（国士無双・字一色）の場合は符の対象外のため
+	/// エントリを持たない（<see cref="Winners"/>・<see cref="WinningYaku"/>・<see cref="WinningHan"/>には
+	/// 引き続き含まれる）。まだ誰も和了していない場合は空。
+	/// </summary>
+	public IReadOnlyDictionary<Seat, int> WinningFu { get; private set; } = new Dictionary<Seat, int>();
+
+	/// <summary>
 	/// 3人が同じ捨て牌に対して同時にロンを宣言した場合（三家和）に<c>true</c>になる。
 	/// この場合、誰も和了せずその局は流局になる（<see cref="Winners"/>は空のまま）。
 	/// </summary>
@@ -236,6 +243,7 @@ public sealed class MahjongEngine
 		Winners = callers;
 		var winningYaku = new Dictionary<Seat, IReadOnlyList<Yaku>>();
 		var winningHan = new Dictionary<Seat, int>();
+		var winningFu = new Dictionary<Seat, int>();
 		foreach (var caller in callers)
 		{
 			var yaku = _hands[caller].DetermineYakuOn(lastDiscard.Tile, caller, RoundWind);
@@ -243,11 +251,16 @@ public sealed class MahjongEngine
 			if (!HanCalculator.IsYakuman(yaku))
 			{
 				winningHan[caller] = HanCalculator.CalculateHan(yaku, _hands[caller].Melds.Count == 0);
+
+				var hypotheticalTiles = new List<Tile>(_hands[caller].ConcealedTiles) { lastDiscard.Tile };
+				winningFu[caller] = FuCalculator.CalculateFu(
+					hypotheticalTiles, _hands[caller].Melds, yaku, caller, RoundWind, lastDiscard.Tile);
 			}
 		}
 
 		WinningYaku = winningYaku;
 		WinningHan = winningHan;
+		WinningFu = winningFu;
 	}
 
 	/// <summary>
@@ -323,12 +336,16 @@ public sealed class MahjongEngine
 		WinningYaku = new Dictionary<Seat, IReadOnlyList<Yaku>> { [CurrentTurn] = yaku };
 
 		var winningHan = new Dictionary<Seat, int>();
+		var winningFu = new Dictionary<Seat, int>();
 		if (!HanCalculator.IsYakuman(yaku))
 		{
 			winningHan[CurrentTurn] = HanCalculator.CalculateHan(yaku, _hands[CurrentTurn].Melds.Count == 0);
+			winningFu[CurrentTurn] = FuCalculator.CalculateFu(
+				_hands[CurrentTurn].ConcealedTiles, _hands[CurrentTurn].Melds, yaku, CurrentTurn, RoundWind, ronTile: null);
 		}
 
 		WinningHan = winningHan;
+		WinningFu = winningFu;
 	}
 
 	/// <summary>この卓状態の独立した複製を返す（複製後は互いの操作が影響し合わない）。</summary>
@@ -344,6 +361,7 @@ public sealed class MahjongEngine
 		{
 			WinningYaku = WinningYaku,
 			WinningHan = WinningHan,
+			WinningFu = WinningFu,
 			IsTripleRonDraw = IsTripleRonDraw,
 		};
 	}
