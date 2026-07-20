@@ -2,20 +2,21 @@ namespace Mahjong.Core.Domain;
 
 /// <summary>
 /// 四人麻雀の卓状態を管理し、ツモ・打牌・鳴き（ポン・チー・カン全種）・リーチ・ロン・ツモ和了・流局判定による
-/// 手番進行を統括する。ロン/ツモ和了の成立時に<see cref="WinningYaku"/>で役牌・三暗刻・リーチを含む役を確定させ、
-/// <see cref="WinningHan"/>・<see cref="WinningFu"/>で翻数・符も計算する（役満を除く）。平和など待ちの形を
-/// 条件とする役、一発・裏ドラ、点数表参照・実際の点数算出、局の推移（連荘・場風の遷移）は対象外
-/// （今後のマイルストーンで対応）。
+/// 手番進行を統括する。ロン/ツモ和了の成立時に<see cref="WinningYaku"/>で役牌・三暗刻・リーチ・嶺上開花・
+/// 海底摸月・河底撈魚を含む役を確定させ、<see cref="WinningHan"/>・<see cref="WinningFu"/>・
+/// <see cref="WinningPoints"/>で翻数・符・点数も計算する（役満を除く）。平和など待ちの形を条件とする役、
+/// 槍槓、一発・裏ドラ、局の推移（連荘・場風の遷移）は対象外（今後のマイルストーンで対応）。
 /// </summary>
 public sealed class MahjongEngine
 {
 	private readonly Wall _wall;
 	private readonly Dictionary<Seat, Hand> _hands;
+	private bool _isRinshanDraw;
 
 	/// <summary>テスト用に卓状態を直接組み立てるための内部コンストラクタ。</summary>
 	internal MahjongEngine(
 		Wall wall, Dictionary<Seat, Hand> hands, Seat currentTurn, (Tile Tile, Seat Discarder)? lastDiscard,
-		IReadOnlyList<Seat>? winners = null, Seat roundWind = Seat.East)
+		IReadOnlyList<Seat>? winners = null, Seat roundWind = Seat.East, bool isRinshanDraw = false)
 	{
 		_wall = wall;
 		_hands = hands;
@@ -23,6 +24,7 @@ public sealed class MahjongEngine
 		LastDiscard = lastDiscard;
 		Winners = winners ?? [];
 		RoundWind = roundWind;
+		_isRinshanDraw = isRinshanDraw;
 	}
 
 	/// <summary>現在の手番の座席。</summary>
@@ -114,6 +116,7 @@ public sealed class MahjongEngine
 	public void DrawForCurrentPlayer()
 	{
 		LastDiscard = null;
+		_isRinshanDraw = false;
 		var tile = _wall.Draw();
 		_hands[CurrentTurn].Draw(tile);
 	}
@@ -262,7 +265,12 @@ public sealed class MahjongEngine
 		var winningPoints = new Dictionary<Seat, int>();
 		foreach (var caller in callers)
 		{
-			var yaku = _hands[caller].DetermineYakuOn(lastDiscard.Tile, caller, RoundWind);
+			var yaku = new List<Yaku>(_hands[caller].DetermineYakuOn(lastDiscard.Tile, caller, RoundWind));
+			if (LiveWallCount == 0)
+			{
+				yaku.Add(Yaku.Houtei);
+			}
+
 			winningYaku[caller] = yaku;
 			if (!HanCalculator.IsYakuman(yaku))
 			{
@@ -309,6 +317,7 @@ public sealed class MahjongEngine
 
 		var rinshanTile = _wall.DrawReplacement();
 		_hands[caller].Draw(rinshanTile);
+		_isRinshanDraw = true;
 	}
 
 	/// <summary>
@@ -323,6 +332,7 @@ public sealed class MahjongEngine
 
 		var rinshanTile = _wall.DrawReplacement();
 		_hands[CurrentTurn].Draw(rinshanTile);
+		_isRinshanDraw = true;
 	}
 
 	/// <summary>
@@ -337,6 +347,7 @@ public sealed class MahjongEngine
 
 		var rinshanTile = _wall.DrawReplacement();
 		_hands[CurrentTurn].Draw(rinshanTile);
+		_isRinshanDraw = true;
 	}
 
 	/// <summary>
@@ -352,7 +363,16 @@ public sealed class MahjongEngine
 		}
 
 		Winners = [CurrentTurn];
-		var yaku = _hands[CurrentTurn].DetermineYaku(CurrentTurn, RoundWind);
+		var yaku = new List<Yaku>(_hands[CurrentTurn].DetermineYaku(CurrentTurn, RoundWind));
+		if (_isRinshanDraw)
+		{
+			yaku.Add(Yaku.RinshanKaihou);
+		}
+		else if (LiveWallCount == 0)
+		{
+			yaku.Add(Yaku.Haitei);
+		}
+
 		WinningYaku = new Dictionary<Seat, IReadOnlyList<Yaku>> { [CurrentTurn] = yaku };
 
 		var winningHan = new Dictionary<Seat, int>();
@@ -390,7 +410,7 @@ public sealed class MahjongEngine
 			clonedHands[seat] = hand.Clone();
 		}
 
-		return new MahjongEngine(_wall.Clone(), clonedHands, CurrentTurn, LastDiscard, Winners, RoundWind)
+		return new MahjongEngine(_wall.Clone(), clonedHands, CurrentTurn, LastDiscard, Winners, RoundWind, _isRinshanDraw)
 		{
 			WinningYaku = WinningYaku,
 			WinningHan = WinningHan,

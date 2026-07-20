@@ -103,4 +103,31 @@ public class HanCalculatorTests
 
 		Assert.Equal(1, han);
 	}
+
+	/// <summary>パス条件: 嶺上開花(Yaku.RinshanKaihou)単独で1が返ること。</summary>
+	[Fact]
+	public void CalculateHan_RinshanKaihou_ReturnsOne()
+	{
+		var han = HanCalculator.CalculateHan([Yaku.RinshanKaihou], isMenzen: true);
+
+		Assert.Equal(1, han);
+	}
+
+	/// <summary>パス条件: 海底摸月(Yaku.Haitei)単独で1が返ること。</summary>
+	[Fact]
+	public void CalculateHan_Haitei_ReturnsOne()
+	{
+		var han = HanCalculator.CalculateHan([Yaku.Haitei], isMenzen: true);
+
+		Assert.Equal(1, han);
+	}
+
+	/// <summary>パス条件: 河底撈魚(Yaku.Houtei)単独で1が返ること。</summary>
+	[Fact]
+	public void CalculateHan_Houtei_ReturnsOne()
+	{
+		var han = HanCalculator.CalculateHan([Yaku.Houtei], isMenzen: true);
+
+		Assert.Equal(1, han);
+	}
 }

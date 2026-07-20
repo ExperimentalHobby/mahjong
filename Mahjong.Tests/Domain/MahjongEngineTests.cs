@@ -1961,6 +1961,104 @@ public class MahjongEngineTests
 		Assert.Throws<ArgumentException>(() => engine.CallAddedKan(new Tile(TileSuit.Pin, 1)));
 	}
 
+	/// <summary>
+	/// パス条件: 暗槓成立後に嶺上牌でツモ和了した場合、WinningYaku に Yaku.RinshanKaihou が含まれること。
+	/// 嶺上牌のツモで生牌山も0枚になるが、Yaku.Haitei は含まれない（嶺上開花が優先される排他確認）。
+	/// </summary>
+	[Fact]
+	public void CallTsumo_AfterClosedKanRinshanDraw_WinningYakuContainsRinshanKaihouNotHaitei()
+	{
+		var manOne = new Tile(TileSuit.Man, 1);
+		List<Tile> startingTiles =
+		[
+			manOne, manOne, manOne,
+			new Tile(TileSuit.Pin, 4), new Tile(TileSuit.Pin, 5), new Tile(TileSuit.Pin, 6),
+			new Tile(TileSuit.Sou, 5), new Tile(TileSuit.Sou, 6), new Tile(TileSuit.Sou, 7),
+			new Tile(TileSuit.Man, 8), new Tile(TileSuit.Man, 8),
+			new Tile(TileSuit.Pin, 1), new Tile(TileSuit.Pin, 2),
+		];
+		var eastHand = new Hand(startingTiles);
+		eastHand.Draw(manOne);
+		var hands = new Dictionary<Seat, Hand>
+		{
+			[Seat.East] = eastHand,
+			[Seat.South] = new Hand(CreateThirteenFillerTiles()),
+			[Seat.West] = new Hand(CreateThirteenFillerTiles()),
+			[Seat.North] = new Hand(CreateThirteenFillerTiles()),
+		};
+		var rinshanTile = new Tile(TileSuit.Pin, 3);
+		var wall = new Wall(
+			liveWall: [new Tile(TileSuit.Honor, 1)],
+			deadWall: [new Tile(TileSuit.Honor, 2), rinshanTile]);
+		var engine = new MahjongEngine(wall, hands, Seat.East, lastDiscard: null);
+
+		engine.CallClosedKan(manOne, manOne, manOne, manOne);
+		engine.CallTsumo();
+
+		Assert.Equal(0, engine.LiveWallCount);
+		Assert.Contains(Yaku.RinshanKaihou, engine.WinningYaku[Seat.East]);
+		Assert.DoesNotContain(Yaku.Haitei, engine.WinningYaku[Seat.East]);
+	}
+
+	/// <summary>
+	/// パス条件: 生牌山が0枚の状態で（嶺上牌ではない）通常のツモ和了をした場合、
+	/// WinningYaku に Yaku.Haitei が含まれること。
+	/// </summary>
+	[Fact]
+	public void CallTsumo_WithEmptyLiveWall_WinningYakuContainsHaitei()
+	{
+		List<Tile> startingTiles =
+		[
+			new Tile(TileSuit.Man, 2), new Tile(TileSuit.Man, 3), new Tile(TileSuit.Man, 4),
+			new Tile(TileSuit.Pin, 3), new Tile(TileSuit.Pin, 4), new Tile(TileSuit.Pin, 5),
+			new Tile(TileSuit.Sou, 5), new Tile(TileSuit.Sou, 6), new Tile(TileSuit.Sou, 7),
+			new Tile(TileSuit.Man, 8), new Tile(TileSuit.Man, 8), new Tile(TileSuit.Man, 8),
+			new Tile(TileSuit.Pin, 2),
+		];
+		var eastHand = new Hand(startingTiles);
+		eastHand.Draw(new Tile(TileSuit.Pin, 2));
+		var hands = new Dictionary<Seat, Hand>
+		{
+			[Seat.East] = eastHand,
+			[Seat.South] = new Hand(CreateThirteenFillerTiles()),
+			[Seat.West] = new Hand(CreateThirteenFillerTiles()),
+			[Seat.North] = new Hand(CreateThirteenFillerTiles()),
+		};
+		var wall = new Wall(liveWall: [], deadWall: [new Tile(TileSuit.Honor, 1)]);
+		var engine = new MahjongEngine(wall, hands, Seat.East, lastDiscard: null);
+
+		engine.CallTsumo();
+
+		Assert.Contains(Yaku.Haitei, engine.WinningYaku[Seat.East]);
+	}
+
+	/// <summary>パス条件: 生牌山が0枚の状態でロン和了した場合、WinningYaku に Yaku.Houtei が含まれること。</summary>
+	[Fact]
+	public void CallRon_WithEmptyLiveWall_WinningYakuContainsHoutei()
+	{
+		var discardedTile = new Tile(TileSuit.Pin, 2);
+		var hands = new Dictionary<Seat, Hand>
+		{
+			[Seat.East] = new Hand(CreateThirteenFillerTiles()),
+			[Seat.South] = new Hand(
+			[
+				new Tile(TileSuit.Man, 2), new Tile(TileSuit.Man, 3), new Tile(TileSuit.Man, 4),
+				new Tile(TileSuit.Pin, 3), new Tile(TileSuit.Pin, 4), new Tile(TileSuit.Pin, 5),
+				new Tile(TileSuit.Sou, 5), new Tile(TileSuit.Sou, 6), new Tile(TileSuit.Sou, 7),
+				new Tile(TileSuit.Man, 8), new Tile(TileSuit.Man, 8), new Tile(TileSuit.Man, 8),
+				new Tile(TileSuit.Pin, 2),
+			]),
+			[Seat.West] = new Hand(CreateThirteenFillerTiles()),
+			[Seat.North] = new Hand(CreateThirteenFillerTiles()),
+		};
+		var wall = new Wall(liveWall: [], deadWall: [new Tile(TileSuit.Honor, 1)]);
+		var engine = new MahjongEngine(wall, hands, Seat.South, (discardedTile, Seat.East));
+
+		engine.CallRon(Seat.South);
+
+		Assert.Contains(Yaku.Houtei, engine.WinningYaku[Seat.South]);
+	}
+
 	private static List<Tile> CreateThirteenFillerTiles()
 	{
 		var tiles = new List<Tile>();
