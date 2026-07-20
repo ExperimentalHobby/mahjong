@@ -83,4 +83,28 @@ public enum Yaku
 
 	/// <summary>三槓子。</summary>
 	Sankantsu,
+
+	/// <summary>四暗刻。</summary>
+	Suuankou,
+
+	/// <summary>大三元。</summary>
+	Daisangen,
+
+	/// <summary>緑一色。</summary>
+	Ryuuiisou,
+
+	/// <summary>清老頭。</summary>
+	Chinroutou,
+
+	/// <summary>小四喜。</summary>
+	Shousuushi,
+
+	/// <summary>大四喜。</summary>
+	Daisuushi,
+
+	/// <summary>四槓子。</summary>
+	Suukantsu,
+
+	/// <summary>九蓮宝燈。</summary>
+	Chuurenpoutou,
 }

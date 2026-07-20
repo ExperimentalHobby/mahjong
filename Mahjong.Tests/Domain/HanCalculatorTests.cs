@@ -175,4 +175,19 @@ public class HanCalculatorTests
 
 		Assert.Equal(2, han);
 	}
+
+	/// <summary>パス条件: 役満8種それぞれを含むリストを渡すと IsYakuman が true になること。</summary>
+	[Theory]
+	[InlineData(Yaku.Suuankou)]
+	[InlineData(Yaku.Daisangen)]
+	[InlineData(Yaku.Ryuuiisou)]
+	[InlineData(Yaku.Chinroutou)]
+	[InlineData(Yaku.Shousuushi)]
+	[InlineData(Yaku.Daisuushi)]
+	[InlineData(Yaku.Suukantsu)]
+	[InlineData(Yaku.Chuurenpoutou)]
+	public void IsYakuman_ContainsNewYakuman_ReturnsTrue(Yaku yaku)
+	{
+		Assert.True(HanCalculator.IsYakuman([yaku]));
+	}
 }

@@ -3,9 +3,15 @@ namespace Mahjong.Core.Domain;
 /// <summary>役のリストから翻数（飜数）を計算する。符計算・点数表参照・ドラの翻数加算は対象外。</summary>
 public static class HanCalculator
 {
-	/// <summary>役満（国士無双・字一色）が含まれているかどうかを判定する。</summary>
-	public static bool IsYakuman(IReadOnlyList<Yaku> yaku) =>
-		yaku.Contains(Yaku.Kokushi) || yaku.Contains(Yaku.Tsuiisou);
+	/// <summary>役満に該当する<see cref="Yaku"/>の一覧。</summary>
+	private static readonly Yaku[] YakumanYaku =
+	[
+		Yaku.Kokushi, Yaku.Tsuiisou, Yaku.Suuankou, Yaku.Daisangen, Yaku.Ryuuiisou,
+		Yaku.Chinroutou, Yaku.Shousuushi, Yaku.Daisuushi, Yaku.Suukantsu, Yaku.Chuurenpoutou,
+	];
+
+	/// <summary>役満が含まれているかどうかを判定する。</summary>
+	public static bool IsYakuman(IReadOnlyList<Yaku> yaku) => yaku.Any(YakumanYaku.Contains);
 
 	/// <summary>
 	/// 役のリストから合計翻数を計算する。同じ役がリストに複数回含まれる場合（三元牌の刻子が
