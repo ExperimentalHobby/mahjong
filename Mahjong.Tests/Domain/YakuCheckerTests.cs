@@ -1285,4 +1285,271 @@ public class YakuCheckerTests
 
 		Assert.DoesNotContain(Yaku.Sankantsu, yaku);
 	}
+
+	/// <summary>パス条件: ツモで4つの暗刻が完成した場合、Yaku.Suuankou が含まれること。</summary>
+	[Fact]
+	public void DetermineYaku_FourConcealedTripletsByTsumo_ContainsSuuankou()
+	{
+		Tile[] tiles =
+		[
+			new Tile(TileSuit.Man, 1), new Tile(TileSuit.Man, 1), new Tile(TileSuit.Man, 1),
+			new Tile(TileSuit.Pin, 2), new Tile(TileSuit.Pin, 2), new Tile(TileSuit.Pin, 2),
+			new Tile(TileSuit.Sou, 3), new Tile(TileSuit.Sou, 3), new Tile(TileSuit.Sou, 3),
+			new Tile(TileSuit.Man, 7), new Tile(TileSuit.Man, 7), new Tile(TileSuit.Man, 7),
+			new Tile(TileSuit.Pin, 9), new Tile(TileSuit.Pin, 9),
+		];
+
+		var yaku = YakuChecker.DetermineYaku(tiles, melds: [], seatWind: Seat.South, roundWind: Seat.South, ronTile: null);
+
+		Assert.Contains(Yaku.Suuankou, yaku);
+	}
+
+	/// <summary>
+	/// パス条件: ロン牌が4つ目の刻子を完成させる場合、その刻子は暗刻に数えられず
+	/// Yaku.Suuankou は含まれず、Yaku.Sanankou のみになること。
+	/// </summary>
+	[Fact]
+	public void DetermineYaku_RonTileCompletesFourthTriplet_DoesNotContainSuuankouOnlySanankou()
+	{
+		Tile[] tiles =
+		[
+			new Tile(TileSuit.Man, 1), new Tile(TileSuit.Man, 1), new Tile(TileSuit.Man, 1),
+			new Tile(TileSuit.Pin, 2), new Tile(TileSuit.Pin, 2), new Tile(TileSuit.Pin, 2),
+			new Tile(TileSuit.Sou, 3), new Tile(TileSuit.Sou, 3), new Tile(TileSuit.Sou, 3),
+			new Tile(TileSuit.Man, 7), new Tile(TileSuit.Man, 7), new Tile(TileSuit.Man, 7),
+			new Tile(TileSuit.Pin, 9), new Tile(TileSuit.Pin, 9),
+		];
+		var ronTile = new Tile(TileSuit.Man, 7);
+
+		var yaku = YakuChecker.DetermineYaku(tiles, melds: [], seatWind: Seat.South, roundWind: Seat.South, ronTile);
+
+		Assert.DoesNotContain(Yaku.Suuankou, yaku);
+		Assert.Contains(Yaku.Sanankou, yaku);
+	}
+
+	/// <summary>パス条件: 三元牌3種すべてが刻子の場合、Yaku.Daisangen が含まれること。</summary>
+	[Fact]
+	public void DetermineYaku_AllThreeDragonTriplets_ContainsDaisangen()
+	{
+		Tile[] tiles =
+		[
+			new Tile(TileSuit.Honor, 5), new Tile(TileSuit.Honor, 5), new Tile(TileSuit.Honor, 5),
+			new Tile(TileSuit.Honor, 6), new Tile(TileSuit.Honor, 6), new Tile(TileSuit.Honor, 6),
+			new Tile(TileSuit.Honor, 7), new Tile(TileSuit.Honor, 7), new Tile(TileSuit.Honor, 7),
+			new Tile(TileSuit.Man, 1), new Tile(TileSuit.Man, 2), new Tile(TileSuit.Man, 3),
+			new Tile(TileSuit.Pin, 9), new Tile(TileSuit.Pin, 9),
+		];
+
+		var yaku = YakuChecker.DetermineYaku(tiles, melds: [], seatWind: Seat.South, roundWind: Seat.South, ronTile: null);
+
+		Assert.Contains(Yaku.Daisangen, yaku);
+	}
+
+	/// <summary>パス条件: 三元牌が2種のみ刻子（小三元の形）の場合、Yaku.Daisangen が含まれないこと。</summary>
+	[Fact]
+	public void DetermineYaku_TwoDragonTripletsAndDragonPair_DoesNotContainDaisangen()
+	{
+		Tile[] tiles =
+		[
+			new Tile(TileSuit.Honor, 5), new Tile(TileSuit.Honor, 5), new Tile(TileSuit.Honor, 5),
+			new Tile(TileSuit.Honor, 6), new Tile(TileSuit.Honor, 6), new Tile(TileSuit.Honor, 6),
+			new Tile(TileSuit.Honor, 7), new Tile(TileSuit.Honor, 7),
+			new Tile(TileSuit.Man, 1), new Tile(TileSuit.Man, 2), new Tile(TileSuit.Man, 3),
+			new Tile(TileSuit.Pin, 1), new Tile(TileSuit.Pin, 2), new Tile(TileSuit.Pin, 3),
+		];
+
+		var yaku = YakuChecker.DetermineYaku(tiles, melds: [], seatWind: Seat.South, roundWind: Seat.South, ronTile: null);
+
+		Assert.DoesNotContain(Yaku.Daisangen, yaku);
+	}
+
+	/// <summary>パス条件: 索子2,3,4,6,8と發のみで構成される和了形を渡すと Yaku.Ryuuiisou が含まれること。</summary>
+	[Fact]
+	public void DetermineYaku_AllGreenTiles_ContainsRyuuiisou()
+	{
+		Tile[] tiles =
+		[
+			new Tile(TileSuit.Sou, 2), new Tile(TileSuit.Sou, 3), new Tile(TileSuit.Sou, 4),
+			new Tile(TileSuit.Sou, 6), new Tile(TileSuit.Sou, 6), new Tile(TileSuit.Sou, 6),
+			new Tile(TileSuit.Sou, 8), new Tile(TileSuit.Sou, 8), new Tile(TileSuit.Sou, 8),
+			new Tile(TileSuit.Honor, 6), new Tile(TileSuit.Honor, 6), new Tile(TileSuit.Honor, 6),
+			new Tile(TileSuit.Sou, 4), new Tile(TileSuit.Sou, 4),
+		];
+
+		var yaku = YakuChecker.DetermineYaku(tiles);
+
+		Assert.Contains(Yaku.Ryuuiisou, yaku);
+	}
+
+	/// <summary>パス条件: 緑ではない牌（索子1）を含む場合、Yaku.Ryuuiisou が含まれないこと。</summary>
+	[Fact]
+	public void DetermineYaku_ContainsNonGreenTile_DoesNotContainRyuuiisou()
+	{
+		Tile[] tiles =
+		[
+			new Tile(TileSuit.Sou, 1), new Tile(TileSuit.Sou, 2), new Tile(TileSuit.Sou, 3),
+			new Tile(TileSuit.Sou, 2), new Tile(TileSuit.Sou, 3), new Tile(TileSuit.Sou, 4),
+			new Tile(TileSuit.Sou, 6), new Tile(TileSuit.Sou, 6), new Tile(TileSuit.Sou, 6),
+			new Tile(TileSuit.Sou, 8), new Tile(TileSuit.Sou, 8), new Tile(TileSuit.Sou, 8),
+			new Tile(TileSuit.Sou, 4), new Tile(TileSuit.Sou, 4),
+		];
+
+		var yaku = YakuChecker.DetermineYaku(tiles);
+
+		Assert.DoesNotContain(Yaku.Ryuuiisou, yaku);
+	}
+
+	/// <summary>パス条件: 老頭牌（1・9）のみで構成される和了形を渡すと Yaku.Chinroutou が含まれること。</summary>
+	[Fact]
+	public void DetermineYaku_AllTerminalTiles_ContainsChinroutou()
+	{
+		Tile[] tiles =
+		[
+			new Tile(TileSuit.Man, 1), new Tile(TileSuit.Man, 1), new Tile(TileSuit.Man, 1),
+			new Tile(TileSuit.Man, 9), new Tile(TileSuit.Man, 9), new Tile(TileSuit.Man, 9),
+			new Tile(TileSuit.Pin, 1), new Tile(TileSuit.Pin, 1), new Tile(TileSuit.Pin, 1),
+			new Tile(TileSuit.Sou, 9), new Tile(TileSuit.Sou, 9), new Tile(TileSuit.Sou, 9),
+			new Tile(TileSuit.Pin, 9), new Tile(TileSuit.Pin, 9),
+		];
+
+		var yaku = YakuChecker.DetermineYaku(tiles);
+
+		Assert.Contains(Yaku.Chinroutou, yaku);
+	}
+
+	/// <summary>パス条件: 老頭牌以外（中張牌）を含む場合、Yaku.Chinroutou が含まれないこと。</summary>
+	[Fact]
+	public void DetermineYaku_ContainsSimpleTile_DoesNotContainChinroutou()
+	{
+		Tile[] tiles =
+		[
+			new Tile(TileSuit.Man, 1), new Tile(TileSuit.Man, 1), new Tile(TileSuit.Man, 1),
+			new Tile(TileSuit.Man, 5), new Tile(TileSuit.Man, 5), new Tile(TileSuit.Man, 5),
+			new Tile(TileSuit.Pin, 1), new Tile(TileSuit.Pin, 1), new Tile(TileSuit.Pin, 1),
+			new Tile(TileSuit.Sou, 9), new Tile(TileSuit.Sou, 9), new Tile(TileSuit.Sou, 9),
+			new Tile(TileSuit.Pin, 9), new Tile(TileSuit.Pin, 9),
+		];
+
+		var yaku = YakuChecker.DetermineYaku(tiles);
+
+		Assert.DoesNotContain(Yaku.Chinroutou, yaku);
+	}
+
+	/// <summary>パス条件: 風牌3種が刻子・残り1種が雀頭の場合、Yaku.Shousuushi が含まれること。</summary>
+	[Fact]
+	public void DetermineYaku_ThreeWindTripletsAndWindPair_ContainsShousuushi()
+	{
+		Tile[] tiles =
+		[
+			new Tile(TileSuit.Honor, 1), new Tile(TileSuit.Honor, 1), new Tile(TileSuit.Honor, 1),
+			new Tile(TileSuit.Honor, 2), new Tile(TileSuit.Honor, 2), new Tile(TileSuit.Honor, 2),
+			new Tile(TileSuit.Honor, 3), new Tile(TileSuit.Honor, 3), new Tile(TileSuit.Honor, 3),
+			new Tile(TileSuit.Honor, 4), new Tile(TileSuit.Honor, 4),
+			new Tile(TileSuit.Man, 1), new Tile(TileSuit.Man, 2), new Tile(TileSuit.Man, 3),
+		];
+
+		var yaku = YakuChecker.DetermineYaku(tiles, melds: [], seatWind: Seat.South, roundWind: Seat.South, ronTile: null);
+
+		Assert.Contains(Yaku.Shousuushi, yaku);
+	}
+
+	/// <summary>パス条件: 風牌の刻子が2種以下の場合、Yaku.Shousuushi が含まれないこと。</summary>
+	[Fact]
+	public void DetermineYaku_TwoWindTriplets_DoesNotContainShousuushi()
+	{
+		Tile[] tiles =
+		[
+			new Tile(TileSuit.Honor, 1), new Tile(TileSuit.Honor, 1), new Tile(TileSuit.Honor, 1),
+			new Tile(TileSuit.Honor, 2), new Tile(TileSuit.Honor, 2), new Tile(TileSuit.Honor, 2),
+			new Tile(TileSuit.Man, 1), new Tile(TileSuit.Man, 2), new Tile(TileSuit.Man, 3),
+			new Tile(TileSuit.Pin, 1), new Tile(TileSuit.Pin, 2), new Tile(TileSuit.Pin, 3),
+			new Tile(TileSuit.Sou, 9), new Tile(TileSuit.Sou, 9),
+		];
+
+		var yaku = YakuChecker.DetermineYaku(tiles, melds: [], seatWind: Seat.South, roundWind: Seat.South, ronTile: null);
+
+		Assert.DoesNotContain(Yaku.Shousuushi, yaku);
+	}
+
+	/// <summary>パス条件: 風牌4種すべてが刻子の場合、Yaku.Daisuushi が含まれ、Yaku.Shousuushi は含まれないこと。</summary>
+	[Fact]
+	public void DetermineYaku_AllFourWindTriplets_ContainsDaisuushiNotShousuushi()
+	{
+		Tile[] tiles =
+		[
+			new Tile(TileSuit.Honor, 1), new Tile(TileSuit.Honor, 1), new Tile(TileSuit.Honor, 1),
+			new Tile(TileSuit.Honor, 2), new Tile(TileSuit.Honor, 2), new Tile(TileSuit.Honor, 2),
+			new Tile(TileSuit.Honor, 3), new Tile(TileSuit.Honor, 3), new Tile(TileSuit.Honor, 3),
+			new Tile(TileSuit.Honor, 4), new Tile(TileSuit.Honor, 4), new Tile(TileSuit.Honor, 4),
+			new Tile(TileSuit.Pin, 9), new Tile(TileSuit.Pin, 9),
+		];
+
+		var yaku = YakuChecker.DetermineYaku(tiles, melds: [], seatWind: Seat.South, roundWind: Seat.South, ronTile: null);
+
+		Assert.Contains(Yaku.Daisuushi, yaku);
+		Assert.DoesNotContain(Yaku.Shousuushi, yaku);
+	}
+
+	/// <summary>パス条件: カンが4つ成立している場合、Yaku.Suukantsu が含まれ、Yaku.Sankantsu は含まれないこと。</summary>
+	[Fact]
+	public void DetermineYaku_FourKans_ContainsSuukantsuNotSankantsu()
+	{
+		Tile[] concealedTiles = [new Tile(TileSuit.Pin, 9), new Tile(TileSuit.Pin, 9)];
+		Meld[] melds =
+		[
+			new Meld(
+				MeldType.ClosedKan,
+				[new Tile(TileSuit.Sou, 3), new Tile(TileSuit.Sou, 3), new Tile(TileSuit.Sou, 3), new Tile(TileSuit.Sou, 3)]),
+			new Meld(
+				MeldType.OpenKan,
+				[new Tile(TileSuit.Sou, 5), new Tile(TileSuit.Sou, 5), new Tile(TileSuit.Sou, 5), new Tile(TileSuit.Sou, 5)]),
+			new Meld(
+				MeldType.AddedKan,
+				[new Tile(TileSuit.Sou, 7), new Tile(TileSuit.Sou, 7), new Tile(TileSuit.Sou, 7), new Tile(TileSuit.Sou, 7)]),
+			new Meld(
+				MeldType.ClosedKan,
+				[new Tile(TileSuit.Man, 2), new Tile(TileSuit.Man, 2), new Tile(TileSuit.Man, 2), new Tile(TileSuit.Man, 2)]),
+		];
+
+		var yaku = YakuChecker.DetermineYaku(concealedTiles, melds);
+
+		Assert.Contains(Yaku.Suukantsu, yaku);
+		Assert.DoesNotContain(Yaku.Sankantsu, yaku);
+	}
+
+	/// <summary>パス条件: 純粋な九蓮宝燈の形（門前・単一スート）で完成した場合、Yaku.Chuurenpoutou が含まれること。</summary>
+	[Fact]
+	public void DetermineYaku_PureNineGates_ContainsChuurenpoutou()
+	{
+		Tile[] tiles =
+		[
+			new Tile(TileSuit.Man, 1), new Tile(TileSuit.Man, 1), new Tile(TileSuit.Man, 1),
+			new Tile(TileSuit.Man, 2), new Tile(TileSuit.Man, 3), new Tile(TileSuit.Man, 4),
+			new Tile(TileSuit.Man, 5), new Tile(TileSuit.Man, 5),
+			new Tile(TileSuit.Man, 6), new Tile(TileSuit.Man, 7), new Tile(TileSuit.Man, 8),
+			new Tile(TileSuit.Man, 9), new Tile(TileSuit.Man, 9), new Tile(TileSuit.Man, 9),
+		];
+
+		var yaku = YakuChecker.DetermineYaku(tiles);
+
+		Assert.Contains(Yaku.Chuurenpoutou, yaku);
+	}
+
+	/// <summary>パス条件: 中張牌が1種欠けている場合、Yaku.Chuurenpoutou が含まれないこと。</summary>
+	[Fact]
+	public void DetermineYaku_SingleSuitMissingOneMiddleRank_DoesNotContainChuurenpoutou()
+	{
+		Tile[] tiles =
+		[
+			new Tile(TileSuit.Man, 1), new Tile(TileSuit.Man, 1), new Tile(TileSuit.Man, 1),
+			new Tile(TileSuit.Man, 2), new Tile(TileSuit.Man, 3), new Tile(TileSuit.Man, 4),
+			new Tile(TileSuit.Man, 6), new Tile(TileSuit.Man, 6), new Tile(TileSuit.Man, 6),
+			new Tile(TileSuit.Man, 7), new Tile(TileSuit.Man, 8),
+			new Tile(TileSuit.Man, 9), new Tile(TileSuit.Man, 9), new Tile(TileSuit.Man, 9),
+		];
+
+		var yaku = YakuChecker.DetermineYaku(tiles);
+
+		Assert.DoesNotContain(Yaku.Chuurenpoutou, yaku);
+	}
 }

@@ -57,9 +57,30 @@ public static class YakuChecker
 			yaku.Add(Yaku.Honitsu);
 		}
 
-		if (melds.Count(meld => meld.Type is MeldType.OpenKan or MeldType.ClosedKan or MeldType.AddedKan) >= 3)
+		if (IsRyuuiisou(allTiles))
+		{
+			yaku.Add(Yaku.Ryuuiisou);
+		}
+
+		if (IsChinroutou(allTiles))
+		{
+			yaku.Add(Yaku.Chinroutou);
+		}
+
+		if (melds.Count == 0 && IsChuurenpoutou(allTiles))
+		{
+			yaku.Add(Yaku.Chuurenpoutou);
+		}
+
+		var kanCount = melds.Count(meld => meld.Type is MeldType.OpenKan or MeldType.ClosedKan or MeldType.AddedKan);
+		if (kanCount == 3)
 		{
 			yaku.Add(Yaku.Sankantsu);
+		}
+
+		if (kanCount == 4)
+		{
+			yaku.Add(Yaku.Suukantsu);
 		}
 
 		AddDecompositionDependentYaku(concealedTiles, melds, yaku);
@@ -121,9 +142,29 @@ public static class YakuChecker
 			yaku.Add(Yaku.Shousangen);
 		}
 
-		if (HasSanankou(concealedTiles, melds, ronTile))
+		if (DragonRanks.All(rank => HasHonorTriplet(concealedTiles, melds, rank)))
+		{
+			yaku.Add(Yaku.Daisangen);
+		}
+
+		if (HasShousuushi(concealedTiles, melds))
+		{
+			yaku.Add(Yaku.Shousuushi);
+		}
+
+		if (WindRanks.All(rank => HasHonorTriplet(concealedTiles, melds, rank)))
+		{
+			yaku.Add(Yaku.Daisuushi);
+		}
+
+		if (HasAtLeastAnkou(concealedTiles, melds, ronTile, minimumCount: 3))
 		{
 			yaku.Add(Yaku.Sanankou);
+		}
+
+		if (HasAtLeastAnkou(concealedTiles, melds, ronTile, minimumCount: 4))
+		{
+			yaku.Add(Yaku.Suuankou);
 		}
 
 		return yaku;
@@ -131,9 +172,11 @@ public static class YakuChecker
 
 	/// <summary>
 	/// 標準形（雀頭+4面子）として分解できるあらゆる組み合わせを横断し、いずれかの分解で
-	/// 暗刻（門前で完成した刻子。ロンで完成した刻子・鳴きの刻子・加槓は除く）が3つ以上あるかを判定する。
+	/// 暗刻（門前で完成した刻子。ロンで完成した刻子・鳴きの刻子・加槓は除く）が<paramref name="minimumCount"/>
+	/// 以上あるかを判定する（三暗刻・四暗刻で共通利用）。
 	/// </summary>
-	private static bool HasSanankou(IReadOnlyList<Tile> concealedTiles, IReadOnlyList<Meld> melds, Tile? ronTile)
+	private static bool HasAtLeastAnkou(
+		IReadOnlyList<Tile> concealedTiles, IReadOnlyList<Meld> melds, Tile? ronTile, int minimumCount)
 	{
 		var counts = new int[KindCount];
 		foreach (var tile in concealedTiles)
@@ -158,7 +201,7 @@ public static class YakuChecker
 				var concealedTripletCount = decomposition.Count(set =>
 					set.IsTriplet && set.IsConcealed &&
 					!(ronTile is { } tile && set.Suit == tile.Suit && set.Rank == tile.Rank));
-				if (concealedTripletCount >= 3)
+				if (concealedTripletCount >= minimumCount)
 				{
 					counts[pairKind] += 2;
 					return true;
@@ -283,6 +326,25 @@ public static class YakuChecker
 
 	/// <summary>白(5)・發(6)・中(7)の字牌ランク。</summary>
 	private static readonly int[] DragonRanks = [5, 6, 7];
+
+	/// <summary>東(1)・南(2)・西(3)・北(4)の字牌ランク。</summary>
+	private static readonly int[] WindRanks = [1, 2, 3, 4];
+
+	/// <summary>
+	/// 風牌のうち3種が刻子で、残り1種が雀頭になっているかを判定する（小四喜）。風牌は順子を
+	/// 作れないため、<see cref="HasHonorTriplet"/>による直接カウントのみで判定でき、面子分解は不要。
+	/// </summary>
+	private static bool HasShousuushi(IReadOnlyList<Tile> concealedTiles, IReadOnlyList<Meld> melds)
+	{
+		var tripletRanks = WindRanks.Where(rank => HasHonorTriplet(concealedTiles, melds, rank)).ToArray();
+		if (tripletRanks.Length != 3)
+		{
+			return false;
+		}
+
+		var pairRank = WindRanks.Single(rank => !tripletRanks.Contains(rank));
+		return concealedTiles.Count(tile => tile.Suit == TileSuit.Honor && tile.Rank == pairRank) == 2;
+	}
 
 	/// <summary>指定したランクの字牌が門前に3枚以上あるか、または該当ランクの刻子・カンの副露があるかを判定する。</summary>
 	private static bool HasHonorTriplet(IReadOnlyList<Tile> concealedTiles, IReadOnlyList<Meld> melds, int rank)
@@ -567,6 +629,52 @@ public static class YakuChecker
 
 	private static bool IsTsuiisou(IReadOnlyList<Tile> tiles) =>
 		tiles.All(tile => tile.Suit == TileSuit.Honor);
+
+	private static readonly int[] GreenSouRanks = [2, 3, 4, 6, 8];
+
+	/// <summary>索子2,3,4,6,8と發（Honor rank 6）のみで構成されているかを判定する（緑一色）。</summary>
+	private static bool IsRyuuiisou(IReadOnlyList<Tile> tiles) =>
+		tiles.All(tile =>
+			(tile.Suit == TileSuit.Sou && GreenSouRanks.Contains(tile.Rank)) ||
+			(tile.Suit == TileSuit.Honor && tile.Rank == 6));
+
+	/// <summary>老頭牌（1・9、字牌を除く）のみで構成されているかを判定する（清老頭）。</summary>
+	private static bool IsChinroutou(IReadOnlyList<Tile> tiles) =>
+		tiles.All(tile => tile.Suit != TileSuit.Honor && (tile.Rank == 1 || tile.Rank == 9));
+
+	/// <summary>
+	/// 単一スートの数牌のみで、そのスートのランク1と9が3枚以上、ランク2〜8が1枚以上あるかを判定する
+	/// （九蓮宝燈。呼び出し元で門前であることを保証する）。
+	/// </summary>
+	private static bool IsChuurenpoutou(IReadOnlyList<Tile> tiles)
+	{
+		var suits = tiles.Select(tile => tile.Suit).Distinct().ToArray();
+		if (suits.Length != 1 || suits[0] == TileSuit.Honor)
+		{
+			return false;
+		}
+
+		var counts = new int[9];
+		foreach (var tile in tiles)
+		{
+			counts[tile.Rank - 1]++;
+		}
+
+		if (counts[0] < 3 || counts[8] < 3)
+		{
+			return false;
+		}
+
+		for (var rank = 2; rank <= 8; rank++)
+		{
+			if (counts[rank - 1] < 1)
+			{
+				return false;
+			}
+		}
+
+		return true;
+	}
 
 	private static bool IsChinitsu(IReadOnlyList<Tile> tiles) =>
 		!tiles.Any(tile => tile.Suit == TileSuit.Honor) &&
