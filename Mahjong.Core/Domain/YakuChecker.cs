@@ -1,8 +1,8 @@
 namespace Mahjong.Core.Domain;
 
 /// <summary>
-/// 牌の内容・面子の分解・自風/場風・ロン/ツモの別から判定できる役を判定する。平和など待ちの形を
-/// 必要とする役は対象外。タイミング限定の役、翻数・得点計算も対象外。
+/// 牌の内容・面子の分解・自風/場風・ロン/ツモの別・待ちの形から判定できる役を判定する。
+/// タイミング限定の役、翻数・得点計算も対象外。
 /// </summary>
 public static class YakuChecker
 {
@@ -63,9 +63,11 @@ public static class YakuChecker
 	}
 
 	/// <summary>
-	/// 自風・場風を考慮し、役牌（自風牌・場風牌・三元牌）・三暗刻・門前清自摸和も含めて役を判定する。
+	/// 自風・場風を考慮し、役牌（自風牌・場風牌・三元牌）・三暗刻・門前清自摸和・平和も含めて役を判定する。
 	/// <paramref name="ronTile"/>はロン和了牌（ツモ和了の場合は<c>null</c>）。ロンで完成した刻子は
-	/// 明刻扱いとなり三暗刻の暗刻数に数えない。
+	/// 明刻扱いとなり三暗刻の暗刻数に数えない。和了牌は<paramref name="ronTile"/>（ロン）または
+	/// <paramref name="concealedTiles"/>の末尾（ツモ。<see cref="Hand.Draw"/>が末尾に追加する規約に基づく）
+	/// から求め、平和の両面待ち判定に用いる。
 	/// </summary>
 	/// <exception cref="ArgumentException">
 	/// <paramref name="concealedTiles"/>と<paramref name="melds"/>を合わせた手牌が和了形でない場合。
@@ -83,6 +85,12 @@ public static class YakuChecker
 		if (ronTile is null && melds.Count == 0)
 		{
 			yaku.Add(Yaku.MenzenTsumo);
+		}
+
+		var winningTile = ronTile ?? concealedTiles[^1];
+		if (HasPinfu(concealedTiles, melds, winningTile, ToWindRank(seatWind), ToWindRank(roundWind)))
+		{
+			yaku.Add(Yaku.Pinfu);
 		}
 
 		if (HasHonorTriplet(concealedTiles, melds, ToWindRank(seatWind)))
@@ -151,6 +159,100 @@ public static class YakuChecker
 		}
 
 		return false;
+	}
+
+	/// <summary>
+	/// 標準形（雀頭+4面子）として分解できるあらゆる組み合わせを横断し、いずれかの分解で
+	/// (a)雀頭が役牌（三元牌・自風牌・場風牌）でない、(b)雀頭が和了牌自身でない（単騎待ちを除外）、
+	/// (c)全ての面子が順子（刻子を含まない）、(d)いずれかの順子が和了牌によって両面完成している、
+	/// の4条件を満たすかを判定する（平和）。副露がある場合は門前条件を満たさないため常に<c>false</c>。
+	/// </summary>
+	private static bool HasPinfu(
+		IReadOnlyList<Tile> concealedTiles, IReadOnlyList<Meld> melds, Tile winningTile,
+		int seatWindRank, int roundWindRank)
+	{
+		if (melds.Count > 0)
+		{
+			return false;
+		}
+
+		var counts = new int[KindCount];
+		foreach (var tile in concealedTiles)
+		{
+			counts[ToIndex(tile)]++;
+		}
+
+		var winningKind = ToIndex(winningTile);
+
+		for (var pairKind = 0; pairKind < KindCount; pairKind++)
+		{
+			if (counts[pairKind] < 2)
+			{
+				continue;
+			}
+
+			if (pairKind == winningKind || IsYakuhaiPairKind(pairKind, seatWindRank, roundWindRank))
+			{
+				continue;
+			}
+
+			counts[pairKind] -= 2;
+			foreach (var searched in EnumerateSetDecompositions(counts, 4))
+			{
+				if (Array.TrueForAll(searched, set => !set.IsTriplet) &&
+					Array.Exists(searched, set => IsRyanmenCompletion(set, winningTile)))
+				{
+					counts[pairKind] += 2;
+					return true;
+				}
+			}
+
+			counts[pairKind] += 2;
+		}
+
+		return false;
+	}
+
+	/// <summary>
+	/// 順子<paramref name="set"/>が和了牌<paramref name="winningTile"/>によって両面待ちで完成しているかを判定する。
+	/// 和了牌が順子の中央（嵌張）、または1-2-3の3待ち・7-8-9の7待ち（辺張）の場合は<c>false</c>。
+	/// </summary>
+	private static bool IsRyanmenCompletion(DecomposedSet set, Tile winningTile)
+	{
+		if (set.IsTriplet || set.Suit != winningTile.Suit)
+		{
+			return false;
+		}
+
+		var offset = winningTile.Rank - set.Rank;
+		if (offset < 0 || offset > 2 || offset == 1)
+		{
+			return false;
+		}
+
+		if (offset == 0 && set.Rank == 7)
+		{
+			return false;
+		}
+
+		if (offset == 2 && set.Rank == 1)
+		{
+			return false;
+		}
+
+		return true;
+	}
+
+	/// <summary>雀頭候補<paramref name="pairKind"/>が役牌（三元牌・自風牌・場風牌）かどうかを判定する。</summary>
+	private static bool IsYakuhaiPairKind(int pairKind, int seatWindRank, int roundWindRank)
+	{
+		var (suit, rank) = FromIndex(pairKind);
+		if (suit != TileSuit.Honor)
+		{
+			return false;
+		}
+
+		return DragonRanks.Contains(rank) || rank == seatWindRank || rank == roundWindRank;
 	}
 
 	/// <summary>白(5)・發(6)・中(7)の字牌ランク。</summary>

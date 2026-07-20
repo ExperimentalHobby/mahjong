@@ -940,4 +940,181 @@ public class YakuCheckerTests
 
 		Assert.DoesNotContain(Yaku.MenzenTsumo, yaku);
 	}
+
+	/// <summary>
+	/// パス条件: 両面待ち・非役牌雀頭・全順子・門前のロン和了で Yaku.Pinfu が含まれること
+	/// （Sou6でMan6,7,8を完成。7,8が2または5待ちならぬ6待ちだが開始ランク6は辺張の特例に該当しない両面）。
+	/// </summary>
+	[Fact]
+	public void DetermineYaku_RyanmenWait_ContainsPinfu()
+	{
+		Tile[] tiles =
+		[
+			new Tile(TileSuit.Man, 2), new Tile(TileSuit.Man, 3), new Tile(TileSuit.Man, 4),
+			new Tile(TileSuit.Pin, 3), new Tile(TileSuit.Pin, 4), new Tile(TileSuit.Pin, 5),
+			new Tile(TileSuit.Sou, 5), new Tile(TileSuit.Sou, 6), new Tile(TileSuit.Sou, 7),
+			new Tile(TileSuit.Man, 6), new Tile(TileSuit.Man, 7), new Tile(TileSuit.Man, 8),
+			new Tile(TileSuit.Pin, 2), new Tile(TileSuit.Pin, 2),
+		];
+		var ronTile = new Tile(TileSuit.Man, 6);
+
+		var yaku = YakuChecker.DetermineYaku(tiles, melds: [], seatWind: Seat.South, roundWind: Seat.South, ronTile);
+
+		Assert.Contains(Yaku.Pinfu, yaku);
+	}
+
+	/// <summary>パス条件: 嵌張待ち（Sou5,7待ちのSou6）で完成した場合、Yaku.Pinfu が含まれないこと。</summary>
+	[Fact]
+	public void DetermineYaku_KanchanWait_DoesNotContainPinfu()
+	{
+		Tile[] tiles =
+		[
+			new Tile(TileSuit.Man, 2), new Tile(TileSuit.Man, 3), new Tile(TileSuit.Man, 4),
+			new Tile(TileSuit.Pin, 3), new Tile(TileSuit.Pin, 4), new Tile(TileSuit.Pin, 5),
+			new Tile(TileSuit.Sou, 5), new Tile(TileSuit.Sou, 6), new Tile(TileSuit.Sou, 7),
+			new Tile(TileSuit.Man, 7), new Tile(TileSuit.Man, 8), new Tile(TileSuit.Man, 9),
+			new Tile(TileSuit.Pin, 2), new Tile(TileSuit.Pin, 2),
+		];
+		var ronTile = new Tile(TileSuit.Sou, 6);
+
+		var yaku = YakuChecker.DetermineYaku(tiles, melds: [], seatWind: Seat.South, roundWind: Seat.South, ronTile);
+
+		Assert.DoesNotContain(Yaku.Pinfu, yaku);
+	}
+
+	/// <summary>パス条件: 辺張待ち（Man1,2待ちのMan3）で完成した場合、Yaku.Pinfu が含まれないこと。</summary>
+	[Fact]
+	public void DetermineYaku_PenchanWait_DoesNotContainPinfu()
+	{
+		Tile[] tiles =
+		[
+			new Tile(TileSuit.Man, 1), new Tile(TileSuit.Man, 2), new Tile(TileSuit.Man, 3),
+			new Tile(TileSuit.Pin, 3), new Tile(TileSuit.Pin, 4), new Tile(TileSuit.Pin, 5),
+			new Tile(TileSuit.Sou, 5), new Tile(TileSuit.Sou, 6), new Tile(TileSuit.Sou, 7),
+			new Tile(TileSuit.Man, 7), new Tile(TileSuit.Man, 8), new Tile(TileSuit.Man, 9),
+			new Tile(TileSuit.Pin, 2), new Tile(TileSuit.Pin, 2),
+		];
+		var ronTile = new Tile(TileSuit.Man, 3);
+
+		var yaku = YakuChecker.DetermineYaku(tiles, melds: [], seatWind: Seat.South, roundWind: Seat.South, ronTile);
+
+		Assert.DoesNotContain(Yaku.Pinfu, yaku);
+	}
+
+	/// <summary>パス条件: 単騎待ち（雀頭Pin2を和了牌で完成）の場合、Yaku.Pinfu が含まれないこと。</summary>
+	[Fact]
+	public void DetermineYaku_TankiWait_DoesNotContainPinfu()
+	{
+		Tile[] tiles =
+		[
+			new Tile(TileSuit.Man, 2), new Tile(TileSuit.Man, 3), new Tile(TileSuit.Man, 4),
+			new Tile(TileSuit.Pin, 3), new Tile(TileSuit.Pin, 4), new Tile(TileSuit.Pin, 5),
+			new Tile(TileSuit.Sou, 5), new Tile(TileSuit.Sou, 6), new Tile(TileSuit.Sou, 7),
+			new Tile(TileSuit.Man, 7), new Tile(TileSuit.Man, 8), new Tile(TileSuit.Man, 9),
+			new Tile(TileSuit.Pin, 2), new Tile(TileSuit.Pin, 2),
+		];
+		var ronTile = new Tile(TileSuit.Pin, 2);
+
+		var yaku = YakuChecker.DetermineYaku(tiles, melds: [], seatWind: Seat.South, roundWind: Seat.South, ronTile);
+
+		Assert.DoesNotContain(Yaku.Pinfu, yaku);
+	}
+
+	/// <summary>パス条件: 雀頭が三元牌の場合、両面待ちで完成しても Yaku.Pinfu が含まれないこと。</summary>
+	[Fact]
+	public void DetermineYaku_DragonPair_DoesNotContainPinfu()
+	{
+		Tile[] tiles =
+		[
+			new Tile(TileSuit.Man, 2), new Tile(TileSuit.Man, 3), new Tile(TileSuit.Man, 4),
+			new Tile(TileSuit.Pin, 3), new Tile(TileSuit.Pin, 4), new Tile(TileSuit.Pin, 5),
+			new Tile(TileSuit.Sou, 5), new Tile(TileSuit.Sou, 6), new Tile(TileSuit.Sou, 7),
+			new Tile(TileSuit.Man, 6), new Tile(TileSuit.Man, 7), new Tile(TileSuit.Man, 8),
+			new Tile(TileSuit.Honor, 5), new Tile(TileSuit.Honor, 5),
+		];
+		var ronTile = new Tile(TileSuit.Man, 6);
+
+		var yaku = YakuChecker.DetermineYaku(tiles, melds: [], seatWind: Seat.South, roundWind: Seat.South, ronTile);
+
+		Assert.DoesNotContain(Yaku.Pinfu, yaku);
+	}
+
+	/// <summary>パス条件: 雀頭が自風牌の場合、両面待ちで完成しても Yaku.Pinfu が含まれないこと。</summary>
+	[Fact]
+	public void DetermineYaku_SeatWindPair_DoesNotContainPinfu()
+	{
+		Tile[] tiles =
+		[
+			new Tile(TileSuit.Man, 2), new Tile(TileSuit.Man, 3), new Tile(TileSuit.Man, 4),
+			new Tile(TileSuit.Pin, 3), new Tile(TileSuit.Pin, 4), new Tile(TileSuit.Pin, 5),
+			new Tile(TileSuit.Sou, 5), new Tile(TileSuit.Sou, 6), new Tile(TileSuit.Sou, 7),
+			new Tile(TileSuit.Man, 6), new Tile(TileSuit.Man, 7), new Tile(TileSuit.Man, 8),
+			new Tile(TileSuit.Honor, 2), new Tile(TileSuit.Honor, 2),
+		];
+		var ronTile = new Tile(TileSuit.Man, 6);
+
+		var yaku = YakuChecker.DetermineYaku(tiles, melds: [], seatWind: Seat.South, roundWind: Seat.West, ronTile);
+
+		Assert.DoesNotContain(Yaku.Pinfu, yaku);
+	}
+
+	/// <summary>パス条件: 刻子を含む場合、両面待ちで完成しても Yaku.Pinfu が含まれないこと。</summary>
+	[Fact]
+	public void DetermineYaku_WithTriplet_DoesNotContainPinfu()
+	{
+		Tile[] tiles =
+		[
+			new Tile(TileSuit.Man, 2), new Tile(TileSuit.Man, 2), new Tile(TileSuit.Man, 2),
+			new Tile(TileSuit.Pin, 3), new Tile(TileSuit.Pin, 4), new Tile(TileSuit.Pin, 5),
+			new Tile(TileSuit.Sou, 5), new Tile(TileSuit.Sou, 6), new Tile(TileSuit.Sou, 7),
+			new Tile(TileSuit.Man, 6), new Tile(TileSuit.Man, 7), new Tile(TileSuit.Man, 8),
+			new Tile(TileSuit.Honor, 1), new Tile(TileSuit.Honor, 1),
+		];
+		var ronTile = new Tile(TileSuit.Man, 6);
+
+		var yaku = YakuChecker.DetermineYaku(tiles, melds: [], seatWind: Seat.South, roundWind: Seat.South, ronTile);
+
+		Assert.DoesNotContain(Yaku.Pinfu, yaku);
+	}
+
+	/// <summary>パス条件: 副露がある場合、両面待ちで完成しても Yaku.Pinfu が含まれないこと。</summary>
+	[Fact]
+	public void DetermineYaku_WithMeld_DoesNotContainPinfu()
+	{
+		Tile[] concealedTiles =
+		[
+			new Tile(TileSuit.Pin, 3), new Tile(TileSuit.Pin, 4), new Tile(TileSuit.Pin, 5),
+			new Tile(TileSuit.Sou, 5), new Tile(TileSuit.Sou, 6), new Tile(TileSuit.Sou, 7),
+			new Tile(TileSuit.Man, 6), new Tile(TileSuit.Man, 7), new Tile(TileSuit.Man, 8),
+			new Tile(TileSuit.Honor, 1), new Tile(TileSuit.Honor, 1),
+		];
+		Meld[] melds = [new Meld(MeldType.Pon, [new Tile(TileSuit.Man, 2), new Tile(TileSuit.Man, 2), new Tile(TileSuit.Man, 2)])];
+		var ronTile = new Tile(TileSuit.Man, 6);
+
+		var yaku = YakuChecker.DetermineYaku(concealedTiles, melds, seatWind: Seat.South, roundWind: Seat.South, ronTile);
+
+		Assert.DoesNotContain(Yaku.Pinfu, yaku);
+	}
+
+	/// <summary>
+	/// パス条件: ツモ和了（ronTile: null、和了牌が手牌の末尾）でも両面待ちなら Yaku.Pinfu が含まれること
+	/// （手牌配列の最後の要素を和了牌として扱う規約の確認）。
+	/// </summary>
+	[Fact]
+	public void DetermineYaku_TsumoRyanmenWait_ContainsPinfu()
+	{
+		Tile[] tiles =
+		[
+			new Tile(TileSuit.Man, 2), new Tile(TileSuit.Man, 3), new Tile(TileSuit.Man, 4),
+			new Tile(TileSuit.Pin, 3), new Tile(TileSuit.Pin, 4), new Tile(TileSuit.Pin, 5),
+			new Tile(TileSuit.Sou, 5), new Tile(TileSuit.Sou, 6), new Tile(TileSuit.Sou, 7),
+			new Tile(TileSuit.Man, 7), new Tile(TileSuit.Man, 8),
+			new Tile(TileSuit.Pin, 2), new Tile(TileSuit.Pin, 2),
+			new Tile(TileSuit.Man, 6),
+		];
+
+		var yaku = YakuChecker.DetermineYaku(tiles, melds: [], seatWind: Seat.South, roundWind: Seat.South, ronTile: null);
+
+		Assert.Contains(Yaku.Pinfu, yaku);
+	}
 }

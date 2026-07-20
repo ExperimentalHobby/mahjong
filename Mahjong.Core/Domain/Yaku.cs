@@ -71,4 +71,7 @@ public enum Yaku
 
 	/// <summary>槍槓。</summary>
 	Chankan,
+
+	/// <summary>平和。</summary>
+	Pinfu,
 }
