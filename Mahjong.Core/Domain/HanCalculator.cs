@@ -47,6 +47,9 @@ public static class HanCalculator
 		Yaku.Houtei => 1,
 		Yaku.Chankan => 1,
 		Yaku.Pinfu => 1,
+		Yaku.SanshokuDoukou => 2,
+		Yaku.Shousangen => 2,
+		Yaku.Sankantsu => 2,
 		_ => throw new ArgumentOutOfRangeException(nameof(yaku), yaku, $"未対応のYakuです: {yaku}"),
 	};
 }

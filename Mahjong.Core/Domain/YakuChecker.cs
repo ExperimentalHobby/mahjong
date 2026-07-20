@@ -57,6 +57,11 @@ public static class YakuChecker
 			yaku.Add(Yaku.Honitsu);
 		}
 
+		if (melds.Count(meld => meld.Type is MeldType.OpenKan or MeldType.ClosedKan or MeldType.AddedKan) >= 3)
+		{
+			yaku.Add(Yaku.Sankantsu);
+		}
+
 		AddDecompositionDependentYaku(concealedTiles, melds, yaku);
 
 		return yaku;
@@ -111,6 +116,11 @@ public static class YakuChecker
 			}
 		}
 
+		if (HasShousangen(concealedTiles, melds))
+		{
+			yaku.Add(Yaku.Shousangen);
+		}
+
 		if (HasSanankou(concealedTiles, melds, ronTile))
 		{
 			yaku.Add(Yaku.Sanankou);
@@ -159,6 +169,22 @@ public static class YakuChecker
 		}
 
 		return false;
+	}
+
+	/// <summary>
+	/// 三元牌のうち2種が刻子で、残り1種が雀頭になっているかを判定する（小三元）。三元牌は順子を
+	/// 作れないため、<see cref="HasHonorTriplet"/>による直接カウントのみで判定でき、面子分解は不要。
+	/// </summary>
+	private static bool HasShousangen(IReadOnlyList<Tile> concealedTiles, IReadOnlyList<Meld> melds)
+	{
+		var tripletRanks = DragonRanks.Where(rank => HasHonorTriplet(concealedTiles, melds, rank)).ToArray();
+		if (tripletRanks.Length != 2)
+		{
+			return false;
+		}
+
+		var pairRank = DragonRanks.Single(rank => !tripletRanks.Contains(rank));
+		return concealedTiles.Count(tile => tile.Suit == TileSuit.Honor && tile.Rank == pairRank) == 2;
 	}
 
 	/// <summary>
@@ -305,6 +331,7 @@ public static class YakuChecker
 		var hasIipeikou = false;
 		var hasRyanpeikou = false;
 		var hasSanshokuDoujun = false;
+		var hasSanshokuDoukou = false;
 		var hasIttsuu = false;
 		var hasJunchan = false;
 		var hasChanta = false;
@@ -331,6 +358,7 @@ public static class YakuChecker
 				}
 
 				hasSanshokuDoujun |= HasSanshokuDoujun(decomposition);
+				hasSanshokuDoukou |= HasSanshokuDoukou(decomposition);
 				hasIttsuu |= HasIttsuu(decomposition);
 
 				if (AllSetsContainTerminalOrHonor(decomposition, pairKind))
@@ -367,6 +395,11 @@ public static class YakuChecker
 		if (hasSanshokuDoujun)
 		{
 			yaku.Add(Yaku.SanshokuDoujun);
+		}
+
+		if (hasSanshokuDoukou)
+		{
+			yaku.Add(Yaku.SanshokuDoukou);
 		}
 
 		if (hasIttsuu)
@@ -431,6 +464,13 @@ public static class YakuChecker
 	private static bool HasSanshokuDoujun(DecomposedSet[] decomposition) =>
 		decomposition
 			.Where(set => !set.IsTriplet)
+			.GroupBy(set => set.Rank)
+			.Any(group => group.Select(set => set.Suit).Distinct().Count() == 3);
+
+	/// <summary>分解内に同じランクの刻子（槓子を含む）が萬子・筒子・索子の3スート全てに存在するかを判定する（三色同刻）。</summary>
+	private static bool HasSanshokuDoukou(DecomposedSet[] decomposition) =>
+		decomposition
+			.Where(set => set.IsTriplet)
 			.GroupBy(set => set.Rank)
 			.Any(group => group.Select(set => set.Suit).Distinct().Count() == 3);
 

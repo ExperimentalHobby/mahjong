@@ -148,4 +148,31 @@ public class HanCalculatorTests
 
 		Assert.Equal(1, han);
 	}
+
+	/// <summary>パス条件: 三色同刻(Yaku.SanshokuDoukou)単独で2が返ること。</summary>
+	[Fact]
+	public void CalculateHan_SanshokuDoukou_ReturnsTwo()
+	{
+		var han = HanCalculator.CalculateHan([Yaku.SanshokuDoukou], isMenzen: true);
+
+		Assert.Equal(2, han);
+	}
+
+	/// <summary>パス条件: 小三元(Yaku.Shousangen)単独で2が返ること。</summary>
+	[Fact]
+	public void CalculateHan_Shousangen_ReturnsTwo()
+	{
+		var han = HanCalculator.CalculateHan([Yaku.Shousangen], isMenzen: true);
+
+		Assert.Equal(2, han);
+	}
+
+	/// <summary>パス条件: 三槓子(Yaku.Sankantsu)単独で2が返ること。</summary>
+	[Fact]
+	public void CalculateHan_Sankantsu_ReturnsTwo()
+	{
+		var han = HanCalculator.CalculateHan([Yaku.Sankantsu], isMenzen: true);
+
+		Assert.Equal(2, han);
+	}
 }
