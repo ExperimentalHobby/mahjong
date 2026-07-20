@@ -68,4 +68,7 @@ public enum Yaku
 
 	/// <summary>河底撈魚。</summary>
 	Houtei,
+
+	/// <summary>槍槓。</summary>
+	Chankan,
 }
