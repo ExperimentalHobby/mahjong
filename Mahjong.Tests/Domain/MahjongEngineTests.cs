@@ -816,6 +816,40 @@ public class MahjongEngineTests
 		Assert.Equal(1, engine.WinningHan[Seat.South]);
 	}
 
+	/// <summary>
+	/// パス条件: リーチ宣言後にロン和了した場合、WinningYaku に Yaku.Riichi が含まれ、
+	/// WinningHan にリーチ分の1翻が加算されること（Tanyao=1 + Riichi=1 = 2）。
+	/// </summary>
+	[Fact]
+	public void CallRon_AfterRiichi_WinningYakuAndWinningHanIncludeRiichi()
+	{
+		var discardedTile = new Tile(TileSuit.Pin, 2);
+		var southHand = new Hand(
+		[
+			new Tile(TileSuit.Man, 2), new Tile(TileSuit.Man, 3), new Tile(TileSuit.Man, 4),
+			new Tile(TileSuit.Pin, 3), new Tile(TileSuit.Pin, 4), new Tile(TileSuit.Pin, 5),
+			new Tile(TileSuit.Sou, 5), new Tile(TileSuit.Sou, 6), new Tile(TileSuit.Sou, 7),
+			new Tile(TileSuit.Man, 8), new Tile(TileSuit.Man, 8), new Tile(TileSuit.Man, 8),
+			new Tile(TileSuit.Pin, 9),
+		]);
+		southHand.Draw(discardedTile);
+		southHand.Riichi(new Tile(TileSuit.Pin, 9));
+		var hands = new Dictionary<Seat, Hand>
+		{
+			[Seat.East] = new Hand(CreateThirteenFillerTiles()),
+			[Seat.South] = southHand,
+			[Seat.West] = new Hand(CreateThirteenFillerTiles()),
+			[Seat.North] = new Hand(CreateThirteenFillerTiles()),
+		};
+		var engine = new MahjongEngine(
+			Wall.CreateShuffled(new Random(1)), hands, Seat.South, (discardedTile, Seat.East));
+
+		engine.CallRon(Seat.South);
+
+		Assert.Contains(Yaku.Riichi, engine.WinningYaku[Seat.South]);
+		Assert.Equal(2, engine.WinningHan[Seat.South]);
+	}
+
 	/// <summary>パス条件: 通常役でロン和了した場合、WinningFu に正しい符が設定されること。</summary>
 	[Fact]
 	public void CallRon_MenzenTanyao_SetsWinningFu()
@@ -1108,6 +1142,40 @@ public class MahjongEngineTests
 
 		Assert.Equal([Yaku.Tanyao], engine.WinningYaku[Seat.East]);
 		Assert.Equal(1, engine.WinningHan[Seat.East]);
+	}
+
+	/// <summary>
+	/// パス条件: リーチ宣言後にツモ和了した場合、WinningYaku に Yaku.Riichi が含まれ、
+	/// WinningHan にリーチ分の1翻が加算されること（Tanyao=1 + Riichi=1 = 2）。
+	/// </summary>
+	[Fact]
+	public void CallTsumo_AfterRiichi_WinningYakuAndWinningHanIncludeRiichi()
+	{
+		List<Tile> startingTiles =
+		[
+			new Tile(TileSuit.Man, 2), new Tile(TileSuit.Man, 3), new Tile(TileSuit.Man, 4),
+			new Tile(TileSuit.Pin, 3), new Tile(TileSuit.Pin, 4), new Tile(TileSuit.Pin, 5),
+			new Tile(TileSuit.Sou, 5), new Tile(TileSuit.Sou, 6), new Tile(TileSuit.Sou, 7),
+			new Tile(TileSuit.Man, 8), new Tile(TileSuit.Man, 8), new Tile(TileSuit.Man, 8),
+			new Tile(TileSuit.Pin, 9),
+		];
+		var eastHand = new Hand(startingTiles);
+		eastHand.Draw(new Tile(TileSuit.Pin, 2));
+		eastHand.Riichi(new Tile(TileSuit.Pin, 9));
+		eastHand.Draw(new Tile(TileSuit.Pin, 2));
+		var hands = new Dictionary<Seat, Hand>
+		{
+			[Seat.East] = eastHand,
+			[Seat.South] = new Hand(CreateThirteenFillerTiles()),
+			[Seat.West] = new Hand(CreateThirteenFillerTiles()),
+			[Seat.North] = new Hand(CreateThirteenFillerTiles()),
+		};
+		var engine = new MahjongEngine(Wall.CreateShuffled(new Random(1)), hands, Seat.East, lastDiscard: null);
+
+		engine.CallTsumo();
+
+		Assert.Contains(Yaku.Riichi, engine.WinningYaku[Seat.East]);
+		Assert.Equal(2, engine.WinningHan[Seat.East]);
 	}
 
 	/// <summary>パス条件: 通常役（門前）でツモ和了した場合、WinningFu に正しい符が設定されること。</summary>

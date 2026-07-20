@@ -85,4 +85,13 @@ public class HanCalculatorTests
 	{
 		Assert.Throws<ArgumentException>(() => HanCalculator.CalculateHan([Yaku.Tsuiisou], isMenzen: true));
 	}
+
+	/// <summary>パス条件: リーチ(Yaku.Riichi)単独で1が返ること。</summary>
+	[Fact]
+	public void CalculateHan_Riichi_ReturnsOne()
+	{
+		var han = HanCalculator.CalculateHan([Yaku.Riichi], isMenzen: true);
+
+		Assert.Equal(1, han);
+	}
 }
