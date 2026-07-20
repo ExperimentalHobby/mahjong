@@ -139,4 +139,13 @@ public class HanCalculatorTests
 
 		Assert.Equal(1, han);
 	}
+
+	/// <summary>パス条件: 平和(Yaku.Pinfu)単独で1が返ること。</summary>
+	[Fact]
+	public void CalculateHan_Pinfu_ReturnsOne()
+	{
+		var han = HanCalculator.CalculateHan([Yaku.Pinfu], isMenzen: true);
+
+		Assert.Equal(1, han);
+	}
 }
