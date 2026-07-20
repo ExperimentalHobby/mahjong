@@ -63,7 +63,7 @@ public static class YakuChecker
 	}
 
 	/// <summary>
-	/// 自風・場風を考慮し、役牌（自風牌・場風牌・三元牌）・三暗刻も含めて役を判定する。
+	/// 自風・場風を考慮し、役牌（自風牌・場風牌・三元牌）・三暗刻・門前清自摸和も含めて役を判定する。
 	/// <paramref name="ronTile"/>はロン和了牌（ツモ和了の場合は<c>null</c>）。ロンで完成した刻子は
 	/// 明刻扱いとなり三暗刻の暗刻数に数えない。
 	/// </summary>
@@ -78,6 +78,11 @@ public static class YakuChecker
 		if (yaku.Contains(Yaku.Kokushi))
 		{
 			return yaku;
+		}
+
+		if (ronTile is null && melds.Count == 0)
+		{
+			yaku.Add(Yaku.MenzenTsumo);
 		}
 
 		if (HasHonorTriplet(concealedTiles, melds, ToWindRank(seatWind)))

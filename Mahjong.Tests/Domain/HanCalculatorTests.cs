@@ -94,4 +94,13 @@ public class HanCalculatorTests
 
 		Assert.Equal(1, han);
 	}
+
+	/// <summary>パス条件: 門前清自摸和(Yaku.MenzenTsumo)単独で1が返ること。</summary>
+	[Fact]
+	public void CalculateHan_MenzenTsumo_ReturnsOne()
+	{
+		var han = HanCalculator.CalculateHan([Yaku.MenzenTsumo], isMenzen: true);
+
+		Assert.Equal(1, han);
+	}
 }

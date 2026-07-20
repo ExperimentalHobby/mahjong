@@ -56,4 +56,7 @@ public enum Yaku
 
 	/// <summary>立直。</summary>
 	Riichi,
+
+	/// <summary>門前清自摸和。</summary>
+	MenzenTsumo,
 }
