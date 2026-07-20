@@ -59,4 +59,13 @@ public enum Yaku
 
 	/// <summary>門前清自摸和。</summary>
 	MenzenTsumo,
+
+	/// <summary>嶺上開花。</summary>
+	RinshanKaihou,
+
+	/// <summary>海底摸月。</summary>
+	Haitei,
+
+	/// <summary>河底撈魚。</summary>
+	Houtei,
 }
