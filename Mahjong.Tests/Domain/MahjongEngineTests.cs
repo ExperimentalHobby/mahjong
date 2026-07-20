@@ -1904,10 +1904,11 @@ public class MahjongEngineTests
 
 	/// <summary>
 	/// パス条件: 現在の手番の既存ポンに対して加槓が成立すると、Hand.MeldsのPonがAddedKanに置き換わり、
-	/// 嶺上牌をツモった状態（打牌待ち）になること。
+	/// LastDiscardに加槓牌とCurrentTurnが設定され（槍槓の割り込み窓）、嶺上牌はまだツモられない
+	/// （打牌待ちにならない）こと。
 	/// </summary>
 	[Fact]
-	public void CallAddedKan_ByCurrentTurn_ReplacesPonMeldAndDrawsReplacement()
+	public void CallAddedKan_ByCurrentTurn_ReplacesPonMeldAndOpensChankanWindow()
 	{
 		var pinOne = new Tile(TileSuit.Pin, 1);
 		var eastHand = new Hand(
@@ -1935,9 +1936,187 @@ public class MahjongEngineTests
 
 		var meld = Assert.Single(engine.Hands[Seat.East].Melds);
 		Assert.Equal(MeldType.AddedKan, meld.Type);
+		Assert.Equal(10, engine.Hands[Seat.East].ConcealedTiles.Count);
+		Assert.Equal(liveWallCountBefore, engine.LiveWallCount);
+		Assert.Equal((pinOne, Seat.East), engine.LastDiscard);
+	}
+
+	/// <summary>
+	/// パス条件: 加槓成立後（誰も槍槓しなかった場合）に ResolveAddedKan() を呼ぶと、
+	/// 嶺上牌を1枚ツモった状態（打牌待ち）になり、LastDiscard がクリアされること。
+	/// </summary>
+	[Fact]
+	public void ResolveAddedKan_AfterCallAddedKan_DrawsReplacementAndClearsLastDiscard()
+	{
+		var pinOne = new Tile(TileSuit.Pin, 1);
+		var eastHand = new Hand(
+		[
+			pinOne, pinOne,
+			new Tile(TileSuit.Man, 1), new Tile(TileSuit.Man, 2), new Tile(TileSuit.Man, 3),
+			new Tile(TileSuit.Man, 4), new Tile(TileSuit.Man, 5), new Tile(TileSuit.Man, 6),
+			new Tile(TileSuit.Man, 7), new Tile(TileSuit.Man, 8), new Tile(TileSuit.Man, 9),
+			new Tile(TileSuit.Pin, 9), new Tile(TileSuit.Sou, 9),
+		]);
+		eastHand.Pon(pinOne, pinOne, pinOne);
+		eastHand.Discard(new Tile(TileSuit.Pin, 9));
+		eastHand.Draw(pinOne);
+		var hands = new Dictionary<Seat, Hand>
+		{
+			[Seat.East] = eastHand,
+			[Seat.South] = new Hand(CreateThirteenFillerTiles()),
+			[Seat.West] = new Hand(CreateThirteenFillerTiles()),
+			[Seat.North] = new Hand(CreateThirteenFillerTiles()),
+		};
+		var engine = new MahjongEngine(Wall.CreateShuffled(new Random(1)), hands, Seat.East, lastDiscard: null);
+		var liveWallCountBefore = engine.LiveWallCount;
+		engine.CallAddedKan(pinOne);
+
+		engine.ResolveAddedKan();
+
 		Assert.Equal(11, engine.Hands[Seat.East].ConcealedTiles.Count);
 		Assert.Equal(liveWallCountBefore - 1, engine.LiveWallCount);
+		Assert.Null(engine.LastDiscard);
 		Assert.Throws<InvalidOperationException>(() => engine.Hands[Seat.East].Draw(new Tile(TileSuit.Sou, 8)));
+	}
+
+	/// <summary>パス条件: 加槓が成立していない状態で ResolveAddedKan() を呼ぶと InvalidOperationException になること。</summary>
+	[Fact]
+	public void ResolveAddedKan_WithoutCallAddedKan_Throws()
+	{
+		var engine = MahjongEngine.Start(new Random(1));
+
+		Assert.Throws<InvalidOperationException>(() => engine.ResolveAddedKan());
+	}
+
+	/// <summary>パス条件: 加槓の牌に対して他家がロン（槍槓）した場合、WinningYaku に Yaku.Chankan が含まれること。</summary>
+	[Fact]
+	public void CallRon_OnAddedKanTile_WinningYakuContainsChankan()
+	{
+		var pinOne = new Tile(TileSuit.Pin, 1);
+		var eastHand = new Hand(
+		[
+			pinOne, pinOne,
+			new Tile(TileSuit.Man, 1), new Tile(TileSuit.Man, 2), new Tile(TileSuit.Man, 3),
+			new Tile(TileSuit.Man, 4), new Tile(TileSuit.Man, 5), new Tile(TileSuit.Man, 6),
+			new Tile(TileSuit.Man, 7), new Tile(TileSuit.Man, 8), new Tile(TileSuit.Man, 9),
+			new Tile(TileSuit.Pin, 9), new Tile(TileSuit.Sou, 9),
+		]);
+		eastHand.Pon(pinOne, pinOne, pinOne);
+		eastHand.Discard(new Tile(TileSuit.Pin, 9));
+		eastHand.Draw(pinOne);
+		var southHand = new Hand(
+		[
+			new Tile(TileSuit.Man, 2), new Tile(TileSuit.Man, 3), new Tile(TileSuit.Man, 4),
+			new Tile(TileSuit.Sou, 5), new Tile(TileSuit.Sou, 6), new Tile(TileSuit.Sou, 7),
+			new Tile(TileSuit.Man, 8), new Tile(TileSuit.Man, 8), new Tile(TileSuit.Man, 8),
+			new Tile(TileSuit.Pin, 9), new Tile(TileSuit.Pin, 9),
+			new Tile(TileSuit.Pin, 2), new Tile(TileSuit.Pin, 3),
+		]);
+		var hands = new Dictionary<Seat, Hand>
+		{
+			[Seat.East] = eastHand,
+			[Seat.South] = southHand,
+			[Seat.West] = new Hand(CreateThirteenFillerTiles()),
+			[Seat.North] = new Hand(CreateThirteenFillerTiles()),
+		};
+		var engine = new MahjongEngine(Wall.CreateShuffled(new Random(1)), hands, Seat.East, lastDiscard: null);
+		engine.CallAddedKan(pinOne);
+
+		engine.CallRon(Seat.South);
+
+		Assert.Contains(Yaku.Chankan, engine.WinningYaku[Seat.South]);
+	}
+
+	/// <summary>パス条件: 槍槓成立待ち（加槓成立後、ResolveAddedKan前）に CallPon() を呼ぶと InvalidOperationException になること。</summary>
+	[Fact]
+	public void CallPon_DuringChankanWindow_Throws()
+	{
+		var pinOne = new Tile(TileSuit.Pin, 1);
+		var eastHand = new Hand(
+		[
+			pinOne, pinOne,
+			new Tile(TileSuit.Man, 1), new Tile(TileSuit.Man, 2), new Tile(TileSuit.Man, 3),
+			new Tile(TileSuit.Man, 4), new Tile(TileSuit.Man, 5), new Tile(TileSuit.Man, 6),
+			new Tile(TileSuit.Man, 7), new Tile(TileSuit.Man, 8), new Tile(TileSuit.Man, 9),
+			new Tile(TileSuit.Pin, 9), new Tile(TileSuit.Sou, 9),
+		]);
+		eastHand.Pon(pinOne, pinOne, pinOne);
+		eastHand.Discard(new Tile(TileSuit.Pin, 9));
+		eastHand.Draw(pinOne);
+		var hands = new Dictionary<Seat, Hand>
+		{
+			[Seat.East] = eastHand,
+			[Seat.South] = new Hand(CreateThirteenFillerTiles()),
+			[Seat.West] = new Hand(CreateThirteenFillerTiles()),
+			[Seat.North] = new Hand(CreateThirteenFillerTiles()),
+		};
+		var engine = new MahjongEngine(Wall.CreateShuffled(new Random(1)), hands, Seat.East, lastDiscard: null);
+		engine.CallAddedKan(pinOne);
+
+		Assert.Throws<InvalidOperationException>(
+			() => engine.CallPon(Seat.South, new Tile(TileSuit.Man, 1), new Tile(TileSuit.Man, 1)));
+	}
+
+	/// <summary>パス条件: 槍槓成立待ち（加槓成立後、ResolveAddedKan前）に CallChi() を呼ぶと InvalidOperationException になること。</summary>
+	[Fact]
+	public void CallChi_DuringChankanWindow_Throws()
+	{
+		var pinOne = new Tile(TileSuit.Pin, 1);
+		var eastHand = new Hand(
+		[
+			pinOne, pinOne,
+			new Tile(TileSuit.Man, 1), new Tile(TileSuit.Man, 2), new Tile(TileSuit.Man, 3),
+			new Tile(TileSuit.Man, 4), new Tile(TileSuit.Man, 5), new Tile(TileSuit.Man, 6),
+			new Tile(TileSuit.Man, 7), new Tile(TileSuit.Man, 8), new Tile(TileSuit.Man, 9),
+			new Tile(TileSuit.Pin, 9), new Tile(TileSuit.Sou, 9),
+		]);
+		eastHand.Pon(pinOne, pinOne, pinOne);
+		eastHand.Discard(new Tile(TileSuit.Pin, 9));
+		eastHand.Draw(pinOne);
+		var hands = new Dictionary<Seat, Hand>
+		{
+			[Seat.East] = eastHand,
+			[Seat.South] = new Hand(CreateThirteenFillerTiles()),
+			[Seat.West] = new Hand(CreateThirteenFillerTiles()),
+			[Seat.North] = new Hand(CreateThirteenFillerTiles()),
+		};
+		var engine = new MahjongEngine(Wall.CreateShuffled(new Random(1)), hands, Seat.East, lastDiscard: null);
+		engine.CallAddedKan(pinOne);
+
+		Assert.Throws<InvalidOperationException>(
+			() => engine.CallChi(Seat.South, new Tile(TileSuit.Pin, 2), new Tile(TileSuit.Pin, 3)));
+	}
+
+	/// <summary>
+	/// パス条件: 槍槓成立待ち（加槓成立後、ResolveAddedKan前）に CallOpenKan() を呼ぶと InvalidOperationException になること。
+	/// </summary>
+	[Fact]
+	public void CallOpenKan_DuringChankanWindow_Throws()
+	{
+		var pinOne = new Tile(TileSuit.Pin, 1);
+		var eastHand = new Hand(
+		[
+			pinOne, pinOne,
+			new Tile(TileSuit.Man, 1), new Tile(TileSuit.Man, 2), new Tile(TileSuit.Man, 3),
+			new Tile(TileSuit.Man, 4), new Tile(TileSuit.Man, 5), new Tile(TileSuit.Man, 6),
+			new Tile(TileSuit.Man, 7), new Tile(TileSuit.Man, 8), new Tile(TileSuit.Man, 9),
+			new Tile(TileSuit.Pin, 9), new Tile(TileSuit.Sou, 9),
+		]);
+		eastHand.Pon(pinOne, pinOne, pinOne);
+		eastHand.Discard(new Tile(TileSuit.Pin, 9));
+		eastHand.Draw(pinOne);
+		var hands = new Dictionary<Seat, Hand>
+		{
+			[Seat.East] = eastHand,
+			[Seat.South] = new Hand(CreateThirteenFillerTiles()),
+			[Seat.West] = new Hand(CreateThirteenFillerTiles()),
+			[Seat.North] = new Hand(CreateThirteenFillerTiles()),
+		};
+		var engine = new MahjongEngine(Wall.CreateShuffled(new Random(1)), hands, Seat.East, lastDiscard: null);
+		engine.CallAddedKan(pinOne);
+
+		Assert.Throws<InvalidOperationException>(() => engine.CallOpenKan(
+			Seat.South, new Tile(TileSuit.Man, 1), new Tile(TileSuit.Man, 1), new Tile(TileSuit.Man, 1)));
 	}
 
 	/// <summary>

@@ -130,4 +130,13 @@ public class HanCalculatorTests
 
 		Assert.Equal(1, han);
 	}
+
+	/// <summary>パス条件: 槍槓(Yaku.Chankan)単独で1が返ること。</summary>
+	[Fact]
+	public void CalculateHan_Chankan_ReturnsOne()
+	{
+		var han = HanCalculator.CalculateHan([Yaku.Chankan], isMenzen: true);
+
+		Assert.Equal(1, han);
+	}
 }

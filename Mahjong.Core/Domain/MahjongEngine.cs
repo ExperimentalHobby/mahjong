@@ -3,20 +3,22 @@ namespace Mahjong.Core.Domain;
 /// <summary>
 /// 四人麻雀の卓状態を管理し、ツモ・打牌・鳴き（ポン・チー・カン全種）・リーチ・ロン・ツモ和了・流局判定による
 /// 手番進行を統括する。ロン/ツモ和了の成立時に<see cref="WinningYaku"/>で役牌・三暗刻・リーチ・嶺上開花・
-/// 海底摸月・河底撈魚を含む役を確定させ、<see cref="WinningHan"/>・<see cref="WinningFu"/>・
+/// 海底摸月・河底撈魚・槍槓を含む役を確定させ、<see cref="WinningHan"/>・<see cref="WinningFu"/>・
 /// <see cref="WinningPoints"/>で翻数・符・点数も計算する（役満を除く）。平和など待ちの形を条件とする役、
-/// 槍槓、一発・裏ドラ、局の推移（連荘・場風の遷移）は対象外（今後のマイルストーンで対応）。
+/// 一発・裏ドラ、局の推移（連荘・場風の遷移）は対象外（今後のマイルストーンで対応）。
 /// </summary>
 public sealed class MahjongEngine
 {
 	private readonly Wall _wall;
 	private readonly Dictionary<Seat, Hand> _hands;
 	private bool _isRinshanDraw;
+	private bool _isChankanTile;
 
 	/// <summary>テスト用に卓状態を直接組み立てるための内部コンストラクタ。</summary>
 	internal MahjongEngine(
 		Wall wall, Dictionary<Seat, Hand> hands, Seat currentTurn, (Tile Tile, Seat Discarder)? lastDiscard,
-		IReadOnlyList<Seat>? winners = null, Seat roundWind = Seat.East, bool isRinshanDraw = false)
+		IReadOnlyList<Seat>? winners = null, Seat roundWind = Seat.East, bool isRinshanDraw = false,
+		bool isChankanTile = false)
 	{
 		_wall = wall;
 		_hands = hands;
@@ -25,6 +27,7 @@ public sealed class MahjongEngine
 		Winners = winners ?? [];
 		RoundWind = roundWind;
 		_isRinshanDraw = isRinshanDraw;
+		_isChankanTile = isChankanTile;
 	}
 
 	/// <summary>現在の手番の座席。</summary>
@@ -117,6 +120,7 @@ public sealed class MahjongEngine
 	{
 		LastDiscard = null;
 		_isRinshanDraw = false;
+		_isChankanTile = false;
 		var tile = _wall.Draw();
 		_hands[CurrentTurn].Draw(tile);
 	}
@@ -129,6 +133,7 @@ public sealed class MahjongEngine
 		var discarder = CurrentTurn;
 		_hands[discarder].Discard(tile);
 		LastDiscard = (tile, discarder);
+		_isChankanTile = false;
 		CurrentTurn = NextSeat(discarder);
 	}
 
@@ -146,6 +151,7 @@ public sealed class MahjongEngine
 		var discarder = CurrentTurn;
 		_hands[discarder].Riichi(tile);
 		LastDiscard = (tile, discarder);
+		_isChankanTile = false;
 		CurrentTurn = NextSeat(discarder);
 	}
 
@@ -153,7 +159,7 @@ public sealed class MahjongEngine
 	/// 直前の捨て牌に対して<paramref name="caller"/>がポンを宣言する。
 	/// 成立後、手番は<paramref name="caller"/>に移る（打牌待ちになるため、続けて<see cref="Discard"/>を呼ぶ想定）。
 	/// </summary>
-	/// <exception cref="InvalidOperationException">直前の捨て牌が無い場合。</exception>
+	/// <exception cref="InvalidOperationException">直前の捨て牌が無い場合、または槍槓成立待ちの場合。</exception>
 	/// <exception cref="ArgumentException">
 	/// 自分自身の捨て牌に対してポンしようとした場合、または<see cref="Hand.Pon"/>の既存バリデーションに違反する場合。
 	/// </exception>
@@ -162,6 +168,11 @@ public sealed class MahjongEngine
 		if (LastDiscard is not { } lastDiscard)
 		{
 			throw new InvalidOperationException("ポンできる捨て牌がありません。");
+		}
+
+		if (_isChankanTile)
+		{
+			throw new InvalidOperationException("槍槓成立待ちの牌に対してポンはできません。");
 		}
 
 		if (caller == lastDiscard.Discarder)
@@ -178,7 +189,7 @@ public sealed class MahjongEngine
 	/// 直前の捨て牌に対して<paramref name="caller"/>がチーを宣言する。
 	/// 成立後、手番は<paramref name="caller"/>に移る（打牌待ちになるため、続けて<see cref="Discard"/>を呼ぶ想定）。
 	/// </summary>
-	/// <exception cref="InvalidOperationException">直前の捨て牌が無い場合。</exception>
+	/// <exception cref="InvalidOperationException">直前の捨て牌が無い場合、または槍槓成立待ちの場合。</exception>
 	/// <exception cref="ArgumentException">
 	/// <paramref name="caller"/>が打牌者の下家（上家からの捨て牌）でない場合、
 	/// または<see cref="Hand.Chi"/>の既存バリデーションに違反する場合。
@@ -188,6 +199,11 @@ public sealed class MahjongEngine
 		if (LastDiscard is not { } lastDiscard)
 		{
 			throw new InvalidOperationException("チーできる捨て牌がありません。");
+		}
+
+		if (_isChankanTile)
+		{
+			throw new InvalidOperationException("槍槓成立待ちの牌に対してチーはできません。");
 		}
 
 		if (caller != NextSeat(lastDiscard.Discarder))
@@ -266,6 +282,11 @@ public sealed class MahjongEngine
 		foreach (var caller in callers)
 		{
 			var yaku = new List<Yaku>(_hands[caller].DetermineYakuOn(lastDiscard.Tile, caller, RoundWind));
+			if (_isChankanTile)
+			{
+				yaku.Add(Yaku.Chankan);
+			}
+
 			if (LiveWallCount == 0)
 			{
 				yaku.Add(Yaku.Houtei);
@@ -295,7 +316,7 @@ public sealed class MahjongEngine
 	/// 直前の捨て牌に対して<paramref name="caller"/>が大明槓を宣言する。
 	/// 成立後、手番は<paramref name="caller"/>に移り、嶺上牌を1枚ツモった状態（打牌待ち）になる。
 	/// </summary>
-	/// <exception cref="InvalidOperationException">直前の捨て牌が無い場合。</exception>
+	/// <exception cref="InvalidOperationException">直前の捨て牌が無い場合、または槍槓成立待ちの場合。</exception>
 	/// <exception cref="ArgumentException">
 	/// 自分自身の捨て牌に対してカンしようとした場合、または<see cref="Hand.OpenKan"/>の既存バリデーションに違反する場合。
 	/// </exception>
@@ -304,6 +325,11 @@ public sealed class MahjongEngine
 		if (LastDiscard is not { } lastDiscard)
 		{
 			throw new InvalidOperationException("カンできる捨て牌がありません。");
+		}
+
+		if (_isChankanTile)
+		{
+			throw new InvalidOperationException("槍槓成立待ちの牌に対して大明槓はできません。");
 		}
 
 		if (caller == lastDiscard.Discarder)
@@ -336,14 +362,34 @@ public sealed class MahjongEngine
 	}
 
 	/// <summary>
-	/// 現在の手番のプレイヤーが既存のポンにツモ牌を追加して加槓を宣言する。
-	/// 成立後、嶺上牌を1枚ツモった状態（打牌待ち）になる。
+	/// 現在の手番のプレイヤーが既存のポンにツモ牌を追加して加槓を宣言する。成立後、嶺上牌はまだツモらず、
+	/// 加槓した牌を<see cref="LastDiscard"/>として他家に公開する（槍槓の割り込み窓）。
+	/// 誰もロン（槍槓）しなければ、続けて<see cref="ResolveAddedKan"/>を呼んで嶺上牌のツモを確定させる想定。
 	/// </summary>
 	/// <exception cref="InvalidOperationException">打牌待ち（ツモ直後）でない場合。</exception>
 	/// <exception cref="ArgumentException"><see cref="Hand.AddedKan"/>の既存バリデーションに違反する場合。</exception>
 	public void CallAddedKan(Tile tile)
 	{
 		_hands[CurrentTurn].AddedKan(tile);
+
+		LastDiscard = (tile, CurrentTurn);
+		_isChankanTile = true;
+	}
+
+	/// <summary>
+	/// <see cref="CallAddedKan"/>成立後、誰も槍槓（ロン）しなかった場合に呼び出し、嶺上牌を1枚ツモった状態
+	/// （打牌待ち）に確定させる。
+	/// </summary>
+	/// <exception cref="InvalidOperationException"><see cref="CallAddedKan"/>による槍槓成立待ちの状態でない場合。</exception>
+	public void ResolveAddedKan()
+	{
+		if (!_isChankanTile)
+		{
+			throw new InvalidOperationException("加槓が成立していないため、嶺上牌をツモれません。");
+		}
+
+		LastDiscard = null;
+		_isChankanTile = false;
 
 		var rinshanTile = _wall.DrawReplacement();
 		_hands[CurrentTurn].Draw(rinshanTile);
@@ -410,7 +456,8 @@ public sealed class MahjongEngine
 			clonedHands[seat] = hand.Clone();
 		}
 
-		return new MahjongEngine(_wall.Clone(), clonedHands, CurrentTurn, LastDiscard, Winners, RoundWind, _isRinshanDraw)
+		return new MahjongEngine(
+			_wall.Clone(), clonedHands, CurrentTurn, LastDiscard, Winners, RoundWind, _isRinshanDraw, _isChankanTile)
 		{
 			WinningYaku = WinningYaku,
 			WinningHan = WinningHan,
