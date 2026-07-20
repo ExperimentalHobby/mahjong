@@ -4,13 +4,17 @@ namespace Mahjong.Core.Domain;
 /// 四人麻雀の卓状態を管理し、ツモ・打牌・鳴き（ポン・チー・カン全種）・リーチ・ロン・ツモ和了・流局判定による
 /// 手番進行を統括する。ロン/ツモ和了の成立時に<see cref="WinningYaku"/>で役牌・三暗刻・リーチ・嶺上開花・
 /// 海底摸月・河底撈魚・槍槓を含む役を確定させ、<see cref="WinningHan"/>・<see cref="WinningFu"/>・
-/// <see cref="WinningPoints"/>で翻数・符・点数も計算する（役満を除く）。平和など待ちの形を条件とする役、
-/// 一発・裏ドラ、局の推移（連荘・場風の遷移）は対象外（今後のマイルストーンで対応）。
+/// <see cref="WinningPoints"/>で翻数・符・点数も計算し、<see cref="Scores"/>で座席ごとの持ち点も
+/// 実際に増減させる（役満を除く）。平和など待ちの形を条件とする役、一発・裏ドラ、供託・積み棒、
+/// 局の推移（連荘・場風の遷移）は対象外（今後のマイルストーンで対応）。
 /// </summary>
 public sealed class MahjongEngine
 {
+	private const int StartingScore = 25000;
+
 	private readonly Wall _wall;
 	private readonly Dictionary<Seat, Hand> _hands;
+	private readonly Dictionary<Seat, int> _scores;
 	private bool _isRinshanDraw;
 	private bool _isChankanTile;
 
@@ -18,7 +22,7 @@ public sealed class MahjongEngine
 	internal MahjongEngine(
 		Wall wall, Dictionary<Seat, Hand> hands, Seat currentTurn, (Tile Tile, Seat Discarder)? lastDiscard,
 		IReadOnlyList<Seat>? winners = null, Seat roundWind = Seat.East, bool isRinshanDraw = false,
-		bool isChankanTile = false)
+		bool isChankanTile = false, Dictionary<Seat, int>? scores = null)
 	{
 		_wall = wall;
 		_hands = hands;
@@ -28,6 +32,7 @@ public sealed class MahjongEngine
 		RoundWind = roundWind;
 		_isRinshanDraw = isRinshanDraw;
 		_isChankanTile = isChankanTile;
+		_scores = scores ?? hands.Keys.ToDictionary(seat => seat, _ => StartingScore);
 	}
 
 	/// <summary>現在の手番の座席。</summary>
@@ -86,6 +91,13 @@ public sealed class MahjongEngine
 	/// 引き続き含まれる）。まだ誰も和了していない場合は空。
 	/// </summary>
 	public IReadOnlyDictionary<Seat, int> WinningPoints { get; private set; } = new Dictionary<Seat, int>();
+
+	/// <summary>
+	/// 座席ごとの持ち点。対局開始時は全員25000点。<see cref="CallRon"/>・<see cref="CallTsumo"/>の成立時
+	/// （役満を除く）に<see cref="WinningPoints"/>と同じ支払額に基づいて実際に増減する。
+	/// 供託（リーチ棒）・積み棒・流局時の聴牌払いは対象外。
+	/// </summary>
+	public IReadOnlyDictionary<Seat, int> Scores => _scores;
 
 	/// <summary>
 	/// 3人が同じ捨て牌に対して同時にロンを宣言した場合（三家和）に<c>true</c>になる。
@@ -302,7 +314,10 @@ public sealed class MahjongEngine
 					hypotheticalTiles, _hands[caller].Melds, yaku, caller, RoundWind, lastDiscard.Tile);
 				winningHan[caller] = han;
 				winningFu[caller] = fu;
-				winningPoints[caller] = ScoreCalculator.CalculateRonPoints(han, fu, isDealer: caller == DealerSeat);
+				var points = ScoreCalculator.CalculateRonPoints(han, fu, isDealer: caller == DealerSeat);
+				winningPoints[caller] = points;
+				_scores[caller] += points;
+				_scores[lastDiscard.Discarder] -= points;
 			}
 		}
 
@@ -433,12 +448,26 @@ public sealed class MahjongEngine
 			winningFu[CurrentTurn] = fu;
 			if (CurrentTurn == DealerSeat)
 			{
-				winningPoints[CurrentTurn] = ScoreCalculator.CalculateDealerTsumoPointsFromEach(han, fu) * 3;
+				var each = ScoreCalculator.CalculateDealerTsumoPointsFromEach(han, fu);
+				winningPoints[CurrentTurn] = each * 3;
+				foreach (var seat in _hands.Keys.Where(seat => seat != CurrentTurn))
+				{
+					_scores[seat] -= each;
+				}
+
+				_scores[CurrentTurn] += each * 3;
 			}
 			else
 			{
 				var (fromDealer, fromNonDealer) = ScoreCalculator.CalculateNonDealerTsumoPoints(han, fu);
 				winningPoints[CurrentTurn] = fromDealer + (fromNonDealer * 2);
+				_scores[DealerSeat] -= fromDealer;
+				foreach (var seat in _hands.Keys.Where(seat => seat != CurrentTurn && seat != DealerSeat))
+				{
+					_scores[seat] -= fromNonDealer;
+				}
+
+				_scores[CurrentTurn] += fromDealer + (fromNonDealer * 2);
 			}
 		}
 
@@ -457,7 +486,8 @@ public sealed class MahjongEngine
 		}
 
 		return new MahjongEngine(
-			_wall.Clone(), clonedHands, CurrentTurn, LastDiscard, Winners, RoundWind, _isRinshanDraw, _isChankanTile)
+			_wall.Clone(), clonedHands, CurrentTurn, LastDiscard, Winners, RoundWind, _isRinshanDraw, _isChankanTile,
+			new Dictionary<Seat, int>(_scores))
 		{
 			WinningYaku = WinningYaku,
 			WinningHan = WinningHan,
