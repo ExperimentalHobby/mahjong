@@ -1117,4 +1117,172 @@ public class YakuCheckerTests
 
 		Assert.Contains(Yaku.Pinfu, yaku);
 	}
+
+	/// <summary>パス条件: 同じ数字の刻子が萬子・筒子・索子に揃う場合、Yaku.SanshokuDoukou が含まれること。</summary>
+	[Fact]
+	public void DetermineYaku_SameRankTripletsAcrossThreeSuits_ContainsSanshokuDoukou()
+	{
+		Tile[] tiles =
+		[
+			new Tile(TileSuit.Man, 5), new Tile(TileSuit.Man, 5), new Tile(TileSuit.Man, 5),
+			new Tile(TileSuit.Pin, 5), new Tile(TileSuit.Pin, 5), new Tile(TileSuit.Pin, 5),
+			new Tile(TileSuit.Sou, 5), new Tile(TileSuit.Sou, 5), new Tile(TileSuit.Sou, 5),
+			new Tile(TileSuit.Man, 1), new Tile(TileSuit.Man, 2), new Tile(TileSuit.Man, 3),
+			new Tile(TileSuit.Pin, 9), new Tile(TileSuit.Pin, 9),
+		];
+
+		var yaku = YakuChecker.DetermineYaku(tiles, melds: []);
+
+		Assert.Contains(Yaku.SanshokuDoukou, yaku);
+	}
+
+	/// <summary>パス条件: 刻子のランクが3色で揃わない場合、Yaku.SanshokuDoukou が含まれないこと。</summary>
+	[Fact]
+	public void DetermineYaku_DifferentRankTriplets_DoesNotContainSanshokuDoukou()
+	{
+		Tile[] tiles =
+		[
+			new Tile(TileSuit.Man, 5), new Tile(TileSuit.Man, 5), new Tile(TileSuit.Man, 5),
+			new Tile(TileSuit.Pin, 6), new Tile(TileSuit.Pin, 6), new Tile(TileSuit.Pin, 6),
+			new Tile(TileSuit.Sou, 7), new Tile(TileSuit.Sou, 7), new Tile(TileSuit.Sou, 7),
+			new Tile(TileSuit.Man, 1), new Tile(TileSuit.Man, 2), new Tile(TileSuit.Man, 3),
+			new Tile(TileSuit.Pin, 9), new Tile(TileSuit.Pin, 9),
+		];
+
+		var yaku = YakuChecker.DetermineYaku(tiles, melds: []);
+
+		Assert.DoesNotContain(Yaku.SanshokuDoukou, yaku);
+	}
+
+	/// <summary>パス条件: 3色のうち1色がカン（副露）の場合でも Yaku.SanshokuDoukou が含まれること。</summary>
+	[Fact]
+	public void DetermineYaku_SanshokuDoukouWithOpenKan_ContainsSanshokuDoukou()
+	{
+		Tile[] concealedTiles =
+		[
+			new Tile(TileSuit.Pin, 5), new Tile(TileSuit.Pin, 5), new Tile(TileSuit.Pin, 5),
+			new Tile(TileSuit.Sou, 5), new Tile(TileSuit.Sou, 5), new Tile(TileSuit.Sou, 5),
+			new Tile(TileSuit.Man, 1), new Tile(TileSuit.Man, 2), new Tile(TileSuit.Man, 3),
+			new Tile(TileSuit.Pin, 9), new Tile(TileSuit.Pin, 9),
+		];
+		Meld[] melds =
+		[
+			new Meld(
+				MeldType.OpenKan,
+				[new Tile(TileSuit.Man, 5), new Tile(TileSuit.Man, 5), new Tile(TileSuit.Man, 5), new Tile(TileSuit.Man, 5)]),
+		];
+
+		var yaku = YakuChecker.DetermineYaku(concealedTiles, melds);
+
+		Assert.Contains(Yaku.SanshokuDoukou, yaku);
+	}
+
+	/// <summary>パス条件: 三元牌2種が刻子・残り1種が雀頭の場合、Yaku.Shousangen が含まれること。</summary>
+	[Fact]
+	public void DetermineYaku_TwoDragonTripletsAndDragonPair_ContainsShousangen()
+	{
+		Tile[] tiles =
+		[
+			new Tile(TileSuit.Honor, 5), new Tile(TileSuit.Honor, 5), new Tile(TileSuit.Honor, 5),
+			new Tile(TileSuit.Honor, 6), new Tile(TileSuit.Honor, 6), new Tile(TileSuit.Honor, 6),
+			new Tile(TileSuit.Honor, 7), new Tile(TileSuit.Honor, 7),
+			new Tile(TileSuit.Man, 1), new Tile(TileSuit.Man, 2), new Tile(TileSuit.Man, 3),
+			new Tile(TileSuit.Pin, 1), new Tile(TileSuit.Pin, 2), new Tile(TileSuit.Pin, 3),
+		];
+
+		var yaku = YakuChecker.DetermineYaku(tiles, melds: [], seatWind: Seat.South, roundWind: Seat.South, ronTile: null);
+
+		Assert.Contains(Yaku.Shousangen, yaku);
+	}
+
+	/// <summary>
+	/// パス条件: 三元牌3種すべてが刻子（大三元相当）の場合、Yaku.Shousangen が含まれないこと
+	/// （雀頭が三元牌でないため）。
+	/// </summary>
+	[Fact]
+	public void DetermineYaku_AllThreeDragonTriplets_DoesNotContainShousangen()
+	{
+		Tile[] tiles =
+		[
+			new Tile(TileSuit.Honor, 5), new Tile(TileSuit.Honor, 5), new Tile(TileSuit.Honor, 5),
+			new Tile(TileSuit.Honor, 6), new Tile(TileSuit.Honor, 6), new Tile(TileSuit.Honor, 6),
+			new Tile(TileSuit.Honor, 7), new Tile(TileSuit.Honor, 7), new Tile(TileSuit.Honor, 7),
+			new Tile(TileSuit.Man, 1), new Tile(TileSuit.Man, 2), new Tile(TileSuit.Man, 3),
+			new Tile(TileSuit.Pin, 9), new Tile(TileSuit.Pin, 9),
+		];
+
+		var yaku = YakuChecker.DetermineYaku(tiles, melds: [], seatWind: Seat.South, roundWind: Seat.South, ronTile: null);
+
+		Assert.DoesNotContain(Yaku.Shousangen, yaku);
+	}
+
+	/// <summary>パス条件: 三元牌の刻子が1種のみの場合、Yaku.Shousangen が含まれないこと。</summary>
+	[Fact]
+	public void DetermineYaku_OneDragonTriplet_DoesNotContainShousangen()
+	{
+		Tile[] tiles =
+		[
+			new Tile(TileSuit.Honor, 5), new Tile(TileSuit.Honor, 5), new Tile(TileSuit.Honor, 5),
+			new Tile(TileSuit.Man, 1), new Tile(TileSuit.Man, 2), new Tile(TileSuit.Man, 3),
+			new Tile(TileSuit.Pin, 1), new Tile(TileSuit.Pin, 2), new Tile(TileSuit.Pin, 3),
+			new Tile(TileSuit.Sou, 1), new Tile(TileSuit.Sou, 2), new Tile(TileSuit.Sou, 3),
+			new Tile(TileSuit.Man, 9), new Tile(TileSuit.Man, 9),
+		];
+
+		var yaku = YakuChecker.DetermineYaku(tiles, melds: [], seatWind: Seat.South, roundWind: Seat.South, ronTile: null);
+
+		Assert.DoesNotContain(Yaku.Shousangen, yaku);
+	}
+
+	/// <summary>パス条件: カン（暗槓・明槓・加槓の組み合わせ）が3つ成立している場合、Yaku.Sankantsu が含まれること。</summary>
+	[Fact]
+	public void DetermineYaku_ThreeKans_ContainsSankantsu()
+	{
+		Tile[] concealedTiles =
+		[
+			new Tile(TileSuit.Man, 1), new Tile(TileSuit.Man, 2), new Tile(TileSuit.Man, 3),
+			new Tile(TileSuit.Pin, 9), new Tile(TileSuit.Pin, 9),
+		];
+		Meld[] melds =
+		[
+			new Meld(
+				MeldType.ClosedKan,
+				[new Tile(TileSuit.Sou, 3), new Tile(TileSuit.Sou, 3), new Tile(TileSuit.Sou, 3), new Tile(TileSuit.Sou, 3)]),
+			new Meld(
+				MeldType.OpenKan,
+				[new Tile(TileSuit.Sou, 5), new Tile(TileSuit.Sou, 5), new Tile(TileSuit.Sou, 5), new Tile(TileSuit.Sou, 5)]),
+			new Meld(
+				MeldType.AddedKan,
+				[new Tile(TileSuit.Sou, 7), new Tile(TileSuit.Sou, 7), new Tile(TileSuit.Sou, 7), new Tile(TileSuit.Sou, 7)]),
+		];
+
+		var yaku = YakuChecker.DetermineYaku(concealedTiles, melds);
+
+		Assert.Contains(Yaku.Sankantsu, yaku);
+	}
+
+	/// <summary>パス条件: カンが2つ以下の場合、Yaku.Sankantsu が含まれないこと。</summary>
+	[Fact]
+	public void DetermineYaku_TwoKans_DoesNotContainSankantsu()
+	{
+		Tile[] concealedTiles =
+		[
+			new Tile(TileSuit.Man, 1), new Tile(TileSuit.Man, 2), new Tile(TileSuit.Man, 3),
+			new Tile(TileSuit.Pin, 4), new Tile(TileSuit.Pin, 5), new Tile(TileSuit.Pin, 6),
+			new Tile(TileSuit.Sou, 9), new Tile(TileSuit.Sou, 9),
+		];
+		Meld[] melds =
+		[
+			new Meld(
+				MeldType.ClosedKan,
+				[new Tile(TileSuit.Sou, 3), new Tile(TileSuit.Sou, 3), new Tile(TileSuit.Sou, 3), new Tile(TileSuit.Sou, 3)]),
+			new Meld(
+				MeldType.OpenKan,
+				[new Tile(TileSuit.Sou, 5), new Tile(TileSuit.Sou, 5), new Tile(TileSuit.Sou, 5), new Tile(TileSuit.Sou, 5)]),
+		];
+
+		var yaku = YakuChecker.DetermineYaku(concealedTiles, melds);
+
+		Assert.DoesNotContain(Yaku.Sankantsu, yaku);
+	}
 }

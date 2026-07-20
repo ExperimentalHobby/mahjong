@@ -74,4 +74,13 @@ public enum Yaku
 
 	/// <summary>平和。</summary>
 	Pinfu,
+
+	/// <summary>三色同刻。</summary>
+	SanshokuDoukou,
+
+	/// <summary>小三元。</summary>
+	Shousangen,
+
+	/// <summary>三槓子。</summary>
+	Sankantsu,
 }
