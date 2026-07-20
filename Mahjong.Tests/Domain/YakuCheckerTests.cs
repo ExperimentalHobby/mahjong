@@ -882,4 +882,62 @@ public class YakuCheckerTests
 
 		Assert.DoesNotContain(Yaku.Sanankou, yaku);
 	}
+
+	/// <summary>パス条件: 副露なし・ツモ（ronTile: null）の場合、Yaku.MenzenTsumo が含まれること。</summary>
+	[Fact]
+	public void DetermineYaku_MenzenTsumo_ContainsMenzenTsumo()
+	{
+		Tile[] tiles =
+		[
+			new Tile(TileSuit.Man, 2), new Tile(TileSuit.Man, 3), new Tile(TileSuit.Man, 4),
+			new Tile(TileSuit.Pin, 3), new Tile(TileSuit.Pin, 4), new Tile(TileSuit.Pin, 5),
+			new Tile(TileSuit.Sou, 5), new Tile(TileSuit.Sou, 6), new Tile(TileSuit.Sou, 7),
+			new Tile(TileSuit.Man, 8), new Tile(TileSuit.Man, 8), new Tile(TileSuit.Man, 8),
+			new Tile(TileSuit.Pin, 2), new Tile(TileSuit.Pin, 2),
+		];
+
+		var yaku = YakuChecker.DetermineYaku(tiles, melds: [], seatWind: Seat.South, roundWind: Seat.South, ronTile: null);
+
+		Assert.Contains(Yaku.MenzenTsumo, yaku);
+	}
+
+	/// <summary>パス条件: 副露なし・ロン（ronTile指定）の場合、Yaku.MenzenTsumo が含まれないこと。</summary>
+	[Fact]
+	public void DetermineYaku_MenzenRon_DoesNotContainMenzenTsumo()
+	{
+		Tile[] tiles =
+		[
+			new Tile(TileSuit.Man, 2), new Tile(TileSuit.Man, 3), new Tile(TileSuit.Man, 4),
+			new Tile(TileSuit.Pin, 3), new Tile(TileSuit.Pin, 4), new Tile(TileSuit.Pin, 5),
+			new Tile(TileSuit.Sou, 5), new Tile(TileSuit.Sou, 6), new Tile(TileSuit.Sou, 7),
+			new Tile(TileSuit.Man, 8), new Tile(TileSuit.Man, 8), new Tile(TileSuit.Man, 8),
+			new Tile(TileSuit.Pin, 2), new Tile(TileSuit.Pin, 2),
+		];
+		var ronTile = new Tile(TileSuit.Pin, 2);
+
+		var yaku = YakuChecker.DetermineYaku(tiles, melds: [], seatWind: Seat.South, roundWind: Seat.South, ronTile);
+
+		Assert.DoesNotContain(Yaku.MenzenTsumo, yaku);
+	}
+
+	/// <summary>パス条件: 副露ありでツモ和了した場合、Yaku.MenzenTsumo が含まれないこと。</summary>
+	[Fact]
+	public void DetermineYaku_WithMeldTsumo_DoesNotContainMenzenTsumo()
+	{
+		Tile[] concealedTiles =
+		[
+			new Tile(TileSuit.Pin, 3), new Tile(TileSuit.Pin, 4), new Tile(TileSuit.Pin, 5),
+			new Tile(TileSuit.Sou, 5), new Tile(TileSuit.Sou, 6), new Tile(TileSuit.Sou, 7),
+			new Tile(TileSuit.Man, 8), new Tile(TileSuit.Man, 8), new Tile(TileSuit.Man, 8),
+			new Tile(TileSuit.Pin, 2), new Tile(TileSuit.Pin, 2),
+		];
+		Meld[] melds =
+		[
+			new Meld(MeldType.Pon, [new Tile(TileSuit.Man, 2), new Tile(TileSuit.Man, 2), new Tile(TileSuit.Man, 2)]),
+		];
+
+		var yaku = YakuChecker.DetermineYaku(concealedTiles, melds, seatWind: Seat.South, roundWind: Seat.South, ronTile: null);
+
+		Assert.DoesNotContain(Yaku.MenzenTsumo, yaku);
+	}
 }
