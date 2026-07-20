@@ -190,4 +190,31 @@ public class HanCalculatorTests
 	{
 		Assert.True(HanCalculator.IsYakuman([yaku]));
 	}
+
+	/// <summary>パス条件: 一発(Yaku.Ippatsu)単独で1が返ること。</summary>
+	[Fact]
+	public void CalculateHan_Ippatsu_ReturnsOne()
+	{
+		var han = HanCalculator.CalculateHan([Yaku.Ippatsu], isMenzen: true);
+
+		Assert.Equal(1, han);
+	}
+
+	/// <summary>パス条件: ダブル立直(Yaku.DaburuRiichi)単独で2が返ること。</summary>
+	[Fact]
+	public void CalculateHan_DaburuRiichi_ReturnsTwo()
+	{
+		var han = HanCalculator.CalculateHan([Yaku.DaburuRiichi], isMenzen: true);
+
+		Assert.Equal(2, han);
+	}
+
+	/// <summary>パス条件: 役満(Yaku.Tenhou・Yaku.Chiihou)それぞれを含むリストを渡すと IsYakuman が true になること。</summary>
+	[Theory]
+	[InlineData(Yaku.Tenhou)]
+	[InlineData(Yaku.Chiihou)]
+	public void IsYakuman_ContainsTenhouOrChiihou_ReturnsTrue(Yaku yaku)
+	{
+		Assert.True(HanCalculator.IsYakuman([yaku]));
+	}
 }

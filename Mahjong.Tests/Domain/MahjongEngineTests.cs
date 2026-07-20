@@ -142,6 +142,8 @@ public class MahjongEngineTests
 			new Tile(TileSuit.Pin, 2),
 		];
 		var eastHand = new Hand(startingTiles);
+		eastHand.Draw(new Tile(TileSuit.Honor, 7));
+		eastHand.Discard(new Tile(TileSuit.Honor, 7));
 		eastHand.Draw(new Tile(TileSuit.Pin, 2));
 		var hands = new Dictionary<Seat, Hand>
 		{
@@ -171,6 +173,8 @@ public class MahjongEngineTests
 			new Tile(TileSuit.Pin, 2),
 		];
 		var eastHand = new Hand(startingTiles);
+		eastHand.Draw(new Tile(TileSuit.Honor, 7));
+		eastHand.Discard(new Tile(TileSuit.Honor, 7));
 		eastHand.Draw(new Tile(TileSuit.Pin, 2));
 		var hands = new Dictionary<Seat, Hand>
 		{
@@ -200,6 +204,8 @@ public class MahjongEngineTests
 			new Tile(TileSuit.Pin, 2),
 		];
 		var eastHand = new Hand(startingTiles);
+		eastHand.Draw(new Tile(TileSuit.Honor, 7));
+		eastHand.Discard(new Tile(TileSuit.Honor, 7));
 		eastHand.Draw(new Tile(TileSuit.Pin, 2));
 		var hands = new Dictionary<Seat, Hand>
 		{
@@ -229,6 +235,8 @@ public class MahjongEngineTests
 			new Tile(TileSuit.Pin, 2),
 		];
 		var eastHand = new Hand(startingTiles);
+		eastHand.Draw(new Tile(TileSuit.Honor, 7));
+		eastHand.Discard(new Tile(TileSuit.Honor, 7));
 		eastHand.Draw(new Tile(TileSuit.Pin, 2));
 		var hands = new Dictionary<Seat, Hand>
 		{
@@ -1397,6 +1405,8 @@ public class MahjongEngineTests
 			new Tile(TileSuit.Pin, 2),
 		];
 		var eastHand = new Hand(startingTiles);
+		eastHand.Draw(new Tile(TileSuit.Honor, 7));
+		eastHand.Discard(new Tile(TileSuit.Honor, 7));
 		eastHand.Draw(new Tile(TileSuit.Pin, 2));
 		var hands = new Dictionary<Seat, Hand>
 		{
@@ -1429,6 +1439,8 @@ public class MahjongEngineTests
 			new Tile(TileSuit.Pin, 2),
 		];
 		var eastHand = new Hand(startingTiles);
+		eastHand.Draw(new Tile(TileSuit.Honor, 7));
+		eastHand.Discard(new Tile(TileSuit.Honor, 7));
 		eastHand.Draw(new Tile(TileSuit.Pin, 2));
 		var hands = new Dictionary<Seat, Hand>
 		{
@@ -1523,6 +1535,8 @@ public class MahjongEngineTests
 			new Tile(TileSuit.Pin, 2),
 		];
 		var eastHand = new Hand(startingTiles);
+		eastHand.Draw(new Tile(TileSuit.Honor, 7));
+		eastHand.Discard(new Tile(TileSuit.Honor, 7));
 		eastHand.Draw(new Tile(TileSuit.Pin, 2));
 		var hands = new Dictionary<Seat, Hand>
 		{
@@ -1554,6 +1568,8 @@ public class MahjongEngineTests
 			new Tile(TileSuit.Pin, 2),
 		];
 		var eastHand = new Hand(startingTiles);
+		eastHand.Draw(new Tile(TileSuit.Honor, 7));
+		eastHand.Discard(new Tile(TileSuit.Honor, 7));
 		eastHand.Draw(new Tile(TileSuit.Pin, 2));
 		var hands = new Dictionary<Seat, Hand>
 		{
@@ -1585,6 +1601,8 @@ public class MahjongEngineTests
 			new Tile(TileSuit.Pin, 2),
 		];
 		var eastHand = new Hand(startingTiles);
+		eastHand.Draw(new Tile(TileSuit.Honor, 7));
+		eastHand.Discard(new Tile(TileSuit.Honor, 7));
 		eastHand.Draw(new Tile(TileSuit.Pin, 2));
 		var hands = new Dictionary<Seat, Hand>
 		{
@@ -1619,6 +1637,8 @@ public class MahjongEngineTests
 			new Tile(TileSuit.Pin, 2),
 		];
 		var southHand = new Hand(startingTiles);
+		southHand.Draw(new Tile(TileSuit.Honor, 7));
+		southHand.Discard(new Tile(TileSuit.Honor, 7));
 		southHand.Draw(new Tile(TileSuit.Pin, 2));
 		var hands = new Dictionary<Seat, Hand>
 		{
@@ -1650,6 +1670,8 @@ public class MahjongEngineTests
 			new Tile(TileSuit.Pin, 2),
 		];
 		var southHand = new Hand(startingTiles);
+		southHand.Draw(new Tile(TileSuit.Honor, 7));
+		southHand.Discard(new Tile(TileSuit.Honor, 7));
 		southHand.Draw(new Tile(TileSuit.Pin, 2));
 		var hands = new Dictionary<Seat, Hand>
 		{
@@ -1682,6 +1704,8 @@ public class MahjongEngineTests
 			new Tile(TileSuit.Honor, 7),
 		];
 		var eastHand = new Hand(startingTiles);
+		eastHand.Draw(new Tile(TileSuit.Man, 5));
+		eastHand.Discard(new Tile(TileSuit.Man, 5));
 		eastHand.Draw(new Tile(TileSuit.Honor, 7));
 		var hands = new Dictionary<Seat, Hand>
 		{
@@ -1808,6 +1832,8 @@ public class MahjongEngineTests
 			new Tile(TileSuit.Honor, 7),
 		];
 		var eastHand = new Hand(startingTiles);
+		eastHand.Draw(new Tile(TileSuit.Man, 5));
+		eastHand.Discard(new Tile(TileSuit.Man, 5));
 		eastHand.Draw(new Tile(TileSuit.Honor, 7));
 		var hands = new Dictionary<Seat, Hand>
 		{
@@ -1838,6 +1864,8 @@ public class MahjongEngineTests
 			new Tile(TileSuit.Honor, 7),
 		];
 		var eastHand = new Hand(startingTiles);
+		eastHand.Draw(new Tile(TileSuit.Man, 5));
+		eastHand.Discard(new Tile(TileSuit.Man, 5));
 		eastHand.Draw(new Tile(TileSuit.Honor, 7));
 		var hands = new Dictionary<Seat, Hand>
 		{
@@ -2478,6 +2506,514 @@ public class MahjongEngineTests
 		engine.CallRon(Seat.South);
 
 		Assert.Contains(Yaku.Houtei, engine.WinningYaku[Seat.South]);
+	}
+
+	/// <summary>パス条件: 親が配牌後の最初のツモで和了形になっている場合、WinningYaku に Yaku.Tenhou が含まれること。</summary>
+	[Fact]
+	public void CallTsumo_DealerFirstDraw_WinningYakuContainsTenhou()
+	{
+		List<Tile> startingTiles =
+		[
+			new Tile(TileSuit.Man, 2), new Tile(TileSuit.Man, 3), new Tile(TileSuit.Man, 4),
+			new Tile(TileSuit.Pin, 3), new Tile(TileSuit.Pin, 4), new Tile(TileSuit.Pin, 5),
+			new Tile(TileSuit.Sou, 5), new Tile(TileSuit.Sou, 6), new Tile(TileSuit.Sou, 7),
+			new Tile(TileSuit.Man, 8), new Tile(TileSuit.Man, 8), new Tile(TileSuit.Man, 8),
+			new Tile(TileSuit.Pin, 2),
+		];
+		var eastHand = new Hand(startingTiles);
+		eastHand.Draw(new Tile(TileSuit.Pin, 2));
+		var hands = new Dictionary<Seat, Hand>
+		{
+			[Seat.East] = eastHand,
+			[Seat.South] = new Hand(CreateThirteenFillerTiles()),
+			[Seat.West] = new Hand(CreateThirteenFillerTiles()),
+			[Seat.North] = new Hand(CreateThirteenFillerTiles()),
+		};
+		var engine = new MahjongEngine(Wall.CreateShuffled(new Random(1)), hands, Seat.East, lastDiscard: null);
+
+		engine.CallTsumo();
+
+		Assert.Contains(Yaku.Tenhou, engine.WinningYaku[Seat.East]);
+		Assert.DoesNotContain(Yaku.Chiihou, engine.WinningYaku[Seat.East]);
+	}
+
+	/// <summary>
+	/// パス条件: 親が一度打牌した後（＝最初のツモではない）にツモ和了した場合、Yaku.Tenhou は含まれないこと。
+	/// </summary>
+	[Fact]
+	public void CallTsumo_DealerNotFirstDraw_WinningYakuDoesNotContainTenhou()
+	{
+		List<Tile> startingTiles =
+		[
+			new Tile(TileSuit.Man, 2), new Tile(TileSuit.Man, 3), new Tile(TileSuit.Man, 4),
+			new Tile(TileSuit.Pin, 3), new Tile(TileSuit.Pin, 4), new Tile(TileSuit.Pin, 5),
+			new Tile(TileSuit.Sou, 5), new Tile(TileSuit.Sou, 6), new Tile(TileSuit.Sou, 7),
+			new Tile(TileSuit.Man, 8), new Tile(TileSuit.Man, 8), new Tile(TileSuit.Man, 8),
+			new Tile(TileSuit.Pin, 2),
+		];
+		var eastHand = new Hand(startingTiles);
+		eastHand.Draw(new Tile(TileSuit.Honor, 7));
+		eastHand.Discard(new Tile(TileSuit.Honor, 7));
+		eastHand.Draw(new Tile(TileSuit.Pin, 2));
+		var hands = new Dictionary<Seat, Hand>
+		{
+			[Seat.East] = eastHand,
+			[Seat.South] = new Hand(CreateThirteenFillerTiles()),
+			[Seat.West] = new Hand(CreateThirteenFillerTiles()),
+			[Seat.North] = new Hand(CreateThirteenFillerTiles()),
+		};
+		var engine = new MahjongEngine(Wall.CreateShuffled(new Random(1)), hands, Seat.East, lastDiscard: null);
+
+		engine.CallTsumo();
+
+		Assert.DoesNotContain(Yaku.Tenhou, engine.WinningYaku[Seat.East]);
+	}
+
+	/// <summary>
+	/// パス条件: 子が最初のツモで、それまで誰も鳴いていない状態で和了形になっている場合、
+	/// WinningYaku に Yaku.Chiihou が含まれること。
+	/// </summary>
+	[Fact]
+	public void CallTsumo_NonDealerFirstDrawNoCalls_WinningYakuContainsChiihou()
+	{
+		List<Tile> startingTiles =
+		[
+			new Tile(TileSuit.Man, 2), new Tile(TileSuit.Man, 3), new Tile(TileSuit.Man, 4),
+			new Tile(TileSuit.Pin, 3), new Tile(TileSuit.Pin, 4), new Tile(TileSuit.Pin, 5),
+			new Tile(TileSuit.Sou, 5), new Tile(TileSuit.Sou, 6), new Tile(TileSuit.Sou, 7),
+			new Tile(TileSuit.Man, 8), new Tile(TileSuit.Man, 8), new Tile(TileSuit.Man, 8),
+			new Tile(TileSuit.Pin, 2),
+		];
+		var southHand = new Hand(startingTiles);
+		southHand.Draw(new Tile(TileSuit.Pin, 2));
+		var hands = new Dictionary<Seat, Hand>
+		{
+			[Seat.East] = new Hand(CreateThirteenFillerTiles()),
+			[Seat.South] = southHand,
+			[Seat.West] = new Hand(CreateThirteenFillerTiles()),
+			[Seat.North] = new Hand(CreateThirteenFillerTiles()),
+		};
+		var engine = new MahjongEngine(Wall.CreateShuffled(new Random(1)), hands, Seat.South, lastDiscard: null);
+
+		engine.CallTsumo();
+
+		Assert.Contains(Yaku.Chiihou, engine.WinningYaku[Seat.South]);
+	}
+
+	/// <summary>
+	/// パス条件: 子の最初のツモの前に他家の鳴き（ポン）が発生していた場合、Yaku.Chiihou は含まれないこと。
+	/// </summary>
+	[Fact]
+	public void CallTsumo_NonDealerFirstDrawAfterEarlierCall_WinningYakuDoesNotContainChiihou()
+	{
+		var eastHand = new Hand(CreateThirteenFillerTiles());
+		List<Tile> northTiles =
+		[
+			new Tile(TileSuit.Pin, 5), new Tile(TileSuit.Pin, 5),
+			new Tile(TileSuit.Man, 1), new Tile(TileSuit.Man, 2), new Tile(TileSuit.Man, 3),
+			new Tile(TileSuit.Man, 4), new Tile(TileSuit.Man, 5), new Tile(TileSuit.Man, 6),
+			new Tile(TileSuit.Man, 7), new Tile(TileSuit.Man, 8), new Tile(TileSuit.Man, 9),
+			new Tile(TileSuit.Pin, 1), new Tile(TileSuit.Pin, 2),
+		];
+		var northHand = new Hand(northTiles);
+		List<Tile> southTiles =
+		[
+			new Tile(TileSuit.Man, 2), new Tile(TileSuit.Man, 3), new Tile(TileSuit.Man, 4),
+			new Tile(TileSuit.Pin, 3), new Tile(TileSuit.Pin, 4), new Tile(TileSuit.Pin, 5),
+			new Tile(TileSuit.Sou, 5), new Tile(TileSuit.Sou, 6), new Tile(TileSuit.Sou, 7),
+			new Tile(TileSuit.Man, 8), new Tile(TileSuit.Man, 8), new Tile(TileSuit.Man, 8),
+			new Tile(TileSuit.Pin, 2),
+		];
+		var southHand = new Hand(southTiles);
+		var hands = new Dictionary<Seat, Hand>
+		{
+			[Seat.East] = eastHand,
+			[Seat.South] = southHand,
+			[Seat.West] = new Hand(CreateThirteenFillerTiles()),
+			[Seat.North] = northHand,
+		};
+		var wall = new Wall(
+			liveWall: [new Tile(TileSuit.Pin, 2), new Tile(TileSuit.Pin, 6), new Tile(TileSuit.Pin, 5)],
+			deadWall: [new Tile(TileSuit.Honor, 1)]);
+		var engine = new MahjongEngine(wall, hands, Seat.East, lastDiscard: null);
+
+		engine.DrawForCurrentPlayer();
+		engine.Discard(new Tile(TileSuit.Pin, 5));
+		engine.CallPon(Seat.North, new Tile(TileSuit.Pin, 5), new Tile(TileSuit.Pin, 5));
+		engine.Discard(new Tile(TileSuit.Man, 1));
+		engine.DrawForCurrentPlayer();
+		engine.Discard(new Tile(TileSuit.Pin, 6));
+		engine.DrawForCurrentPlayer();
+
+		engine.CallTsumo();
+
+		Assert.DoesNotContain(Yaku.Chiihou, engine.WinningYaku[Seat.South]);
+	}
+
+	/// <summary>
+	/// パス条件: 最初の打牌でリーチ宣言し、それまで誰も鳴いていない状態で和了した場合、
+	/// WinningYaku に Yaku.DaburuRiichi が含まれ、Yaku.Riichi は含まれないこと。
+	/// </summary>
+	[Fact]
+	public void CallTsumo_RiichiOnFirstDiscardNoCalls_WinningYakuContainsDaburuRiichi()
+	{
+		List<Tile> eastStartingTiles =
+		[
+			new Tile(TileSuit.Man, 2), new Tile(TileSuit.Man, 3), new Tile(TileSuit.Man, 4),
+			new Tile(TileSuit.Pin, 3), new Tile(TileSuit.Pin, 4), new Tile(TileSuit.Pin, 5),
+			new Tile(TileSuit.Sou, 5), new Tile(TileSuit.Sou, 6), new Tile(TileSuit.Sou, 7),
+			new Tile(TileSuit.Man, 8), new Tile(TileSuit.Man, 8), new Tile(TileSuit.Man, 8),
+			new Tile(TileSuit.Pin, 9),
+		];
+		var eastHand = new Hand(eastStartingTiles);
+		var hands = new Dictionary<Seat, Hand>
+		{
+			[Seat.East] = eastHand,
+			[Seat.South] = new Hand(CreateThirteenFillerTiles()),
+			[Seat.West] = new Hand(CreateThirteenFillerTiles()),
+			[Seat.North] = new Hand(CreateThirteenFillerTiles()),
+		};
+		var wall = new Wall(
+			liveWall:
+			[
+				new Tile(TileSuit.Pin, 9),
+				new Tile(TileSuit.Sou, 3), new Tile(TileSuit.Sou, 2), new Tile(TileSuit.Sou, 1),
+				new Tile(TileSuit.Honor, 7),
+			],
+			deadWall: [new Tile(TileSuit.Honor, 1)]);
+		var engine = new MahjongEngine(wall, hands, Seat.East, lastDiscard: null);
+
+		engine.DrawForCurrentPlayer();
+		engine.Riichi(new Tile(TileSuit.Honor, 7));
+		engine.DrawForCurrentPlayer();
+		engine.Discard(new Tile(TileSuit.Sou, 1));
+		engine.DrawForCurrentPlayer();
+		engine.Discard(new Tile(TileSuit.Sou, 2));
+		engine.DrawForCurrentPlayer();
+		engine.Discard(new Tile(TileSuit.Sou, 3));
+		engine.DrawForCurrentPlayer();
+
+		engine.CallTsumo();
+
+		Assert.Contains(Yaku.DaburuRiichi, engine.WinningYaku[Seat.East]);
+		Assert.DoesNotContain(Yaku.Riichi, engine.WinningYaku[Seat.East]);
+	}
+
+	/// <summary>
+	/// パス条件: 2巡目以降の打牌でリーチ宣言した場合は通常の Yaku.Riichi のみが含まれ、
+	/// Yaku.DaburuRiichi は含まれないこと。
+	/// </summary>
+	[Fact]
+	public void CallTsumo_RiichiOnSecondDiscard_WinningYakuContainsRiichiNotDaburuRiichi()
+	{
+		List<Tile> eastStartingTiles =
+		[
+			new Tile(TileSuit.Man, 2), new Tile(TileSuit.Man, 3), new Tile(TileSuit.Man, 4),
+			new Tile(TileSuit.Pin, 3), new Tile(TileSuit.Pin, 4), new Tile(TileSuit.Pin, 5),
+			new Tile(TileSuit.Sou, 5), new Tile(TileSuit.Sou, 6), new Tile(TileSuit.Sou, 7),
+			new Tile(TileSuit.Man, 8), new Tile(TileSuit.Man, 8), new Tile(TileSuit.Man, 8),
+			new Tile(TileSuit.Pin, 9),
+		];
+		var eastHand = new Hand(eastStartingTiles);
+		var hands = new Dictionary<Seat, Hand>
+		{
+			[Seat.East] = eastHand,
+			[Seat.South] = new Hand(CreateThirteenFillerTiles()),
+			[Seat.West] = new Hand(CreateThirteenFillerTiles()),
+			[Seat.North] = new Hand(CreateThirteenFillerTiles()),
+		};
+		var wall = new Wall(
+			liveWall:
+			[
+				new Tile(TileSuit.Pin, 9),
+				new Tile(TileSuit.Sou, 3), new Tile(TileSuit.Sou, 2), new Tile(TileSuit.Sou, 1),
+				new Tile(TileSuit.Honor, 6),
+				new Tile(TileSuit.Sou, 3), new Tile(TileSuit.Sou, 2), new Tile(TileSuit.Sou, 1),
+				new Tile(TileSuit.Honor, 7),
+			],
+			deadWall: [new Tile(TileSuit.Honor, 1)]);
+		var engine = new MahjongEngine(wall, hands, Seat.East, lastDiscard: null);
+
+		engine.DrawForCurrentPlayer();
+		engine.Discard(new Tile(TileSuit.Honor, 7));
+		engine.DrawForCurrentPlayer();
+		engine.Discard(new Tile(TileSuit.Sou, 1));
+		engine.DrawForCurrentPlayer();
+		engine.Discard(new Tile(TileSuit.Sou, 2));
+		engine.DrawForCurrentPlayer();
+		engine.Discard(new Tile(TileSuit.Sou, 3));
+		engine.DrawForCurrentPlayer();
+		engine.Riichi(new Tile(TileSuit.Honor, 6));
+		engine.DrawForCurrentPlayer();
+		engine.Discard(new Tile(TileSuit.Sou, 1));
+		engine.DrawForCurrentPlayer();
+		engine.Discard(new Tile(TileSuit.Sou, 2));
+		engine.DrawForCurrentPlayer();
+		engine.Discard(new Tile(TileSuit.Sou, 3));
+		engine.DrawForCurrentPlayer();
+
+		engine.CallTsumo();
+
+		Assert.Contains(Yaku.Riichi, engine.WinningYaku[Seat.East]);
+		Assert.DoesNotContain(Yaku.DaburuRiichi, engine.WinningYaku[Seat.East]);
+	}
+
+	/// <summary>
+	/// パス条件: 最初の打牌でリーチ宣言したが、それより前に他家の鳴きが発生していた場合は
+	/// 通常の Yaku.Riichi のみが含まれ、Yaku.DaburuRiichi は含まれないこと。
+	/// </summary>
+	[Fact]
+	public void CallTsumo_RiichiOnFirstDiscardAfterEarlierCall_WinningYakuContainsRiichiNotDaburuRiichi()
+	{
+		var eastHand = new Hand(CreateThirteenFillerTiles());
+		List<Tile> northTiles =
+		[
+			new Tile(TileSuit.Pin, 5), new Tile(TileSuit.Pin, 5),
+			new Tile(TileSuit.Man, 1), new Tile(TileSuit.Man, 2), new Tile(TileSuit.Man, 3),
+			new Tile(TileSuit.Man, 4), new Tile(TileSuit.Man, 5), new Tile(TileSuit.Man, 6),
+			new Tile(TileSuit.Man, 7), new Tile(TileSuit.Man, 8), new Tile(TileSuit.Man, 9),
+			new Tile(TileSuit.Pin, 1), new Tile(TileSuit.Pin, 2),
+		];
+		var northHand = new Hand(northTiles);
+		List<Tile> southStartingTiles =
+		[
+			new Tile(TileSuit.Man, 2), new Tile(TileSuit.Man, 3), new Tile(TileSuit.Man, 4),
+			new Tile(TileSuit.Pin, 3), new Tile(TileSuit.Pin, 4), new Tile(TileSuit.Pin, 5),
+			new Tile(TileSuit.Sou, 5), new Tile(TileSuit.Sou, 6), new Tile(TileSuit.Sou, 7),
+			new Tile(TileSuit.Man, 8), new Tile(TileSuit.Man, 8), new Tile(TileSuit.Man, 8),
+			new Tile(TileSuit.Pin, 9),
+		];
+		var southHand = new Hand(southStartingTiles);
+		var hands = new Dictionary<Seat, Hand>
+		{
+			[Seat.East] = eastHand,
+			[Seat.South] = southHand,
+			[Seat.West] = new Hand(CreateThirteenFillerTiles()),
+			[Seat.North] = northHand,
+		};
+		var wall = new Wall(
+			liveWall:
+			[
+				new Tile(TileSuit.Pin, 9),
+				new Tile(TileSuit.Sou, 3), new Tile(TileSuit.Sou, 2), new Tile(TileSuit.Sou, 1),
+				new Tile(TileSuit.Honor, 7),
+				new Tile(TileSuit.Pin, 6),
+				new Tile(TileSuit.Pin, 5),
+			],
+			deadWall: [new Tile(TileSuit.Honor, 1)]);
+		var engine = new MahjongEngine(wall, hands, Seat.East, lastDiscard: null);
+
+		engine.DrawForCurrentPlayer();
+		engine.Discard(new Tile(TileSuit.Pin, 5));
+		engine.CallPon(Seat.North, new Tile(TileSuit.Pin, 5), new Tile(TileSuit.Pin, 5));
+		engine.Discard(new Tile(TileSuit.Man, 1));
+		engine.DrawForCurrentPlayer();
+		engine.Discard(new Tile(TileSuit.Pin, 6));
+		engine.DrawForCurrentPlayer();
+		engine.Riichi(new Tile(TileSuit.Honor, 7));
+		engine.DrawForCurrentPlayer();
+		engine.Discard(new Tile(TileSuit.Sou, 1));
+		engine.DrawForCurrentPlayer();
+		engine.Discard(new Tile(TileSuit.Sou, 2));
+		engine.DrawForCurrentPlayer();
+		engine.Discard(new Tile(TileSuit.Sou, 3));
+		engine.DrawForCurrentPlayer();
+
+		engine.CallTsumo();
+
+		Assert.Contains(Yaku.Riichi, engine.WinningYaku[Seat.South]);
+		Assert.DoesNotContain(Yaku.DaburuRiichi, engine.WinningYaku[Seat.South]);
+	}
+
+	/// <summary>
+	/// パス条件: リーチ宣言後、次の自分の打牌が来る前に他家の捨て牌にロンした場合、
+	/// WinningYaku に Yaku.Ippatsu が含まれること。
+	/// </summary>
+	[Fact]
+	public void CallRon_AfterRiichiBeforeNextOwnDraw_WinningYakuContainsIppatsu()
+	{
+		List<Tile> eastStartingTiles =
+		[
+			new Tile(TileSuit.Man, 2), new Tile(TileSuit.Man, 3), new Tile(TileSuit.Man, 4),
+			new Tile(TileSuit.Pin, 3), new Tile(TileSuit.Pin, 4), new Tile(TileSuit.Pin, 5),
+			new Tile(TileSuit.Sou, 5), new Tile(TileSuit.Sou, 6), new Tile(TileSuit.Sou, 7),
+			new Tile(TileSuit.Man, 8), new Tile(TileSuit.Man, 8), new Tile(TileSuit.Man, 8),
+			new Tile(TileSuit.Pin, 9),
+		];
+		var eastHand = new Hand(eastStartingTiles);
+		var hands = new Dictionary<Seat, Hand>
+		{
+			[Seat.East] = eastHand,
+			[Seat.South] = new Hand(CreateThirteenFillerTiles()),
+			[Seat.West] = new Hand(CreateThirteenFillerTiles()),
+			[Seat.North] = new Hand(CreateThirteenFillerTiles()),
+		};
+		var wall = new Wall(
+			liveWall: [new Tile(TileSuit.Pin, 9), new Tile(TileSuit.Honor, 7)],
+			deadWall: [new Tile(TileSuit.Honor, 1)]);
+		var engine = new MahjongEngine(wall, hands, Seat.East, lastDiscard: null);
+
+		engine.DrawForCurrentPlayer();
+		engine.Riichi(new Tile(TileSuit.Honor, 7));
+		engine.DrawForCurrentPlayer();
+		engine.Discard(new Tile(TileSuit.Pin, 9));
+		engine.CallRon(Seat.East);
+
+		Assert.Contains(Yaku.Ippatsu, engine.WinningYaku[Seat.East]);
+	}
+
+	/// <summary>
+	/// パス条件: リーチ宣言後、次の自分のツモで和了（一発ツモ）した場合、WinningYaku に Yaku.Ippatsu が含まれること。
+	/// </summary>
+	[Fact]
+	public void CallTsumo_OnNextDrawAfterRiichiNoCalls_WinningYakuContainsIppatsu()
+	{
+		List<Tile> eastStartingTiles =
+		[
+			new Tile(TileSuit.Man, 2), new Tile(TileSuit.Man, 3), new Tile(TileSuit.Man, 4),
+			new Tile(TileSuit.Pin, 3), new Tile(TileSuit.Pin, 4), new Tile(TileSuit.Pin, 5),
+			new Tile(TileSuit.Sou, 5), new Tile(TileSuit.Sou, 6), new Tile(TileSuit.Sou, 7),
+			new Tile(TileSuit.Man, 8), new Tile(TileSuit.Man, 8), new Tile(TileSuit.Man, 8),
+			new Tile(TileSuit.Pin, 9),
+		];
+		var eastHand = new Hand(eastStartingTiles);
+		var hands = new Dictionary<Seat, Hand>
+		{
+			[Seat.East] = eastHand,
+			[Seat.South] = new Hand(CreateThirteenFillerTiles()),
+			[Seat.West] = new Hand(CreateThirteenFillerTiles()),
+			[Seat.North] = new Hand(CreateThirteenFillerTiles()),
+		};
+		var wall = new Wall(
+			liveWall:
+			[
+				new Tile(TileSuit.Pin, 9),
+				new Tile(TileSuit.Sou, 3), new Tile(TileSuit.Sou, 2), new Tile(TileSuit.Sou, 1),
+				new Tile(TileSuit.Honor, 7),
+			],
+			deadWall: [new Tile(TileSuit.Honor, 1)]);
+		var engine = new MahjongEngine(wall, hands, Seat.East, lastDiscard: null);
+
+		engine.DrawForCurrentPlayer();
+		engine.Riichi(new Tile(TileSuit.Honor, 7));
+		engine.DrawForCurrentPlayer();
+		engine.Discard(new Tile(TileSuit.Sou, 1));
+		engine.DrawForCurrentPlayer();
+		engine.Discard(new Tile(TileSuit.Sou, 2));
+		engine.DrawForCurrentPlayer();
+		engine.Discard(new Tile(TileSuit.Sou, 3));
+		engine.DrawForCurrentPlayer();
+
+		engine.CallTsumo();
+
+		Assert.Contains(Yaku.Ippatsu, engine.WinningYaku[Seat.East]);
+	}
+
+	/// <summary>
+	/// パス条件: リーチ宣言後、次の自分の打牌より前に誰かが鳴いた場合、その後の和了に Yaku.Ippatsu は含まれないこと。
+	/// </summary>
+	[Fact]
+	public void CallTsumo_AfterCallInterruptsIppatsuWindow_WinningYakuDoesNotContainIppatsu()
+	{
+		List<Tile> eastStartingTiles =
+		[
+			new Tile(TileSuit.Man, 2), new Tile(TileSuit.Man, 3), new Tile(TileSuit.Man, 4),
+			new Tile(TileSuit.Pin, 3), new Tile(TileSuit.Pin, 4), new Tile(TileSuit.Pin, 5),
+			new Tile(TileSuit.Sou, 5), new Tile(TileSuit.Sou, 6), new Tile(TileSuit.Sou, 7),
+			new Tile(TileSuit.Man, 8), new Tile(TileSuit.Man, 8), new Tile(TileSuit.Man, 8),
+			new Tile(TileSuit.Pin, 9),
+		];
+		var eastHand = new Hand(eastStartingTiles);
+		List<Tile> westTiles =
+		[
+			new Tile(TileSuit.Honor, 6), new Tile(TileSuit.Honor, 6),
+			new Tile(TileSuit.Man, 1), new Tile(TileSuit.Man, 2), new Tile(TileSuit.Man, 3),
+			new Tile(TileSuit.Man, 4), new Tile(TileSuit.Man, 5), new Tile(TileSuit.Man, 6),
+			new Tile(TileSuit.Man, 7), new Tile(TileSuit.Man, 8), new Tile(TileSuit.Man, 9),
+			new Tile(TileSuit.Pin, 1), new Tile(TileSuit.Pin, 2),
+		];
+		var westHand = new Hand(westTiles);
+		var hands = new Dictionary<Seat, Hand>
+		{
+			[Seat.East] = eastHand,
+			[Seat.South] = new Hand(CreateThirteenFillerTiles()),
+			[Seat.West] = westHand,
+			[Seat.North] = new Hand(CreateThirteenFillerTiles()),
+		};
+		var wall = new Wall(
+			liveWall: [new Tile(TileSuit.Pin, 9), new Tile(TileSuit.Sou, 1), new Tile(TileSuit.Honor, 6)],
+			deadWall: [new Tile(TileSuit.Honor, 1)]);
+		var engine = new MahjongEngine(wall, hands, Seat.East, lastDiscard: null);
+
+		engine.DrawForCurrentPlayer();
+		engine.Riichi(new Tile(TileSuit.Honor, 6));
+		engine.CallPon(Seat.West, new Tile(TileSuit.Honor, 6), new Tile(TileSuit.Honor, 6));
+		engine.Discard(new Tile(TileSuit.Man, 1));
+		engine.DrawForCurrentPlayer();
+		engine.Discard(new Tile(TileSuit.Sou, 1));
+		engine.DrawForCurrentPlayer();
+
+		engine.CallTsumo();
+
+		Assert.DoesNotContain(Yaku.Ippatsu, engine.WinningYaku[Seat.East]);
+	}
+
+	/// <summary>
+	/// パス条件: リーチ宣言後、自分が一度ツモって和了せずに打牌した後（＝一発ウィンドウを過ぎた後）に
+	/// 和了した場合、Yaku.Ippatsu は含まれないこと。
+	/// </summary>
+	[Fact]
+	public void CallTsumo_AfterOwnDiscardPassesIppatsuWindow_WinningYakuDoesNotContainIppatsu()
+	{
+		List<Tile> eastStartingTiles =
+		[
+			new Tile(TileSuit.Man, 2), new Tile(TileSuit.Man, 3), new Tile(TileSuit.Man, 4),
+			new Tile(TileSuit.Pin, 3), new Tile(TileSuit.Pin, 4), new Tile(TileSuit.Pin, 5),
+			new Tile(TileSuit.Sou, 5), new Tile(TileSuit.Sou, 6), new Tile(TileSuit.Sou, 7),
+			new Tile(TileSuit.Man, 8), new Tile(TileSuit.Man, 8), new Tile(TileSuit.Man, 8),
+			new Tile(TileSuit.Pin, 9),
+		];
+		var eastHand = new Hand(eastStartingTiles);
+		var hands = new Dictionary<Seat, Hand>
+		{
+			[Seat.East] = eastHand,
+			[Seat.South] = new Hand(CreateThirteenFillerTiles()),
+			[Seat.West] = new Hand(CreateThirteenFillerTiles()),
+			[Seat.North] = new Hand(CreateThirteenFillerTiles()),
+		};
+		var wall = new Wall(
+			liveWall:
+			[
+				new Tile(TileSuit.Pin, 9),
+				new Tile(TileSuit.Sou, 3), new Tile(TileSuit.Sou, 2), new Tile(TileSuit.Sou, 1),
+				new Tile(TileSuit.Honor, 6),
+				new Tile(TileSuit.Sou, 3), new Tile(TileSuit.Sou, 2), new Tile(TileSuit.Sou, 1),
+				new Tile(TileSuit.Honor, 7),
+			],
+			deadWall: [new Tile(TileSuit.Honor, 1)]);
+		var engine = new MahjongEngine(wall, hands, Seat.East, lastDiscard: null);
+
+		engine.DrawForCurrentPlayer();
+		engine.Riichi(new Tile(TileSuit.Honor, 7));
+		engine.DrawForCurrentPlayer();
+		engine.Discard(new Tile(TileSuit.Sou, 1));
+		engine.DrawForCurrentPlayer();
+		engine.Discard(new Tile(TileSuit.Sou, 2));
+		engine.DrawForCurrentPlayer();
+		engine.Discard(new Tile(TileSuit.Sou, 3));
+		engine.DrawForCurrentPlayer();
+		engine.Discard(new Tile(TileSuit.Honor, 6));
+		engine.DrawForCurrentPlayer();
+		engine.Discard(new Tile(TileSuit.Sou, 1));
+		engine.DrawForCurrentPlayer();
+		engine.Discard(new Tile(TileSuit.Sou, 2));
+		engine.DrawForCurrentPlayer();
+		engine.Discard(new Tile(TileSuit.Sou, 3));
+		engine.DrawForCurrentPlayer();
+
+		engine.CallTsumo();
+
+		Assert.DoesNotContain(Yaku.Ippatsu, engine.WinningYaku[Seat.East]);
 	}
 
 	private static List<Tile> CreateThirteenFillerTiles()

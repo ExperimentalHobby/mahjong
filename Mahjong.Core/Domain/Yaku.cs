@@ -107,4 +107,16 @@ public enum Yaku
 
 	/// <summary>九蓮宝燈。</summary>
 	Chuurenpoutou,
+
+	/// <summary>一発。</summary>
+	Ippatsu,
+
+	/// <summary>ダブル立直。</summary>
+	DaburuRiichi,
+
+	/// <summary>天和。</summary>
+	Tenhou,
+
+	/// <summary>地和。</summary>
+	Chiihou,
 }
