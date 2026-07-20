@@ -305,7 +305,7 @@ public sealed class Hand
 	{
 		EnsurePending("役判定");
 
-		return YakuChecker.DetermineYaku(_concealedTiles, _melds);
+		return IncludeRiichi(YakuChecker.DetermineYaku(_concealedTiles, _melds));
 	}
 
 	/// <summary>ツモ和了後の手牌（門前牌+副露）に、自風・場風を考慮して成立している役牌も含めた役を判定する。</summary>
@@ -315,7 +315,7 @@ public sealed class Hand
 	{
 		EnsurePending("役判定");
 
-		return YakuChecker.DetermineYaku(_concealedTiles, _melds, seatWind, roundWind);
+		return IncludeRiichi(YakuChecker.DetermineYaku(_concealedTiles, _melds, seatWind, roundWind));
 	}
 
 	/// <summary>
@@ -328,7 +328,7 @@ public sealed class Hand
 		EnsureNotPending("役判定");
 
 		var hypothetical = new List<Tile>(_concealedTiles) { tile };
-		return YakuChecker.DetermineYaku(hypothetical, _melds);
+		return IncludeRiichi(YakuChecker.DetermineYaku(hypothetical, _melds));
 	}
 
 	/// <summary>
@@ -343,8 +343,11 @@ public sealed class Hand
 		EnsureNotPending("役判定");
 
 		var hypothetical = new List<Tile>(_concealedTiles) { tile };
-		return YakuChecker.DetermineYaku(hypothetical, _melds, seatWind, roundWind, ronTile: tile);
+		return IncludeRiichi(YakuChecker.DetermineYaku(hypothetical, _melds, seatWind, roundWind, ronTile: tile));
 	}
+
+	/// <summary>リーチ宣言中（<see cref="IsRiichi"/>が<c>true</c>）であれば、役の一覧に<see cref="Yaku.Riichi"/>を加える。</summary>
+	private IReadOnlyList<Yaku> IncludeRiichi(IReadOnlyList<Yaku> yaku) => _isRiichi ? [.. yaku, Yaku.Riichi] : yaku;
 
 	/// <summary>打牌待ち（ツモ直後）でないことを確認する。</summary>
 	/// <exception cref="InvalidOperationException">打牌待ちの場合。</exception>

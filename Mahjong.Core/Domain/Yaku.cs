@@ -53,4 +53,7 @@ public enum Yaku
 
 	/// <summary>三暗刻。</summary>
 	Sanankou,
+
+	/// <summary>立直。</summary>
+	Riichi,
 }

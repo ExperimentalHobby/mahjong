@@ -1166,6 +1166,28 @@ public class HandTests
 		Assert.Contains(Yaku.Tanyao, yaku);
 	}
 
+	/// <summary>パス条件: リーチ宣言後にツモ和了した場合、DetermineYaku() の結果に Yaku.Riichi が含まれること。</summary>
+	[Fact]
+	public void DetermineYaku_AfterRiichi_ContainsRiichi()
+	{
+		List<Tile> startingTiles =
+		[
+			new Tile(TileSuit.Man, 2), new Tile(TileSuit.Man, 3), new Tile(TileSuit.Man, 4),
+			new Tile(TileSuit.Pin, 3), new Tile(TileSuit.Pin, 4), new Tile(TileSuit.Pin, 5),
+			new Tile(TileSuit.Sou, 5), new Tile(TileSuit.Sou, 6), new Tile(TileSuit.Sou, 7),
+			new Tile(TileSuit.Man, 8), new Tile(TileSuit.Man, 8), new Tile(TileSuit.Man, 8),
+			new Tile(TileSuit.Pin, 9),
+		];
+		var hand = new Hand(startingTiles);
+		hand.Draw(new Tile(TileSuit.Pin, 2));
+		hand.Riichi(new Tile(TileSuit.Pin, 9));
+		hand.Draw(new Tile(TileSuit.Pin, 2));
+
+		var yaku = hand.DetermineYaku();
+
+		Assert.Contains(Yaku.Riichi, yaku);
+	}
+
 	/// <summary>
 	/// パス条件: ロン牌tileを仮に加えると断幺九の標準形で完成する場合、DetermineYakuOn(tile) で
 	/// Yaku.Tanyao が判定でき、呼び出し後も ConcealedTiles が変化しないこと（非破壊であることの確認）。
@@ -1187,6 +1209,32 @@ public class HandTests
 
 		Assert.Contains(Yaku.Tanyao, yaku);
 		Assert.Equal(startingTiles, hand.ConcealedTiles);
+	}
+
+	/// <summary>
+	/// パス条件: リーチ宣言後、ロン牌tileを仮に加えると和了形で完成する場合、DetermineYakuOn(tile) の
+	/// 結果に Yaku.Riichi が含まれ、呼び出し後も ConcealedTiles が変化しないこと（非破壊であることの確認）。
+	/// </summary>
+	[Fact]
+	public void DetermineYakuOn_AfterRiichi_ContainsRiichi()
+	{
+		List<Tile> startingTiles =
+		[
+			new Tile(TileSuit.Man, 2), new Tile(TileSuit.Man, 3), new Tile(TileSuit.Man, 4),
+			new Tile(TileSuit.Pin, 3), new Tile(TileSuit.Pin, 4), new Tile(TileSuit.Pin, 5),
+			new Tile(TileSuit.Sou, 5), new Tile(TileSuit.Sou, 6), new Tile(TileSuit.Sou, 7),
+			new Tile(TileSuit.Man, 8), new Tile(TileSuit.Man, 8), new Tile(TileSuit.Man, 8),
+			new Tile(TileSuit.Pin, 9),
+		];
+		var hand = new Hand(startingTiles);
+		hand.Draw(new Tile(TileSuit.Pin, 2));
+		hand.Riichi(new Tile(TileSuit.Pin, 9));
+		var tenpaiTiles = new List<Tile>(hand.ConcealedTiles);
+
+		var yaku = hand.DetermineYakuOn(new Tile(TileSuit.Pin, 2));
+
+		Assert.Contains(Yaku.Riichi, yaku);
+		Assert.Equal(tenpaiTiles, hand.ConcealedTiles);
 	}
 
 	/// <summary>

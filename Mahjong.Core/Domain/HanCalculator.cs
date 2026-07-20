@@ -40,6 +40,7 @@ public static class HanCalculator
 		Yaku.Bakaze => 1,
 		Yaku.Sangenpai => 1,
 		Yaku.Sanankou => 2,
+		Yaku.Riichi => 1,
 		_ => throw new ArgumentOutOfRangeException(nameof(yaku), yaku, $"未対応のYakuです: {yaku}"),
 	};
 }
