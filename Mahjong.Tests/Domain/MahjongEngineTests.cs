@@ -137,6 +137,35 @@ public class MahjongEngineTests
 		Assert.Equal(1, clone.WinningHan[Seat.East]);
 	}
 
+	/// <summary>パス条件: ツモ和了成立後に Clone() すると、複製したエンジンにも WinningFu が保持されること。</summary>
+	[Fact]
+	public void Clone_PreservesWinningFu()
+	{
+		List<Tile> startingTiles =
+		[
+			new Tile(TileSuit.Man, 2), new Tile(TileSuit.Man, 3), new Tile(TileSuit.Man, 4),
+			new Tile(TileSuit.Pin, 3), new Tile(TileSuit.Pin, 4), new Tile(TileSuit.Pin, 5),
+			new Tile(TileSuit.Sou, 5), new Tile(TileSuit.Sou, 6), new Tile(TileSuit.Sou, 7),
+			new Tile(TileSuit.Man, 8), new Tile(TileSuit.Man, 8), new Tile(TileSuit.Man, 8),
+			new Tile(TileSuit.Pin, 2),
+		];
+		var eastHand = new Hand(startingTiles);
+		eastHand.Draw(new Tile(TileSuit.Pin, 2));
+		var hands = new Dictionary<Seat, Hand>
+		{
+			[Seat.East] = eastHand,
+			[Seat.South] = new Hand(CreateThirteenFillerTiles()),
+			[Seat.West] = new Hand(CreateThirteenFillerTiles()),
+			[Seat.North] = new Hand(CreateThirteenFillerTiles()),
+		};
+		var engine = new MahjongEngine(Wall.CreateShuffled(new Random(1)), hands, Seat.East, lastDiscard: null);
+		engine.CallTsumo();
+
+		var clone = engine.Clone();
+
+		Assert.Equal(30, clone.WinningFu[Seat.East]);
+	}
+
 	/// <summary>パス条件: ダブロン成立後に Clone() すると、複製したエンジンにも Winners・WinningYaku が保持されること。</summary>
 	[Fact]
 	public void Clone_PreservesWinnersAndWinningYaku_AfterDoubleRon()
@@ -787,6 +816,33 @@ public class MahjongEngineTests
 		Assert.Equal(1, engine.WinningHan[Seat.South]);
 	}
 
+	/// <summary>パス条件: 通常役でロン和了した場合、WinningFu に正しい符が設定されること。</summary>
+	[Fact]
+	public void CallRon_MenzenTanyao_SetsWinningFu()
+	{
+		var discardedTile = new Tile(TileSuit.Pin, 2);
+		var hands = new Dictionary<Seat, Hand>
+		{
+			[Seat.East] = new Hand(CreateThirteenFillerTiles()),
+			[Seat.South] = new Hand(
+			[
+				new Tile(TileSuit.Man, 2), new Tile(TileSuit.Man, 3), new Tile(TileSuit.Man, 4),
+				new Tile(TileSuit.Pin, 3), new Tile(TileSuit.Pin, 4), new Tile(TileSuit.Pin, 5),
+				new Tile(TileSuit.Sou, 5), new Tile(TileSuit.Sou, 6), new Tile(TileSuit.Sou, 7),
+				new Tile(TileSuit.Man, 8), new Tile(TileSuit.Man, 8), new Tile(TileSuit.Man, 8),
+				new Tile(TileSuit.Pin, 2),
+			]),
+			[Seat.West] = new Hand(CreateThirteenFillerTiles()),
+			[Seat.North] = new Hand(CreateThirteenFillerTiles()),
+		};
+		var engine = new MahjongEngine(
+			Wall.CreateShuffled(new Random(1)), hands, Seat.South, (discardedTile, Seat.East));
+
+		engine.CallRon(Seat.South);
+
+		Assert.Equal(40, engine.WinningFu[Seat.South]);
+	}
+
 	/// <summary>パス条件: ダブロン成立時、和了者ごとに異なる翻数が正しく WinningHan に設定されること。</summary>
 	[Fact]
 	public void CallRon_TwoCallers_SetsDifferentWinningHanPerCaller()
@@ -823,6 +879,41 @@ public class MahjongEngineTests
 		Assert.Equal(5, engine.WinningHan[Seat.South]);
 	}
 
+	/// <summary>パス条件: ダブロン成立時、和了者ごとに異なる符が正しく WinningFu に設定されること。</summary>
+	[Fact]
+	public void CallRon_TwoCallers_SetsDifferentWinningFuPerCaller()
+	{
+		var discardedTile = new Tile(TileSuit.Pin, 5);
+		var hands = new Dictionary<Seat, Hand>
+		{
+			[Seat.East] = new Hand(
+			[
+				new Tile(TileSuit.Man, 2), new Tile(TileSuit.Man, 3), new Tile(TileSuit.Man, 4),
+				new Tile(TileSuit.Man, 6), new Tile(TileSuit.Man, 7), new Tile(TileSuit.Man, 8),
+				new Tile(TileSuit.Sou, 3), new Tile(TileSuit.Sou, 4), new Tile(TileSuit.Sou, 5),
+				new Tile(TileSuit.Sou, 6), new Tile(TileSuit.Sou, 7), new Tile(TileSuit.Sou, 8),
+				new Tile(TileSuit.Pin, 5),
+			]),
+			[Seat.South] = new Hand(
+			[
+				new Tile(TileSuit.Man, 3), new Tile(TileSuit.Man, 3), new Tile(TileSuit.Man, 3),
+				new Tile(TileSuit.Pin, 4), new Tile(TileSuit.Pin, 4), new Tile(TileSuit.Pin, 4),
+				new Tile(TileSuit.Sou, 6), new Tile(TileSuit.Sou, 6), new Tile(TileSuit.Sou, 6),
+				new Tile(TileSuit.Man, 7), new Tile(TileSuit.Man, 7), new Tile(TileSuit.Man, 7),
+				new Tile(TileSuit.Pin, 5),
+			]),
+			[Seat.West] = new Hand(CreateThirteenFillerTiles()),
+			[Seat.North] = new Hand(CreateThirteenFillerTiles()),
+		};
+		var engine = new MahjongEngine(
+			Wall.CreateShuffled(new Random(1)), hands, Seat.West, (discardedTile, Seat.North));
+
+		engine.CallRon([Seat.East, Seat.South]);
+
+		Assert.Equal(30, engine.WinningFu[Seat.East]);
+		Assert.Equal(50, engine.WinningFu[Seat.South]);
+	}
+
 	/// <summary>パス条件: 役満（国士無双）でロン和了した場合、WinningHan にその座席のエントリが無いこと。</summary>
 	[Fact]
 	public void CallRon_Kokushi_WinningHanHasNoEntry()
@@ -850,6 +941,35 @@ public class MahjongEngineTests
 
 		Assert.Equal([Yaku.Kokushi], engine.WinningYaku[Seat.South]);
 		Assert.False(engine.WinningHan.ContainsKey(Seat.South));
+	}
+
+	/// <summary>パス条件: 役満（国士無双）でロン和了した場合、WinningFu にその座席のエントリが無いこと。</summary>
+	[Fact]
+	public void CallRon_Kokushi_WinningFuHasNoEntry()
+	{
+		var discardedTile = new Tile(TileSuit.Honor, 7);
+		var hands = new Dictionary<Seat, Hand>
+		{
+			[Seat.East] = new Hand(CreateThirteenFillerTiles()),
+			[Seat.South] = new Hand(
+			[
+				new Tile(TileSuit.Man, 1), new Tile(TileSuit.Man, 9),
+				new Tile(TileSuit.Pin, 1), new Tile(TileSuit.Pin, 9),
+				new Tile(TileSuit.Sou, 1), new Tile(TileSuit.Sou, 9),
+				new Tile(TileSuit.Honor, 1), new Tile(TileSuit.Honor, 2), new Tile(TileSuit.Honor, 3),
+				new Tile(TileSuit.Honor, 4), new Tile(TileSuit.Honor, 5), new Tile(TileSuit.Honor, 6),
+				new Tile(TileSuit.Honor, 7),
+			]),
+			[Seat.West] = new Hand(CreateThirteenFillerTiles()),
+			[Seat.North] = new Hand(CreateThirteenFillerTiles()),
+		};
+		var engine = new MahjongEngine(
+			Wall.CreateShuffled(new Random(1)), hands, Seat.South, (discardedTile, Seat.East));
+
+		engine.CallRon(Seat.South);
+
+		Assert.Equal([Yaku.Kokushi], engine.WinningYaku[Seat.South]);
+		Assert.False(engine.WinningFu.ContainsKey(Seat.South));
 	}
 
 	/// <summary>パス条件: 自分の捨て牌に対して自分でロンしようとすると ArgumentException になること。</summary>
@@ -990,6 +1110,34 @@ public class MahjongEngineTests
 		Assert.Equal(1, engine.WinningHan[Seat.East]);
 	}
 
+	/// <summary>パス条件: 通常役（門前）でツモ和了した場合、WinningFu に正しい符が設定されること。</summary>
+	[Fact]
+	public void CallTsumo_MenzenTanyao_SetsWinningFu()
+	{
+		List<Tile> startingTiles =
+		[
+			new Tile(TileSuit.Man, 2), new Tile(TileSuit.Man, 3), new Tile(TileSuit.Man, 4),
+			new Tile(TileSuit.Pin, 3), new Tile(TileSuit.Pin, 4), new Tile(TileSuit.Pin, 5),
+			new Tile(TileSuit.Sou, 5), new Tile(TileSuit.Sou, 6), new Tile(TileSuit.Sou, 7),
+			new Tile(TileSuit.Man, 8), new Tile(TileSuit.Man, 8), new Tile(TileSuit.Man, 8),
+			new Tile(TileSuit.Pin, 2),
+		];
+		var eastHand = new Hand(startingTiles);
+		eastHand.Draw(new Tile(TileSuit.Pin, 2));
+		var hands = new Dictionary<Seat, Hand>
+		{
+			[Seat.East] = eastHand,
+			[Seat.South] = new Hand(CreateThirteenFillerTiles()),
+			[Seat.West] = new Hand(CreateThirteenFillerTiles()),
+			[Seat.North] = new Hand(CreateThirteenFillerTiles()),
+		};
+		var engine = new MahjongEngine(Wall.CreateShuffled(new Random(1)), hands, Seat.East, lastDiscard: null);
+
+		engine.CallTsumo();
+
+		Assert.Equal(30, engine.WinningFu[Seat.East]);
+	}
+
 	/// <summary>
 	/// パス条件: 副露ありでツモ和了した場合、門前/副露で翻数が変わる役（混一色）が
 	/// 副露の翻数（2翻）で計算されること。
@@ -1024,6 +1172,36 @@ public class MahjongEngineTests
 		Assert.Equal(2, engine.WinningHan[Seat.East]);
 	}
 
+	/// <summary>パス条件: 副露ありでツモ和了した場合、副露を考慮した符が WinningFu に設定されること。</summary>
+	[Fact]
+	public void CallTsumo_WithMeldHonitsu_SetsWinningFu()
+	{
+		List<Tile> startingTiles =
+		[
+			new Tile(TileSuit.Man, 1), new Tile(TileSuit.Man, 1),
+			new Tile(TileSuit.Man, 2), new Tile(TileSuit.Man, 3), new Tile(TileSuit.Man, 4),
+			new Tile(TileSuit.Man, 5), new Tile(TileSuit.Man, 6), new Tile(TileSuit.Man, 7),
+			new Tile(TileSuit.Honor, 2), new Tile(TileSuit.Honor, 2), new Tile(TileSuit.Honor, 2),
+			new Tile(TileSuit.Man, 9), new Tile(TileSuit.Pin, 1),
+		];
+		var eastHand = new Hand(startingTiles);
+		eastHand.Pon(new Tile(TileSuit.Man, 1), new Tile(TileSuit.Man, 1), new Tile(TileSuit.Man, 1));
+		eastHand.Discard(new Tile(TileSuit.Pin, 1));
+		eastHand.Draw(new Tile(TileSuit.Man, 9));
+		var hands = new Dictionary<Seat, Hand>
+		{
+			[Seat.East] = eastHand,
+			[Seat.South] = new Hand(CreateThirteenFillerTiles()),
+			[Seat.West] = new Hand(CreateThirteenFillerTiles()),
+			[Seat.North] = new Hand(CreateThirteenFillerTiles()),
+		};
+		var engine = new MahjongEngine(Wall.CreateShuffled(new Random(1)), hands, Seat.East, lastDiscard: null);
+
+		engine.CallTsumo();
+
+		Assert.Equal(40, engine.WinningFu[Seat.East]);
+	}
+
 	/// <summary>パス条件: 役満（国士無双）でツモ和了した場合、WinningHan にその座席のエントリが無いこと。</summary>
 	[Fact]
 	public void CallTsumo_Kokushi_WinningHanHasNoEntry()
@@ -1052,6 +1230,36 @@ public class MahjongEngineTests
 
 		Assert.Equal([Yaku.Kokushi], engine.WinningYaku[Seat.East]);
 		Assert.False(engine.WinningHan.ContainsKey(Seat.East));
+	}
+
+	/// <summary>パス条件: 役満（国士無双）でツモ和了した場合、WinningFu にその座席のエントリが無いこと。</summary>
+	[Fact]
+	public void CallTsumo_Kokushi_WinningFuHasNoEntry()
+	{
+		List<Tile> startingTiles =
+		[
+			new Tile(TileSuit.Man, 1), new Tile(TileSuit.Man, 9),
+			new Tile(TileSuit.Pin, 1), new Tile(TileSuit.Pin, 9),
+			new Tile(TileSuit.Sou, 1), new Tile(TileSuit.Sou, 9),
+			new Tile(TileSuit.Honor, 1), new Tile(TileSuit.Honor, 2), new Tile(TileSuit.Honor, 3),
+			new Tile(TileSuit.Honor, 4), new Tile(TileSuit.Honor, 5), new Tile(TileSuit.Honor, 6),
+			new Tile(TileSuit.Honor, 7),
+		];
+		var eastHand = new Hand(startingTiles);
+		eastHand.Draw(new Tile(TileSuit.Honor, 7));
+		var hands = new Dictionary<Seat, Hand>
+		{
+			[Seat.East] = eastHand,
+			[Seat.South] = new Hand(CreateThirteenFillerTiles()),
+			[Seat.West] = new Hand(CreateThirteenFillerTiles()),
+			[Seat.North] = new Hand(CreateThirteenFillerTiles()),
+		};
+		var engine = new MahjongEngine(Wall.CreateShuffled(new Random(1)), hands, Seat.East, lastDiscard: null);
+
+		engine.CallTsumo();
+
+		Assert.Equal([Yaku.Kokushi], engine.WinningYaku[Seat.East]);
+		Assert.False(engine.WinningFu.ContainsKey(Seat.East));
 	}
 
 	/// （東家が東1局にダブ東でツモった場合、Yaku.Jikaze と Yaku.Bakaze の両方が含まれる）。
