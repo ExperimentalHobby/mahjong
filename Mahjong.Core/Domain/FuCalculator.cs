@@ -1,8 +1,8 @@
 namespace Mahjong.Core.Domain;
 
 /// <summary>
-/// 手牌の符（ふ）を計算する。待ちの形（両面・嵌張・辺張・単騎・シャンポン）による符・平和ツモの特例・
-/// 点数表参照は対象外。面子由来の符が最大になる面子分解を採用する。
+/// 手牌の符（ふ）を計算する。点数表参照は対象外。面子由来の符・待ちの形による符が最大になる
+/// 面子分解を採用する。
 /// </summary>
 public static class FuCalculator
 {
@@ -46,6 +46,11 @@ public static class FuCalculator
 		var isMenzen = melds.Count == 0;
 		var isTsumo = ronTile is null;
 
+		if (isTsumo && yaku.Contains(Yaku.Pinfu))
+		{
+			return 20;
+		}
+
 		var fu = 20;
 		if (isMenzen && !isTsumo)
 		{
@@ -63,7 +68,7 @@ public static class FuCalculator
 	}
 
 	/// <summary>
-	/// 雀頭候補ごとに残りの面子分解を列挙し、鳴きの面子・分解された面子・雀頭の符の合計が
+	/// 雀頭候補ごとに残りの面子分解を列挙し、鳴きの面子・分解された面子・雀頭・待ちの形の符の合計が
 	/// 最大になる値を返す。
 	/// </summary>
 	private static int CalculateBestSetAndPairFu(
@@ -75,6 +80,7 @@ public static class FuCalculator
 			counts[ToIndex(tile)]++;
 		}
 
+		var winningTile = ronTile ?? concealedTiles[^1];
 		var meldFu = melds.Select(ToDecomposedSet).Sum(set => GetSetFu(set, ronTile: null));
 		var requiredSets = 4 - melds.Count;
 		var seatWindRank = ToWindRank(seatWind);
@@ -95,13 +101,49 @@ public static class FuCalculator
 				foundAny = true;
 				var searchedFu = searched.Sum(set => GetSetFu(set, ronTile));
 				var pairFu = GetPairFu(pairKind, seatWindRank, roundWindRank);
-				best = Math.Max(best, meldFu + searchedFu + pairFu);
+				var waitFu = GetWaitFu(pairKind, searched, winningTile);
+				best = Math.Max(best, meldFu + searchedFu + pairFu + waitFu);
 			}
 
 			counts[pairKind] += 2;
 		}
 
 		return foundAny ? best : 0;
+	}
+
+	/// <summary>
+	/// 待ちの形による符を返す。和了牌が雀頭候補<paramref name="pairKind"/>自身なら単騎待ちとして2符。
+	/// それ以外は和了牌と同じスートの順子（刻子は対象外）を探し、嵌張・辺張（1-2-3の3待ち・
+	/// 7-8-9の7待ち）なら2符、両面なら0符。該当する順子が複数あり得る場合は最大値を採用する
+	/// （面子分解の探索と同じ「符が最大になる分解を採用する」方針に合わせるため）。刻子の一部として
+	/// 消費されている（シャンポン等）場合は0符。
+	/// </summary>
+	private static int GetWaitFu(int pairKind, DecomposedSet[] decomposition, Tile winningTile)
+	{
+		if (pairKind == ToIndex(winningTile))
+		{
+			return 2;
+		}
+
+		var best = 0;
+		foreach (var set in decomposition)
+		{
+			if (set.IsTriplet || set.Suit != winningTile.Suit)
+			{
+				continue;
+			}
+
+			var offset = winningTile.Rank - set.Rank;
+			if (offset < 0 || offset > 2)
+			{
+				continue;
+			}
+
+			var isKanchanOrPenchan = offset == 1 || (offset == 0 && set.Rank == 7) || (offset == 2 && set.Rank == 1);
+			best = Math.Max(best, isKanchanOrPenchan ? 2 : 0);
+		}
+
+		return best;
 	}
 
 	/// <summary>1つの面子の符を返す（順子は常に0）。</summary>

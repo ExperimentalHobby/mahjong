@@ -1040,7 +1040,11 @@ public class MahjongEngineTests
 		Assert.Equal(5, engine.WinningHan[Seat.South]);
 	}
 
-	/// <summary>パス条件: ダブロン成立時、和了者ごとに異なる符が正しく WinningFu に設定されること。</summary>
+	/// <summary>
+	/// パス条件: ダブロン成立時、和了者ごとに異なる符が正しく WinningFu に設定されること
+	/// （東家は和了牌Pin5がPin3,4待ちの両面完成のため待ちの符0符。南家は和了牌が雀頭を単騎完成するが
+	/// 4暗刻の符に埋もれて丸めの結果は変わらない）。
+	/// </summary>
 	[Fact]
 	public void CallRon_TwoCallers_SetsDifferentWinningFuPerCaller()
 	{
@@ -1052,8 +1056,8 @@ public class MahjongEngineTests
 				new Tile(TileSuit.Man, 2), new Tile(TileSuit.Man, 3), new Tile(TileSuit.Man, 4),
 				new Tile(TileSuit.Man, 6), new Tile(TileSuit.Man, 7), new Tile(TileSuit.Man, 8),
 				new Tile(TileSuit.Sou, 3), new Tile(TileSuit.Sou, 4), new Tile(TileSuit.Sou, 5),
-				new Tile(TileSuit.Sou, 6), new Tile(TileSuit.Sou, 7), new Tile(TileSuit.Sou, 8),
-				new Tile(TileSuit.Pin, 5),
+				new Tile(TileSuit.Pin, 3), new Tile(TileSuit.Pin, 4),
+				new Tile(TileSuit.Sou, 6), new Tile(TileSuit.Sou, 6),
 			]),
 			[Seat.South] = new Hand(
 			[
