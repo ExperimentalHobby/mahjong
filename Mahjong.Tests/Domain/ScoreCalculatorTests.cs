@@ -106,4 +106,86 @@ public class ScoreCalculatorTests
 
 		Assert.Equal(2000, points);
 	}
+
+	/// <summary>パス条件: 積み棒1本ありのロンで、本場分の300点が加算されて 3900+300=4200点になること。</summary>
+	[Fact]
+	public void CalculateRonPoints_OneHonba_AddsThreeHundredPoints()
+	{
+		var points = ScoreCalculator.CalculateRonPoints(han: 3, fu: 30, isDealer: false, honbaCount: 1);
+
+		Assert.Equal(4200, points);
+	}
+
+	/// <summary>
+	/// パス条件: 積み棒1本ありの子のツモで、親・子とも本場分の100点が加算されて
+	/// 親2100点・子1100点になること。
+	/// </summary>
+	[Fact]
+	public void CalculateNonDealerTsumoPoints_OneHonba_AddsHundredPointsToEach()
+	{
+		var (fromDealer, fromNonDealer) = ScoreCalculator.CalculateNonDealerTsumoPoints(han: 4, fu: 30, honbaCount: 1);
+
+		Assert.Equal(4000, fromDealer);
+		Assert.Equal(2100, fromNonDealer);
+	}
+
+	/// <summary>パス条件: 積み棒1本ありの親のツモで、各家の支払いに本場分の100点が加算されて2100点になること。</summary>
+	[Fact]
+	public void CalculateDealerTsumoPointsFromEach_OneHonba_AddsHundredPoints()
+	{
+		var points = ScoreCalculator.CalculateDealerTsumoPointsFromEach(han: 3, fu: 30, honbaCount: 1);
+
+		Assert.Equal(2100, points);
+	}
+
+	/// <summary>パス条件: 聴牌1人・ノーテン3人の場合、聴牌者が3000点、ノーテン者が1000点ずつ減ること。</summary>
+	[Fact]
+	public void CalculateExhaustiveDrawPayments_OneTenpai_ReturnsThreeThousandAndOneThousand()
+	{
+		var (perTenpaiGain, perNotenLoss) = ScoreCalculator.CalculateExhaustiveDrawPayments(tenpaiCount: 1);
+
+		Assert.Equal(3000, perTenpaiGain);
+		Assert.Equal(1000, perNotenLoss);
+	}
+
+	/// <summary>パス条件: 聴牌2人・ノーテン2人の場合、それぞれ1500点ずつ授受されること。</summary>
+	[Fact]
+	public void CalculateExhaustiveDrawPayments_TwoTenpai_ReturnsFifteenHundredEach()
+	{
+		var (perTenpaiGain, perNotenLoss) = ScoreCalculator.CalculateExhaustiveDrawPayments(tenpaiCount: 2);
+
+		Assert.Equal(1500, perTenpaiGain);
+		Assert.Equal(1500, perNotenLoss);
+	}
+
+	/// <summary>パス条件: 聴牌3人・ノーテン1人の場合、聴牌者が1000点ずつ、ノーテン者が3000点減ること。</summary>
+	[Fact]
+	public void CalculateExhaustiveDrawPayments_ThreeTenpai_ReturnsOneThousandAndThreeThousand()
+	{
+		var (perTenpaiGain, perNotenLoss) = ScoreCalculator.CalculateExhaustiveDrawPayments(tenpaiCount: 3);
+
+		Assert.Equal(1000, perTenpaiGain);
+		Assert.Equal(3000, perNotenLoss);
+	}
+
+	/// <summary>パス条件: 聴牌0人・4人の場合、点数移動が無い(0,0)になること。</summary>
+	[Theory]
+	[InlineData(0)]
+	[InlineData(4)]
+	public void CalculateExhaustiveDrawPayments_ZeroOrFourTenpai_ReturnsZero(int tenpaiCount)
+	{
+		var (perTenpaiGain, perNotenLoss) = ScoreCalculator.CalculateExhaustiveDrawPayments(tenpaiCount);
+
+		Assert.Equal(0, perTenpaiGain);
+		Assert.Equal(0, perNotenLoss);
+	}
+
+	/// <summary>パス条件: 聴牌人数に0〜4の範囲外を渡すと ArgumentOutOfRangeException になること。</summary>
+	[Theory]
+	[InlineData(-1)]
+	[InlineData(5)]
+	public void CalculateExhaustiveDrawPayments_OutOfRangeTenpaiCount_Throws(int tenpaiCount)
+	{
+		Assert.Throws<ArgumentOutOfRangeException>(() => ScoreCalculator.CalculateExhaustiveDrawPayments(tenpaiCount));
+	}
 }
