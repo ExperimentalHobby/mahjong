@@ -929,8 +929,10 @@ public class MahjongEngineTests
 			[Seat.West] = new Hand(CreateThirteenFillerTiles()),
 			[Seat.North] = new Hand(CreateThirteenFillerTiles()),
 		};
-		var engine = new MahjongEngine(
-			Wall.CreateShuffled(new Random(1)), hands, Seat.South, (discardedTile, Seat.East));
+		var wall = new Wall(
+			liveWall: [new Tile(TileSuit.Sou, 9)],
+			deadWall: [new Tile(TileSuit.Honor, 5), new Tile(TileSuit.Honor, 1)]);
+		var engine = new MahjongEngine(wall, hands, Seat.South, (discardedTile, Seat.East));
 
 		engine.CallRon(Seat.South);
 
@@ -1514,7 +1516,10 @@ public class MahjongEngineTests
 			[Seat.West] = new Hand(CreateThirteenFillerTiles()),
 			[Seat.North] = new Hand(CreateThirteenFillerTiles()),
 		};
-		var engine = new MahjongEngine(Wall.CreateShuffled(new Random(1)), hands, Seat.East, lastDiscard: null);
+		var wall = new Wall(
+			liveWall: [new Tile(TileSuit.Sou, 9)],
+			deadWall: [new Tile(TileSuit.Honor, 5), new Tile(TileSuit.Honor, 1)]);
+		var engine = new MahjongEngine(wall, hands, Seat.East, lastDiscard: null);
 
 		engine.CallTsumo();
 
@@ -2680,7 +2685,7 @@ public class MahjongEngineTests
 				new Tile(TileSuit.Sou, 3), new Tile(TileSuit.Sou, 2), new Tile(TileSuit.Sou, 1),
 				new Tile(TileSuit.Honor, 7),
 			],
-			deadWall: [new Tile(TileSuit.Honor, 1)]);
+			deadWall: [new Tile(TileSuit.Honor, 1), new Tile(TileSuit.Honor, 1)]);
 		var engine = new MahjongEngine(wall, hands, Seat.East, lastDiscard: null);
 
 		engine.DrawForCurrentPlayer();
@@ -2731,7 +2736,7 @@ public class MahjongEngineTests
 				new Tile(TileSuit.Sou, 3), new Tile(TileSuit.Sou, 2), new Tile(TileSuit.Sou, 1),
 				new Tile(TileSuit.Honor, 7),
 			],
-			deadWall: [new Tile(TileSuit.Honor, 1)]);
+			deadWall: [new Tile(TileSuit.Honor, 1), new Tile(TileSuit.Honor, 1)]);
 		var engine = new MahjongEngine(wall, hands, Seat.East, lastDiscard: null);
 
 		engine.DrawForCurrentPlayer();
@@ -2800,7 +2805,7 @@ public class MahjongEngineTests
 				new Tile(TileSuit.Pin, 6),
 				new Tile(TileSuit.Pin, 5),
 			],
-			deadWall: [new Tile(TileSuit.Honor, 1)]);
+			deadWall: [new Tile(TileSuit.Honor, 1), new Tile(TileSuit.Honor, 1)]);
 		var engine = new MahjongEngine(wall, hands, Seat.East, lastDiscard: null);
 
 		engine.DrawForCurrentPlayer();
@@ -2850,7 +2855,7 @@ public class MahjongEngineTests
 		};
 		var wall = new Wall(
 			liveWall: [new Tile(TileSuit.Pin, 9), new Tile(TileSuit.Honor, 7)],
-			deadWall: [new Tile(TileSuit.Honor, 1)]);
+			deadWall: [new Tile(TileSuit.Honor, 1), new Tile(TileSuit.Honor, 1)]);
 		var engine = new MahjongEngine(wall, hands, Seat.East, lastDiscard: null);
 
 		engine.DrawForCurrentPlayer();
@@ -2891,7 +2896,7 @@ public class MahjongEngineTests
 				new Tile(TileSuit.Sou, 3), new Tile(TileSuit.Sou, 2), new Tile(TileSuit.Sou, 1),
 				new Tile(TileSuit.Honor, 7),
 			],
-			deadWall: [new Tile(TileSuit.Honor, 1)]);
+			deadWall: [new Tile(TileSuit.Honor, 1), new Tile(TileSuit.Honor, 1)]);
 		var engine = new MahjongEngine(wall, hands, Seat.East, lastDiscard: null);
 
 		engine.DrawForCurrentPlayer();
@@ -2942,7 +2947,7 @@ public class MahjongEngineTests
 		};
 		var wall = new Wall(
 			liveWall: [new Tile(TileSuit.Pin, 9), new Tile(TileSuit.Sou, 1), new Tile(TileSuit.Honor, 6)],
-			deadWall: [new Tile(TileSuit.Honor, 1)]);
+			deadWall: [new Tile(TileSuit.Honor, 1), new Tile(TileSuit.Honor, 1)]);
 		var engine = new MahjongEngine(wall, hands, Seat.East, lastDiscard: null);
 
 		engine.DrawForCurrentPlayer();
@@ -2990,7 +2995,7 @@ public class MahjongEngineTests
 				new Tile(TileSuit.Sou, 3), new Tile(TileSuit.Sou, 2), new Tile(TileSuit.Sou, 1),
 				new Tile(TileSuit.Honor, 7),
 			],
-			deadWall: [new Tile(TileSuit.Honor, 1)]);
+			deadWall: [new Tile(TileSuit.Honor, 1), new Tile(TileSuit.Honor, 1)]);
 		var engine = new MahjongEngine(wall, hands, Seat.East, lastDiscard: null);
 
 		engine.DrawForCurrentPlayer();
@@ -3015,6 +3020,375 @@ public class MahjongEngineTests
 
 		Assert.DoesNotContain(Yaku.Ippatsu, engine.WinningYaku[Seat.East]);
 	}
+
+	/// <summary>
+	/// パス条件: ツモ和了で表ドラ1枚（Man1表示→Man2）を含む手は、WinningHanにドラ分の翻が加算されること
+	/// （Tanyao=1 + MenzenTsumo=1 + ドラ1 = 3）。
+	/// </summary>
+	[Fact]
+	public void CallTsumo_WithDora_AddsDoraToWinningHan()
+	{
+		List<Tile> startingTiles =
+		[
+			new Tile(TileSuit.Man, 2), new Tile(TileSuit.Man, 3), new Tile(TileSuit.Man, 4),
+			new Tile(TileSuit.Pin, 3), new Tile(TileSuit.Pin, 4), new Tile(TileSuit.Pin, 5),
+			new Tile(TileSuit.Sou, 5), new Tile(TileSuit.Sou, 6), new Tile(TileSuit.Sou, 7),
+			new Tile(TileSuit.Man, 8), new Tile(TileSuit.Man, 8), new Tile(TileSuit.Man, 8),
+			new Tile(TileSuit.Pin, 2),
+		];
+		var eastHand = new Hand(startingTiles);
+		eastHand.Draw(new Tile(TileSuit.Honor, 7));
+		eastHand.Discard(new Tile(TileSuit.Honor, 7));
+		eastHand.Draw(new Tile(TileSuit.Pin, 2));
+		var hands = new Dictionary<Seat, Hand>
+		{
+			[Seat.East] = eastHand,
+			[Seat.South] = new Hand(CreateThirteenFillerTiles()),
+			[Seat.West] = new Hand(CreateThirteenFillerTiles()),
+			[Seat.North] = new Hand(CreateThirteenFillerTiles()),
+		};
+		var wall = new Wall(
+			liveWall: [new Tile(TileSuit.Sou, 9)],
+			deadWall: [new Tile(TileSuit.Man, 1), new Tile(TileSuit.Honor, 1)]);
+		var engine = new MahjongEngine(wall, hands, Seat.East, lastDiscard: null);
+
+		engine.CallTsumo();
+
+		Assert.Equal(3, engine.WinningHan[Seat.East]);
+	}
+
+	/// <summary>
+	/// パス条件: リーチしていない和了では、裏ドラ表示牌（Man1表示→Man2）が手牌に一致していても
+	/// 裏ドラは加算されないこと（MenzenTsumo=1のみ）。
+	/// </summary>
+	[Fact]
+	public void CallTsumo_WithoutRiichi_DoesNotAddUraDora()
+	{
+		List<Tile> eastStartingTiles =
+		[
+			new Tile(TileSuit.Man, 2), new Tile(TileSuit.Man, 3), new Tile(TileSuit.Man, 4),
+			new Tile(TileSuit.Pin, 3), new Tile(TileSuit.Pin, 4), new Tile(TileSuit.Pin, 5),
+			new Tile(TileSuit.Sou, 5), new Tile(TileSuit.Sou, 6), new Tile(TileSuit.Sou, 7),
+			new Tile(TileSuit.Man, 8), new Tile(TileSuit.Man, 8), new Tile(TileSuit.Man, 8),
+			new Tile(TileSuit.Pin, 9),
+		];
+		var eastHand = new Hand(eastStartingTiles);
+		eastHand.Draw(new Tile(TileSuit.Honor, 7));
+		eastHand.Discard(new Tile(TileSuit.Honor, 7));
+		eastHand.Draw(new Tile(TileSuit.Pin, 9));
+		var hands = new Dictionary<Seat, Hand>
+		{
+			[Seat.East] = eastHand,
+			[Seat.South] = new Hand(CreateThirteenFillerTiles()),
+			[Seat.West] = new Hand(CreateThirteenFillerTiles()),
+			[Seat.North] = new Hand(CreateThirteenFillerTiles()),
+		};
+		var wall = new Wall(
+			liveWall: [new Tile(TileSuit.Sou, 9)],
+			deadWall: [new Tile(TileSuit.Honor, 5), new Tile(TileSuit.Man, 1)]);
+		var engine = new MahjongEngine(wall, hands, Seat.East, lastDiscard: null);
+
+		engine.CallTsumo();
+
+		Assert.Equal(1, engine.WinningHan[Seat.East]);
+	}
+
+	/// <summary>
+	/// パス条件: リーチしている和了では、裏ドラ表示牌（Man1表示→Man2）が手牌に一致していれば
+	/// 裏ドラも加算されること（Riichi=1 + MenzenTsumo=1 + 裏ドラ1 = 3）。
+	/// </summary>
+	[Fact]
+	public void CallTsumo_WithRiichi_AddsUraDora()
+	{
+		List<Tile> eastStartingTiles =
+		[
+			new Tile(TileSuit.Man, 2), new Tile(TileSuit.Man, 3), new Tile(TileSuit.Man, 4),
+			new Tile(TileSuit.Pin, 3), new Tile(TileSuit.Pin, 4), new Tile(TileSuit.Pin, 5),
+			new Tile(TileSuit.Sou, 5), new Tile(TileSuit.Sou, 6), new Tile(TileSuit.Sou, 7),
+			new Tile(TileSuit.Man, 8), new Tile(TileSuit.Man, 8), new Tile(TileSuit.Man, 8),
+			new Tile(TileSuit.Pin, 9),
+		];
+		var eastHand = new Hand(eastStartingTiles);
+		eastHand.Draw(new Tile(TileSuit.Honor, 7));
+		eastHand.Riichi(new Tile(TileSuit.Honor, 7));
+		eastHand.Draw(new Tile(TileSuit.Pin, 9));
+		var hands = new Dictionary<Seat, Hand>
+		{
+			[Seat.East] = eastHand,
+			[Seat.South] = new Hand(CreateThirteenFillerTiles()),
+			[Seat.West] = new Hand(CreateThirteenFillerTiles()),
+			[Seat.North] = new Hand(CreateThirteenFillerTiles()),
+		};
+		var wall = new Wall(
+			liveWall: [new Tile(TileSuit.Sou, 9)],
+			deadWall: [new Tile(TileSuit.Honor, 5), new Tile(TileSuit.Man, 1)]);
+		var engine = new MahjongEngine(wall, hands, Seat.East, lastDiscard: null);
+
+		engine.CallTsumo();
+
+		Assert.Equal(3, engine.WinningHan[Seat.East]);
+	}
+
+	/// <summary>パス条件: リーチ宣言で持ち点が1000点減り、RiichiStickPotが1000点増えること。</summary>
+	[Fact]
+	public void Riichi_DeductsThousandPointsAndAddsToRiichiStickPot()
+	{
+		List<Tile> startingTiles =
+		[
+			new Tile(TileSuit.Man, 1), new Tile(TileSuit.Man, 1), new Tile(TileSuit.Man, 1),
+			new Tile(TileSuit.Pin, 2), new Tile(TileSuit.Pin, 2), new Tile(TileSuit.Pin, 2),
+			new Tile(TileSuit.Sou, 3), new Tile(TileSuit.Sou, 3), new Tile(TileSuit.Sou, 3),
+			new Tile(TileSuit.Honor, 1), new Tile(TileSuit.Honor, 1), new Tile(TileSuit.Honor, 1),
+			new Tile(TileSuit.Man, 9),
+		];
+		var eastHand = new Hand(startingTiles);
+		eastHand.Draw(new Tile(TileSuit.Sou, 9));
+		var hands = new Dictionary<Seat, Hand>
+		{
+			[Seat.East] = eastHand,
+			[Seat.South] = new Hand(CreateThirteenFillerTiles()),
+			[Seat.West] = new Hand(CreateThirteenFillerTiles()),
+			[Seat.North] = new Hand(CreateThirteenFillerTiles()),
+		};
+		var engine = new MahjongEngine(Wall.CreateShuffled(new Random(1)), hands, Seat.East, lastDiscard: null);
+
+		engine.Riichi(new Tile(TileSuit.Sou, 9));
+
+		Assert.Equal(24000, engine.Scores[Seat.East]);
+		Assert.Equal(1000, engine.RiichiStickPot);
+	}
+
+	/// <summary>パス条件: ツモ和了で供託を全て獲得し、RiichiStickPotが0に戻ること。</summary>
+	[Fact]
+	public void CallTsumo_WithRiichiStickPot_AwardsPotToWinnerAndResetsToZero()
+	{
+		List<Tile> startingTiles =
+		[
+			new Tile(TileSuit.Man, 2), new Tile(TileSuit.Man, 3), new Tile(TileSuit.Man, 4),
+			new Tile(TileSuit.Pin, 3), new Tile(TileSuit.Pin, 4), new Tile(TileSuit.Pin, 5),
+			new Tile(TileSuit.Sou, 5), new Tile(TileSuit.Sou, 6), new Tile(TileSuit.Sou, 7),
+			new Tile(TileSuit.Man, 8), new Tile(TileSuit.Man, 8), new Tile(TileSuit.Man, 8),
+			new Tile(TileSuit.Pin, 2),
+		];
+		var eastHand = new Hand(startingTiles);
+		eastHand.Draw(new Tile(TileSuit.Honor, 7));
+		eastHand.Discard(new Tile(TileSuit.Honor, 7));
+		eastHand.Draw(new Tile(TileSuit.Pin, 2));
+		var hands = new Dictionary<Seat, Hand>
+		{
+			[Seat.East] = eastHand,
+			[Seat.South] = new Hand(CreateThirteenFillerTiles()),
+			[Seat.West] = new Hand(CreateThirteenFillerTiles()),
+			[Seat.North] = new Hand(CreateThirteenFillerTiles()),
+		};
+		var wall = new Wall(
+			liveWall: [new Tile(TileSuit.Sou, 9)],
+			deadWall: [new Tile(TileSuit.Honor, 5), new Tile(TileSuit.Honor, 1)]);
+		var engine = new MahjongEngine(wall, hands, Seat.East, lastDiscard: null, riichiStickPot: 1000);
+
+		engine.CallTsumo();
+
+		Assert.Equal(29000, engine.Scores[Seat.East]);
+		Assert.Equal(0, engine.RiichiStickPot);
+	}
+
+	/// <summary>パス条件: ダブロン時は放銃者に最も近い和了者が供託を総取りすること。</summary>
+	[Fact]
+	public void CallRon_TwoCallersWithRiichiStickPot_AwardsPotToCallerClosestToDiscarder()
+	{
+		var discardedTile = new Tile(TileSuit.Man, 9);
+		var hands = new Dictionary<Seat, Hand>
+		{
+			[Seat.East] = new Hand(
+			[
+				new Tile(TileSuit.Man, 2), new Tile(TileSuit.Man, 3), new Tile(TileSuit.Man, 4),
+				new Tile(TileSuit.Pin, 2), new Tile(TileSuit.Pin, 3), new Tile(TileSuit.Pin, 4),
+				new Tile(TileSuit.Sou, 2), new Tile(TileSuit.Sou, 3), new Tile(TileSuit.Sou, 4),
+				new Tile(TileSuit.Man, 7), new Tile(TileSuit.Man, 8),
+				new Tile(TileSuit.Pin, 8), new Tile(TileSuit.Pin, 8),
+			]),
+			[Seat.South] = new Hand(
+			[
+				new Tile(TileSuit.Man, 5), new Tile(TileSuit.Man, 6), new Tile(TileSuit.Man, 7),
+				new Tile(TileSuit.Pin, 5), new Tile(TileSuit.Pin, 6), new Tile(TileSuit.Pin, 7),
+				new Tile(TileSuit.Sou, 5), new Tile(TileSuit.Sou, 6), new Tile(TileSuit.Sou, 7),
+				new Tile(TileSuit.Man, 7), new Tile(TileSuit.Man, 8),
+				new Tile(TileSuit.Honor, 5), new Tile(TileSuit.Honor, 5),
+			]),
+			[Seat.West] = new Hand(CreateThirteenFillerTiles()),
+			[Seat.North] = new Hand(CreateThirteenFillerTiles()),
+		};
+		var wall = new Wall(
+			liveWall: [new Tile(TileSuit.Sou, 9)],
+			deadWall: [new Tile(TileSuit.Honor, 6), new Tile(TileSuit.Honor, 1)]);
+		var engine = new MahjongEngine(wall, hands, Seat.West, (discardedTile, Seat.North), riichiStickPot: 1000);
+		var scoresBefore = new Dictionary<Seat, int>(engine.Scores);
+
+		engine.CallRon([Seat.East, Seat.South]);
+
+		var eastGain = engine.Scores[Seat.East] - scoresBefore[Seat.East];
+		var southGain = engine.Scores[Seat.South] - scoresBefore[Seat.South];
+		Assert.Equal(engine.WinningPoints[Seat.East] + 1000, eastGain);
+		Assert.Equal(engine.WinningPoints[Seat.South], southGain);
+		Assert.Equal(0, engine.RiichiStickPot);
+	}
+
+	/// <summary>
+	/// パス条件: 積み棒1本ありのロン和了で、WinningPointsに本場分の300点が上乗せされること
+	/// （Tanyao=1翻40符→1300点 + 本場300点 = 1600点）。
+	/// </summary>
+	[Fact]
+	public void CallRon_WithOneHonba_AddsHonbaBonusToWinningPoints()
+	{
+		var discardedTile = new Tile(TileSuit.Pin, 2);
+		var hands = new Dictionary<Seat, Hand>
+		{
+			[Seat.East] = new Hand(CreateThirteenFillerTiles()),
+			[Seat.South] = new Hand(
+			[
+				new Tile(TileSuit.Man, 2), new Tile(TileSuit.Man, 3), new Tile(TileSuit.Man, 4),
+				new Tile(TileSuit.Pin, 3), new Tile(TileSuit.Pin, 4), new Tile(TileSuit.Pin, 5),
+				new Tile(TileSuit.Sou, 5), new Tile(TileSuit.Sou, 6), new Tile(TileSuit.Sou, 7),
+				new Tile(TileSuit.Man, 8), new Tile(TileSuit.Man, 8), new Tile(TileSuit.Man, 8),
+				new Tile(TileSuit.Pin, 2),
+			]),
+			[Seat.West] = new Hand(CreateThirteenFillerTiles()),
+			[Seat.North] = new Hand(CreateThirteenFillerTiles()),
+		};
+		var wall = new Wall(
+			liveWall: [new Tile(TileSuit.Sou, 9)],
+			deadWall: [new Tile(TileSuit.Honor, 5), new Tile(TileSuit.Honor, 1)]);
+		var engine = new MahjongEngine(wall, hands, Seat.South, (discardedTile, Seat.East), honbaCount: 1);
+
+		engine.CallRon(Seat.South);
+
+		Assert.Equal(1, engine.WinningHan[Seat.South]);
+		Assert.Equal(40, engine.WinningFu[Seat.South]);
+		Assert.Equal(1600, engine.WinningPoints[Seat.South]);
+	}
+
+	/// <summary>
+	/// パス条件: 聴牌1人・ノーテン3人の荒牌流局でSettleExhaustiveDraw()を呼ぶと、
+	/// 聴牌者が3000点、ノーテン者が1000点ずつ減ること。
+	/// </summary>
+	[Fact]
+	public void SettleExhaustiveDraw_OneTenpai_AdjustsScoresByThreeThousandAndOneThousand()
+	{
+		List<Tile> tenpaiTiles =
+		[
+			new Tile(TileSuit.Man, 2), new Tile(TileSuit.Man, 3), new Tile(TileSuit.Man, 4),
+			new Tile(TileSuit.Pin, 3), new Tile(TileSuit.Pin, 4), new Tile(TileSuit.Pin, 5),
+			new Tile(TileSuit.Sou, 5), new Tile(TileSuit.Sou, 6), new Tile(TileSuit.Sou, 7),
+			new Tile(TileSuit.Man, 8), new Tile(TileSuit.Man, 8), new Tile(TileSuit.Man, 8),
+			new Tile(TileSuit.Pin, 2),
+		];
+		var hands = new Dictionary<Seat, Hand>
+		{
+			[Seat.East] = new Hand(tenpaiTiles),
+			[Seat.South] = new Hand(CreateNotenFillerTiles()),
+			[Seat.West] = new Hand(CreateNotenFillerTiles()),
+			[Seat.North] = new Hand(CreateNotenFillerTiles()),
+		};
+		var wall = new Wall(liveWall: [], deadWall: [new Tile(TileSuit.Honor, 1), new Tile(TileSuit.Honor, 1)]);
+		var engine = new MahjongEngine(wall, hands, Seat.East, lastDiscard: null);
+
+		engine.SettleExhaustiveDraw();
+
+		Assert.Equal(28000, engine.Scores[Seat.East]);
+		Assert.Equal(24000, engine.Scores[Seat.South]);
+		Assert.Equal(24000, engine.Scores[Seat.West]);
+		Assert.Equal(24000, engine.Scores[Seat.North]);
+		Assert.Equal([Seat.East], engine.TenpaiSeats);
+	}
+
+	/// <summary>パス条件: 聴牌2人・ノーテン2人の荒牌流局で、それぞれ1500点ずつ授受されること。</summary>
+	[Fact]
+	public void SettleExhaustiveDraw_TwoTenpai_AdjustsScoresByFifteenHundredEach()
+	{
+		List<Tile> tenpaiTiles =
+		[
+			new Tile(TileSuit.Man, 2), new Tile(TileSuit.Man, 3), new Tile(TileSuit.Man, 4),
+			new Tile(TileSuit.Pin, 3), new Tile(TileSuit.Pin, 4), new Tile(TileSuit.Pin, 5),
+			new Tile(TileSuit.Sou, 5), new Tile(TileSuit.Sou, 6), new Tile(TileSuit.Sou, 7),
+			new Tile(TileSuit.Man, 8), new Tile(TileSuit.Man, 8), new Tile(TileSuit.Man, 8),
+			new Tile(TileSuit.Pin, 2),
+		];
+		var hands = new Dictionary<Seat, Hand>
+		{
+			[Seat.East] = new Hand(tenpaiTiles),
+			[Seat.South] = new Hand(tenpaiTiles),
+			[Seat.West] = new Hand(CreateNotenFillerTiles()),
+			[Seat.North] = new Hand(CreateNotenFillerTiles()),
+		};
+		var wall = new Wall(liveWall: [], deadWall: [new Tile(TileSuit.Honor, 1), new Tile(TileSuit.Honor, 1)]);
+		var engine = new MahjongEngine(wall, hands, Seat.East, lastDiscard: null);
+
+		engine.SettleExhaustiveDraw();
+
+		Assert.Equal(26500, engine.Scores[Seat.East]);
+		Assert.Equal(26500, engine.Scores[Seat.South]);
+		Assert.Equal(23500, engine.Scores[Seat.West]);
+		Assert.Equal(23500, engine.Scores[Seat.North]);
+	}
+
+	/// <summary>パス条件: 全員ノーテンの荒牌流局では、SettleExhaustiveDraw()で点数移動が無いこと。</summary>
+	[Fact]
+	public void SettleExhaustiveDraw_AllNoten_DoesNotChangeScores()
+	{
+		var hands = new Dictionary<Seat, Hand>
+		{
+			[Seat.East] = new Hand(CreateNotenFillerTiles()),
+			[Seat.South] = new Hand(CreateNotenFillerTiles()),
+			[Seat.West] = new Hand(CreateNotenFillerTiles()),
+			[Seat.North] = new Hand(CreateNotenFillerTiles()),
+		};
+		var wall = new Wall(liveWall: [], deadWall: [new Tile(TileSuit.Honor, 1), new Tile(TileSuit.Honor, 1)]);
+		var engine = new MahjongEngine(wall, hands, Seat.East, lastDiscard: null);
+
+		engine.SettleExhaustiveDraw();
+
+		Assert.Equal(25000, engine.Scores[Seat.East]);
+		Assert.Equal(25000, engine.Scores[Seat.South]);
+		Assert.Equal(25000, engine.Scores[Seat.West]);
+		Assert.Equal(25000, engine.Scores[Seat.North]);
+		Assert.Empty(engine.TenpaiSeats);
+	}
+
+	/// <summary>パス条件: 荒牌流局でない状態でSettleExhaustiveDraw()を呼ぶと InvalidOperationException になること。</summary>
+	[Fact]
+	public void SettleExhaustiveDraw_WhenNotExhaustiveDraw_Throws()
+	{
+		var engine = MahjongEngine.Start(new Random(1));
+
+		Assert.Throws<InvalidOperationException>(() => engine.SettleExhaustiveDraw());
+	}
+
+	/// <summary>パス条件: 荒牌流局（誰も和了しない）の場合、供託がそのまま残ること。</summary>
+	[Fact]
+	public void SettleExhaustiveDraw_WithRiichiStickPot_DoesNotChangePot()
+	{
+		var hands = new Dictionary<Seat, Hand>
+		{
+			[Seat.East] = new Hand(CreateNotenFillerTiles()),
+			[Seat.South] = new Hand(CreateNotenFillerTiles()),
+			[Seat.West] = new Hand(CreateNotenFillerTiles()),
+			[Seat.North] = new Hand(CreateNotenFillerTiles()),
+		};
+		var wall = new Wall(liveWall: [], deadWall: [new Tile(TileSuit.Honor, 1), new Tile(TileSuit.Honor, 1)]);
+		var engine = new MahjongEngine(wall, hands, Seat.East, lastDiscard: null, riichiStickPot: 1000);
+
+		engine.SettleExhaustiveDraw();
+
+		Assert.Equal(1000, engine.RiichiStickPot);
+	}
+
+	private static List<Tile> CreateNotenFillerTiles() =>
+	[
+		new Tile(TileSuit.Man, 2), new Tile(TileSuit.Man, 5), new Tile(TileSuit.Man, 8),
+		new Tile(TileSuit.Pin, 2), new Tile(TileSuit.Pin, 5), new Tile(TileSuit.Pin, 8),
+		new Tile(TileSuit.Sou, 2), new Tile(TileSuit.Sou, 5), new Tile(TileSuit.Sou, 8),
+		new Tile(TileSuit.Honor, 1), new Tile(TileSuit.Honor, 2), new Tile(TileSuit.Honor, 3), new Tile(TileSuit.Honor, 4),
+	];
 
 	private static List<Tile> CreateThirteenFillerTiles()
 	{

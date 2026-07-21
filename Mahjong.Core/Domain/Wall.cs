@@ -21,10 +21,16 @@ public sealed class Wall
 	public int LiveWallCount => _liveWall.Count;
 
 	/// <summary>
-	/// 初期ドラ表示牌（王牌から1枚）。
-	/// カンによるドラ表示牌の追加や裏ドラは今回のスコープ外。
+	/// 初期ドラ表示牌（王牌から1枚）。カンによるドラ表示牌の追加（カンドラ）は今回のスコープ外。
 	/// </summary>
 	public Tile DoraIndicator => _deadWall[0];
+
+	/// <summary>
+	/// 裏ドラ表示牌（王牌から1枚。リーチして和了した場合のみ<see cref="DoraCalculator"/>で使う）。
+	/// 実際の牌山の物理的な並び位置を厳密に再現するものではない簡略化として、<see cref="DoraIndicator"/>と
+	/// 同じくカン成立時の<see cref="DrawReplacement"/>による補充対象にならない位置（deadWall[1]）を用いる。
+	/// </summary>
+	public Tile UraDoraIndicator => _deadWall[1];
 
 	/// <summary>
 	/// 136枚をシャッフルし、王牌14枚を分離した牌山を生成する。

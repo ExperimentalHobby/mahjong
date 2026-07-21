@@ -171,6 +171,18 @@ public class WallTests
 		Assert.Equal(doraIndicatorBefore, wall.DoraIndicator);
 	}
 
+	/// <summary>パス条件: DrawReplacement() 呼び出し後も UraDoraIndicator が変化しないこと。</summary>
+	[Fact]
+	public void DrawReplacement_DoesNotChangeUraDoraIndicator()
+	{
+		var wall = Wall.CreateShuffled(new Random(1));
+		var uraDoraIndicatorBefore = wall.UraDoraIndicator;
+
+		wall.DrawReplacement();
+
+		Assert.Equal(uraDoraIndicatorBefore, wall.UraDoraIndicator);
+	}
+
 	/// <summary>パス条件: 生牌山が0枚のときに DrawReplacement() を呼ぶと InvalidOperationException になること。</summary>
 	[Fact]
 	public void DrawReplacement_WhenLiveWallIsEmpty_Throws()

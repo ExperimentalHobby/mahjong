@@ -3,10 +3,12 @@ namespace Mahjong.Core.Domain;
 /// <summary>
 /// 四人麻雀の卓状態を管理し、ツモ・打牌・鳴き（ポン・チー・カン全種）・リーチ・ロン・ツモ和了・流局判定による
 /// 手番進行を統括する。ロン/ツモ和了の成立時に<see cref="WinningYaku"/>で役牌・三暗刻・リーチ・ダブル立直・
-/// 一発・嶺上開花・海底摸月・河底撈魚・槍槓・天和・地和を含む役を確定させ、<see cref="WinningHan"/>・
-/// <see cref="WinningFu"/>・<see cref="WinningPoints"/>で翻数・符・点数も計算し、<see cref="Scores"/>で
-/// 座席ごとの持ち点も実際に増減させる（役満を除く）。裏ドラ、供託・積み棒、局の推移（連荘・場風の遷移）は
-/// 対象外（今後のマイルストーンで対応）。
+/// 一発・嶺上開花・海底摸月・河底撈魚・槍槓・天和・地和を含む役を確定させ、<see cref="WinningHan"/>
+/// （表ドラ・裏ドラ・赤ドラ込み）・<see cref="WinningFu"/>・<see cref="WinningPoints"/>（積み棒込み）で
+/// 翻数・符・点数も計算し、<see cref="Scores"/>で座席ごとの持ち点も実際に増減させる（役満を除く）。
+/// 供託（リーチ棒）は<see cref="RiichiStickPot"/>で管理し和了者がまとめて獲得する。荒牌流局時の聴牌払いは
+/// <see cref="SettleExhaustiveDraw"/>で行う。局の推移（連荘・場風の遷移、次局への持ち点/供託/積み棒の
+/// 引き継ぎ）は対象外（今後のマイルストーンで対応）。
 /// </summary>
 public sealed class MahjongEngine
 {
@@ -20,13 +22,15 @@ public sealed class MahjongEngine
 	private bool _hasAnyCallOccurred;
 	private readonly HashSet<Seat> _doubleRiichiSeats;
 	private readonly HashSet<Seat> _ippatsuEligibleSeats;
+	private int _riichiStickPot;
 
 	/// <summary>テスト用に卓状態を直接組み立てるための内部コンストラクタ。</summary>
 	internal MahjongEngine(
 		Wall wall, Dictionary<Seat, Hand> hands, Seat currentTurn, (Tile Tile, Seat Discarder)? lastDiscard,
 		IReadOnlyList<Seat>? winners = null, Seat roundWind = Seat.East, bool isRinshanDraw = false,
 		bool isChankanTile = false, Dictionary<Seat, int>? scores = null, bool hasAnyCallOccurred = false,
-		IEnumerable<Seat>? doubleRiichiSeats = null, IEnumerable<Seat>? ippatsuEligibleSeats = null)
+		IEnumerable<Seat>? doubleRiichiSeats = null, IEnumerable<Seat>? ippatsuEligibleSeats = null,
+		int honbaCount = 0, int riichiStickPot = 0)
 	{
 		_wall = wall;
 		_hands = hands;
@@ -40,7 +44,18 @@ public sealed class MahjongEngine
 		_hasAnyCallOccurred = hasAnyCallOccurred;
 		_doubleRiichiSeats = doubleRiichiSeats is null ? [] : [.. doubleRiichiSeats];
 		_ippatsuEligibleSeats = ippatsuEligibleSeats is null ? [] : [.. ippatsuEligibleSeats];
+		HonbaCount = honbaCount;
+		_riichiStickPot = riichiStickPot;
 	}
+
+	/// <summary>この局の本場数（積み棒の本数）。連荘判定による増減は局の推移マイルストーンで対応する。</summary>
+	public int HonbaCount { get; }
+
+	/// <summary>
+	/// 供託（リーチ棒）の合計点数。リーチ宣言のたびに1000点ずつ積まれ、和了者がまとめて獲得する。
+	/// 誰も和了しなかった場合はそのまま残る（次局への繰り越しは局の推移マイルストーンで対応する）。
+	/// </summary>
+	public int RiichiStickPot => _riichiStickPot;
 
 	/// <summary>現在の手番の座席。</summary>
 	public Seat CurrentTurn { get; private set; }
@@ -115,6 +130,12 @@ public sealed class MahjongEngine
 	/// <summary>生牌山が尽きて、かつ誰も和了しておらず三家和でもない場合に<c>true</c>になる（荒牌流局）。</summary>
 	public bool IsExhaustiveDraw => Winners.Count == 0 && !IsTripleRonDraw && LiveWallCount == 0;
 
+	/// <summary>
+	/// 荒牌流局が成立し<see cref="SettleExhaustiveDraw"/>を呼んだ後、聴牌していた座席の一覧。
+	/// 未成立の間は空。
+	/// </summary>
+	public IReadOnlyList<Seat> TenpaiSeats { get; private set; } = [];
+
 	/// <summary>座席ごとの手牌。</summary>
 	public IReadOnlyDictionary<Seat, Hand> Hands => _hands;
 
@@ -178,6 +199,8 @@ public sealed class MahjongEngine
 		LastDiscard = (tile, discarder);
 		_isChankanTile = false;
 		_ippatsuEligibleSeats.Add(discarder);
+		_scores[discarder] -= 1000;
+		_riichiStickPot += 1000;
 		CurrentTurn = NextSeat(discarder);
 	}
 
@@ -305,6 +328,13 @@ public sealed class MahjongEngine
 		}
 
 		Winners = callers;
+		if (_riichiStickPot > 0)
+		{
+			var potWinner = FindClosestSeat(lastDiscard.Discarder, callers);
+			_scores[potWinner] += _riichiStickPot;
+			_riichiStickPot = 0;
+		}
+
 		var winningYaku = new Dictionary<Seat, IReadOnlyList<Yaku>>();
 		var winningHan = new Dictionary<Seat, int>();
 		var winningFu = new Dictionary<Seat, int>();
@@ -335,14 +365,15 @@ public sealed class MahjongEngine
 			winningYaku[caller] = yaku;
 			if (!HanCalculator.IsYakuman(yaku))
 			{
-				var han = HanCalculator.CalculateHan(yaku, _hands[caller].Melds.Count == 0);
-
 				var hypotheticalTiles = new List<Tile>(_hands[caller].ConcealedTiles) { lastDiscard.Tile };
+				var han = HanCalculator.CalculateHan(yaku, _hands[caller].Melds.Count == 0) +
+					CalculateDoraHan(hypotheticalTiles, _hands[caller].Melds, _hands[caller].IsRiichi);
+
 				var fu = FuCalculator.CalculateFu(
 					hypotheticalTiles, _hands[caller].Melds, yaku, caller, RoundWind, lastDiscard.Tile);
 				winningHan[caller] = han;
 				winningFu[caller] = fu;
-				var points = ScoreCalculator.CalculateRonPoints(han, fu, isDealer: caller == DealerSeat);
+				var points = ScoreCalculator.CalculateRonPoints(han, fu, isDealer: caller == DealerSeat, HonbaCount);
 				winningPoints[caller] = points;
 				_scores[caller] += points;
 				_scores[lastDiscard.Discarder] -= points;
@@ -458,6 +489,12 @@ public sealed class MahjongEngine
 		}
 
 		Winners = [CurrentTurn];
+		if (_riichiStickPot > 0)
+		{
+			_scores[CurrentTurn] += _riichiStickPot;
+			_riichiStickPot = 0;
+		}
+
 		var yaku = new List<Yaku>(_hands[CurrentTurn].DetermineYaku(CurrentTurn, RoundWind));
 		if (_isRinshanDraw)
 		{
@@ -490,14 +527,15 @@ public sealed class MahjongEngine
 		var winningPoints = new Dictionary<Seat, int>();
 		if (!HanCalculator.IsYakuman(yaku))
 		{
-			var han = HanCalculator.CalculateHan(yaku, _hands[CurrentTurn].Melds.Count == 0);
+			var han = HanCalculator.CalculateHan(yaku, _hands[CurrentTurn].Melds.Count == 0) +
+				CalculateDoraHan(_hands[CurrentTurn].ConcealedTiles, _hands[CurrentTurn].Melds, _hands[CurrentTurn].IsRiichi);
 			var fu = FuCalculator.CalculateFu(
 				_hands[CurrentTurn].ConcealedTiles, _hands[CurrentTurn].Melds, yaku, CurrentTurn, RoundWind, ronTile: null);
 			winningHan[CurrentTurn] = han;
 			winningFu[CurrentTurn] = fu;
 			if (CurrentTurn == DealerSeat)
 			{
-				var each = ScoreCalculator.CalculateDealerTsumoPointsFromEach(han, fu);
+				var each = ScoreCalculator.CalculateDealerTsumoPointsFromEach(han, fu, HonbaCount);
 				winningPoints[CurrentTurn] = each * 3;
 				foreach (var seat in _hands.Keys.Where(seat => seat != CurrentTurn))
 				{
@@ -508,7 +546,7 @@ public sealed class MahjongEngine
 			}
 			else
 			{
-				var (fromDealer, fromNonDealer) = ScoreCalculator.CalculateNonDealerTsumoPoints(han, fu);
+				var (fromDealer, fromNonDealer) = ScoreCalculator.CalculateNonDealerTsumoPoints(han, fu, HonbaCount);
 				winningPoints[CurrentTurn] = fromDealer + (fromNonDealer * 2);
 				_scores[DealerSeat] -= fromDealer;
 				foreach (var seat in _hands.Keys.Where(seat => seat != CurrentTurn && seat != DealerSeat))
@@ -525,6 +563,28 @@ public sealed class MahjongEngine
 		WinningPoints = winningPoints;
 	}
 
+	/// <summary>
+	/// 荒牌流局（<see cref="IsExhaustiveDraw"/>）の聴牌/ノーテンを判定し、点数を授受する。
+	/// 供託（<see cref="RiichiStickPot"/>）は誰も和了していないためそのまま残る。
+	/// </summary>
+	/// <exception cref="InvalidOperationException"><see cref="IsExhaustiveDraw"/>が<c>false</c>の場合。</exception>
+	public void SettleExhaustiveDraw()
+	{
+		if (!IsExhaustiveDraw)
+		{
+			throw new InvalidOperationException("荒牌流局の状態ではありません。");
+		}
+
+		var tenpaiSeats = _hands.Where(pair => pair.Value.CalculateShanten() == 0).Select(pair => pair.Key).ToList();
+		var (perTenpaiGain, perNotenLoss) = ScoreCalculator.CalculateExhaustiveDrawPayments(tenpaiSeats.Count);
+		foreach (var seat in _hands.Keys)
+		{
+			_scores[seat] += tenpaiSeats.Contains(seat) ? perTenpaiGain : -perNotenLoss;
+		}
+
+		TenpaiSeats = tenpaiSeats;
+	}
+
 	/// <summary>この卓状態の独立した複製を返す（複製後は互いの操作が影響し合わない）。</summary>
 	public MahjongEngine Clone()
 	{
@@ -536,13 +596,15 @@ public sealed class MahjongEngine
 
 		return new MahjongEngine(
 			_wall.Clone(), clonedHands, CurrentTurn, LastDiscard, Winners, RoundWind, _isRinshanDraw, _isChankanTile,
-			new Dictionary<Seat, int>(_scores), _hasAnyCallOccurred, _doubleRiichiSeats, _ippatsuEligibleSeats)
+			new Dictionary<Seat, int>(_scores), _hasAnyCallOccurred, _doubleRiichiSeats, _ippatsuEligibleSeats,
+			HonbaCount, _riichiStickPot)
 		{
 			WinningYaku = WinningYaku,
 			WinningHan = WinningHan,
 			WinningFu = WinningFu,
 			WinningPoints = WinningPoints,
 			IsTripleRonDraw = IsTripleRonDraw,
+			TenpaiSeats = TenpaiSeats,
 		};
 	}
 
@@ -554,4 +616,33 @@ public sealed class MahjongEngine
 		Seat.North => Seat.East,
 		_ => throw new InvalidOperationException($"未知のSeatです: {seat}"),
 	};
+
+	/// <summary>
+	/// <paramref name="from"/>から<see cref="NextSeat"/>を辿り、<paramref name="candidates"/>に最初に
+	/// 一致する座席を返す（ダブロン時、放銃者に最も近い和了者が供託を総取りする、という判定に使う）。
+	/// </summary>
+	private static Seat FindClosestSeat(Seat from, IReadOnlyList<Seat> candidates)
+	{
+		var seat = NextSeat(from);
+		while (!candidates.Contains(seat))
+		{
+			seat = NextSeat(seat);
+		}
+
+		return seat;
+	}
+
+	/// <summary>
+	/// 表ドラ・赤ドラの翻数を計算する。リーチ中（<paramref name="isRiichi"/>）であれば裏ドラも加算する。
+	/// </summary>
+	private int CalculateDoraHan(IReadOnlyList<Tile> tiles, IReadOnlyList<Meld> melds, bool isRiichi)
+	{
+		var doraIndicators = new List<Tile> { _wall.DoraIndicator };
+		if (isRiichi)
+		{
+			doraIndicators.Add(_wall.UraDoraIndicator);
+		}
+
+		return DoraCalculator.CountDora(tiles, melds, doraIndicators) + DoraCalculator.CountAkaDora(tiles, melds);
+	}
 }
